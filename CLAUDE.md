@@ -11,7 +11,10 @@ baixados por `sync` e liberados por licença.
 | **`legalsquad`** (este) | Motor + plataforma de distribuição | **sim** — é onde o motor evolui |
 | `~/Documents/Projetos/Devlop/criminalsquad/app` | Fonte do conteúdo criminal **e** produto que vende hoje (Núcleo, turma fundadora) | **NÃO** |
 | `~/Devlop/dtsquad` | Fonte do conteúdo trabalhista | **NÃO** |
-| `~/Devlop/ejsquad/app` | Fonte do conteúdo extrajudicial | **NÃO** |
+
+> `~/Devlop/ejsquad/app` (fonte do conteúdo extrajudicial) **não existe no disco** — nem
+> `~/Devlop/ejsquad`. Hoje só `criminalsquad` (520 skills) e `dtsquad` (405) estão presentes.
+> Ver [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
 
 > **Regra dura:** o `build-area` **lê** os repos de conteúdo e produz pacotes. Nenhum passo escreve
 > neles. O critério de aceite de toda fase inclui conferir que esses repos ficam com
@@ -47,6 +50,9 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
 - [`docs/specs/legalsquad/ARQUITETURA.md`](docs/specs/legalsquad/ARQUITETURA.md) — a decisão, tipos de
   pacote, licença/tiers, camada vertical, nome/comando.
 - [`docs/specs/legalsquad/MIGRACAO.md`](docs/specs/legalsquad/MIGRACAO.md) — plano F0–F5.
+- [`docs/specs/legalsquad/F0-SANEAMENTO.md`](docs/specs/legalsquad/F0-SANEAMENTO.md) — o saneamento da
+  suíte e da fronteira: por que 20 falhas eram regressão, o que virou fixture sintética, e a dívida de
+  matéria criminal ainda hardcoded no motor (§5-bis).
 - [`docs/specs/acervo-server/SPEC.md`](docs/specs/acervo-server/SPEC.md) — formato de pacote,
   manifesto, assinatura, delta, contratos de API. **Um pipeline carrega skills e acervo.**
 
@@ -61,10 +67,26 @@ Commit inicial: `19e29be`.
   templates. Rename é mecânico mas é diff grande — decisão em `ARQUITETURA.md §6`
   (recomendação: manter `criminalsquad` como bundle comercial e renomear quando a 2ª área for
   vendida). `legalsquad` já existe como alias de bin.
-- **Pacote `transversal` não extraído** — as ~20 skills que servem qualquer área.
-- **Testes dependentes de conteúdo falham**: a suíte foi copiada inteira e calculadoras, execução,
-  acervo e catálogo de skills não têm conteúdo para testar. Eles pertencem ao repo da área;
-  separar em F1. **Não trate como regressão.**
+- **Pacote `transversal` não extraído** — as ~20 skills que servem qualquer área. O conjunto já é
+  **derivável hoje**, sem depender do `ejsquad`: a interseção de nomes entre `criminalsquad` e
+  `dtsquad` dá exatamente 20 entradas (19 skills + `_evals`), confirmando o número da
+  `ARQUITETURA §3`. `incidente-falsidade-documental` é a única com cara de matéria — o F1 decide se é
+  transversal de verdade ou por acidente de fork. Extrair à mão seria uma 2ª cópia; isso é trabalho do
+  `build-area` (F1).
+- **A suíte está verde, com 7 falhas conhecidas — não é bug.** `npm test` → 283 passam, 7 falham, 0
+  skip, 0 todo. A afirmação anterior deste documento — que as falhas "não são regressão" — **estava
+  errada**: das 98 falhas originais, ~20 eram regressão de verdade (o F0 apagou os wrappers de IDE do
+  comando e o `catalog-scout`, que são motor, junto com o conteúdo jurídico — foram restaurados),
+  ~21 eram matéria jurídica de área (calculadoras criminais, execução penal — removidas com razão) e
+  ~57 eram motor testado tendo as skills criminais como fixture — hoje reapontadas para
+  `tests/fixtures/area-demo/` (sintética, sem matéria jurídica real). As 7 falhas que restam são dívida
+  documentada e aceita, não trabalho esquecido: `init.test.js` (4), `update.test.js` (2) e
+  `cli.test.js` (1) falham porque `installAllSkills`, `syncSkillCatalogArtifacts` (`src/init.js`) e o
+  `resource-cli` resolvem o manifesto `_execucao-penal-v3-integration.yaml` por nome fixo, em vez de
+  aceitar raiz parametrizada — parametrizar agora seria inventar a interface do pacote de área antes do
+  `build-area` existir. Ver [`F0-SANEAMENTO.md §5-bis`](docs/specs/legalsquad/F0-SANEAMENTO.md). A
+  não-regressão dessa dívida — nenhum arquivo novo passando a conter matéria jurídica — é guardada por
+  `tests/fronteira.test.js`.
 
 ## Próximo passo: F1 — o exportador
 

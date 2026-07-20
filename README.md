@@ -12,7 +12,10 @@ Motor de orquestração multi-agente para o Direito.
 | **`legalsquad`** (este) | Motor + plataforma: roteador, Arquiteto, gates, CLI, `sync`, licença, empacotamento | é onde o motor evolui |
 | `criminalsquad` | Fonte do conteúdo criminal **e** o produto que vende hoje | **intocado** |
 | `dtsquad` | Fonte do conteúdo trabalhista | **intocado** |
-| `ejsquad` | Fonte do conteúdo extrajudicial | **intocado** |
+
+> `ejsquad` (fonte do conteúdo extrajudicial) **não existe no disco**. Hoje só `criminalsquad`
+> (520 skills) e `dtsquad` (405) estão presentes — ver
+> [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
 
 O `build-area` **lê** um repositório de conteúdo e produz o pacote assinado — **somente leitura**.
 O conteúdo continua sendo autorado no repo da sua área; o LegalSquad empacota e distribui.
@@ -33,6 +36,9 @@ calculadoras específicas de área.
 - [`docs/specs/legalsquad/ARQUITETURA.md`](docs/specs/legalsquad/ARQUITETURA.md) — a decisão, o corte
   núcleo × pacote, tipos de pacote, licença e a camada vertical.
 - [`docs/specs/legalsquad/MIGRACAO.md`](docs/specs/legalsquad/MIGRACAO.md) — plano de construção F0–F5.
+- [`docs/specs/legalsquad/F0-SANEAMENTO.md`](docs/specs/legalsquad/F0-SANEAMENTO.md) — o saneamento da
+  suíte e da fronteira núcleo × pacote, incluindo a dívida de matéria criminal ainda hardcoded no
+  motor.
 - [`docs/specs/acervo-server/SPEC.md`](docs/specs/acervo-server/SPEC.md) — o mecanismo de pacote,
   assinatura, delta e sync (um pipeline carrega **skills e acervo**).
 
@@ -45,9 +51,15 @@ jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqu
 
 - **Identidade interna ainda é `criminalsquad`** (comando, `_criminalsquad/`, textos). O rename é
   mecânico e está pendente de decisão — ver `ARQUITETURA.md §6`.
-- **Pacote `transversal` ainda não extraído** (as ~20 skills que servem qualquer área).
-- **Testes dependentes de conteúdo** (calculadoras, execução, acervo, catálogo de skills) foram
-  copiados e **vão falhar sem conteúdo** — eles pertencem ao repo da área. Separar em F1.
+- **Pacote `transversal` ainda não extraído** (as ~20 skills que servem qualquer área). O conjunto já
+  é derivável hoje: a interseção de nomes entre `criminalsquad` e `dtsquad` dá exatamente 20 entradas
+  (19 skills + `_evals`), sem depender do `ejsquad` — ver
+  [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
+- **A suíte está verde:** `npm test` → 283 passam, 7 falham, 0 skip, 0 todo. As 7 falhas são dívida
+  documentada (não bug) — `installAllSkills`, `syncSkillCatalogArtifacts` e o `resource-cli` ainda
+  resolvem um manifesto de área por nome fixo em vez de raiz parametrizada. Detalhe completo em
+  [`F0-SANEAMENTO.md §5-bis`](docs/specs/legalsquad/F0-SANEAMENTO.md). A não-regressão dessa dívida é
+  guardada por `tests/fronteira.test.js`.
 
 ## Regras do projeto
 
