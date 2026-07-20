@@ -112,7 +112,7 @@ Do NOT ask the user about tools. Instead:
    - Research squads → check for: apify
    - Legal/criminal squads → check for the peça skills (apelacao, rese, habeas-corpus, queixa-crime, embargos-*, contrarrazoes-*, revisao-criminal, etc.) and the integration skills (email-juridico, agenda-juridica, monitor-dje, publicacao-redes)
    - Any squad → note built-in capabilities: web browsing, file reading/writing, code execution
-3. **Reuse scan — delegue ao subagente `catalog-scout` quando possível.** Para mapear o que reaproveitar — best-practices (`_catalog.yaml`), skills (`skills/`) e **subagentes especialistas** (`.claude/agents/`, ex.: `jurisprudencia-stj-stf`, `defesa-criminal-resposta-acusacao`, `triagem-novo-caso`, `monitor-dje-djen`, `resumo-processo`) — prefira acionar o subagente read-only **`catalog-scout`** passando o propósito do squad: ele varre tudo em **contexto isolado** e devolve uma **shortlist** dos itens reutilizáveis (mantém a Discovery enxuta). Se não for possível delegar (execução aninhada), faça o scan inline. O squad **DEVE REUSAR** esses especialistas em vez de recriar a expertise.
+3. **Reuse scan — delegue ao subagente `catalog-scout` quando possível.** Para mapear o que reaproveitar — best-practices (`_catalog.yaml`), skills (`skills/`) e **subagentes especialistas** (`.claude/agents/`, ex.: `jurisprudencia-stj-stf`, `defesa-criminal-resposta-acusacao`, `triagem-novo-caso`, `monitor-dje-djen`, `resumo-processo`) — prefira acionar o subagente read-only **`catalog-scout`** passando o propósito do squad: ele varre tudo em **contexto isolado** e devolve uma **shortlist** dos itens reutilizáveis (mantém a Discovery enxuta). Se não for possível delegar (execução aninhada), faça o scan inline. O squad **DEVE REUSAR** esses especialistas em vez de recriar a expertise. **Os nomes citados são exemplos de uma área instalada** — a lista real é o conteúdo efetivo de `.claude/agents/`: valide cada candidato com ls/Glob antes de gravá-lo em `specialist_agents` e **nunca grave um nome que não exista no disco**. Numa instalação sem área, o catálogo se resume ao núcleo (`catalog-scout`, `verificador-citacoes`, `avaliador-squad`) e `specialist_agents` pode legitimamente ficar vazio.
 4. Save the auto-selected tools in `tools_needed`, the reusable specialists in `specialist_agents`, and the catalogue decision in `catalog_context` — they will appear in the Step 7 summary where the user can adjust them. Registre também candidatos recusados por lifecycle para o Design não reintroduzi-los.
 
 ---
@@ -175,7 +175,7 @@ Skip this step entirely for non-content domains.
 If domain = `content`, ask:
 > "Para quais formatos/plataformas esse squad vai produzir conteúdo?"
 
-Scan the `_criminalsquad/core/best-practices/` directory at runtime. List ONLY the filenames — do NOT read or load the file contents. Ask: "Which formats interest you? Can be more than one."
+Scan the `_criminalsquad/core/best-practices/` directory at runtime. List ONLY the filenames — do NOT read or load the file contents. Se o diretório **não existir** (nenhuma área instalada), informe que não há formatos instalados nesta instalação e siga com `target_formats: []` — não invente formatos. Ask: "Which formats interest you? Can be more than one."
 
 Present as a numbered list.
 

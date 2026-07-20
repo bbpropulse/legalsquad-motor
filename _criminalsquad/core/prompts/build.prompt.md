@@ -126,7 +126,7 @@ Use knowledge from the best-practices files to write sections with high quality.
 
 **Reused specialists:** when the design marks an agent as orchestrating an existing subagent from `.claude/agents/` (the `specialist_agents` chosen in Discovery), keep that agent file thin. Its Operational Framework MUST instruct it to invoke/delegate to the native subagent by name (e.g., "use o subagente `jurisprudencia-stj-stf`") and, for redator roles, to load the matching peça skill from `skills/`. Do NOT duplicate the specialist's domain knowledge into the agent file — reference it.
 
-**Agentes de alta performance (contrato operacional — TODO agente gerado).** Antes de redigir cada agente, leia `_criminalsquad/core/best-practices/skills-alta-performance.md` — os mesmos princípios de alta performance governam agentes. Não gere agentes "descritivos": gere agentes fail-closed, calibrados e verificáveis. Estes pontos entram, de forma **específica ao papel** (não como texto genérico colado), nos `## Principles`, no `### Decision Criteria` e nas `## Quality Criteria`:
+**Agentes de alta performance (contrato operacional — TODO agente gerado).** Antes de redigir cada agente, leia `_criminalsquad/core/best-practices/skills-alta-performance.md` — os mesmos princípios de alta performance governam agentes. Se o arquivo **não existir** (área ainda não instalada), os oito pontos abaixo **são** o resumo operacional: aplique-os diretamente e registre a ausência no Quality Report. Não gere agentes "descritivos": gere agentes fail-closed, calibrados e verificáveis. Estes pontos entram, de forma **específica ao papel** (não como texto genérico colado), nos `## Principles`, no `### Decision Criteria` e nas `## Quality Criteria`:
 
 - **Bloqueio antes de inventar:** faltando input material, o agente devolve `status: blocked` e lista a diligência que destrava — nunca preenche lacuna por suposição.
 - **Fato → prova → inferência → tese:** separa o documental do inferido; relato não vira fato, inferência não vira prova.
@@ -139,7 +139,7 @@ Use knowledge from the best-practices files to write sections with high quality.
 
 Reuse antes de criar agente: quando um subagente especialista de `.claude/agents/` já cobre o papel, o agente do squad delega a ele pelo nome (ver "Reused specialists") em vez de recriar a expertise.
 
-**Qualidade de agentes jurídicos** (redator/pesquisador/revisor de squads de peça — espelhe `defesa-criminal-completa/agents/`): os `## Principles` DEVEM incluir, de forma específica (não genérica): **"escopo é lei"** (desenvolver só as teses aprovadas, nada a mais), **"todo argumento tem fundamento"** (cada tese cita súmula/precedente/dispositivo vindo da pesquisa — sem fundamento, não vai para a peça), **estrutura forense completa** da peça (endereçamento → preliminares → mérito → provas/testemunhas → fecho, conforme a best-practice `peticao-criminal`/`recurso-criminal`), e **"no loop, cirurgia"** (em re-execução por `on_reject`, aplicar só os `fixes`). O revisor inclui o veredito estruturado e a conferência de citações. Peças criminais novas (skills) seguem o formato das skills `type: prompt` já existentes em `skills/`.
+**Qualidade de agentes jurídicos** (redator/pesquisador/revisor de squads de peça — espelhe `defesa-criminal-completa/agents/` quando o squad-modelo estiver instalado; sem ele, os requisitos enumerados aqui e em "Requisitos jurídicos do step" são a especificação completa): os `## Principles` DEVEM incluir, de forma específica (não genérica): **"escopo é lei"** (desenvolver só as teses aprovadas, nada a mais), **"todo argumento tem fundamento"** (cada tese cita súmula/precedente/dispositivo vindo da pesquisa — sem fundamento, não vai para a peça), **estrutura forense completa** da peça (endereçamento → preliminares → mérito → provas/testemunhas → fecho, conforme a best-practice `peticao-criminal`/`recurso-criminal`), e **"no loop, cirurgia"** (em re-execução por `on_reject`, aplicar só os `fixes`). O revisor inclui o veredito estruturado e a conferência de citações. Peças criminais novas (skills) seguem o formato das skills `type: prompt` já existentes em `skills/`.
 
 The squad-party.csv `path` column points to: `./agents/{agent-id}.agent.md`
 
@@ -454,7 +454,7 @@ Reject and redo if ANY of these are true:
 
 ### Requisitos jurídicos do step (peça/parecer/recurso) — siga o squad-modelo `defesa-criminal-completa`
 
-Quando o squad produz uma **peça protocolável, parecer ou pesquisa que cita lei/súmula/tese/precedente** (qualquer squad de domínio jurídico que gere documento de saída), os steps GERADOS devem trazer, no corpo, este wiring — não basta planejar no design, tem de estar escrito no step:
+Quando o squad produz uma **peça protocolável, parecer ou pesquisa que cita lei/súmula/tese/precedente** (qualquer squad de domínio jurídico que gere documento de saída), os steps GERADOS devem trazer, no corpo, este wiring — não basta planejar no design, tem de estar escrito no step. (Se o squad-modelo não estiver instalado, o wiring abaixo é a especificação completa — não é preciso consultá-lo para cumprir este gate.)
 
 - **Step de PESQUISA:** seção que manda **marcar `[NÃO VERIFICADO]`** toda citação não confirmada no `acervo/` ou fonte oficial (STJ/STF/DJEN) e `[DIVERGENTE]` quando a fonte não bate. Na dúvida, `[NÃO VERIFICADO]`.
 - **Step de REDAÇÃO:** "todo argumento tem fundamento" — nenhuma tese sem citação vinda da pesquisa; nada citado de memória; o hook `verifica-citacoes` bloqueia gravar peça com marcador pendente. No loop (entrada por `on_reject`), aplica **apenas os `fixes`** (feedback-delta), não reescreve do zero. **Padrão de obra-prima:** o step instrui carregar e aplicar a best-practice `redacao-persuasiva-criminal` (teoria do caso em 1 frase antes de escrever; narrativa dos fatos com âncoras concretas; bloco argumentativo completo — afirmação → premissa → aplicação ao fato → consequência; eventualidade sem autofagia; refutação antecipada; subtítulos que afirmam a tese; precedente narrado com similitude fática).
@@ -477,7 +477,7 @@ O squad pode precisar de uma capability que **nenhuma** skill existente cobre (o
 
 Quando criar for inevitável, para CADA skill nova:
 
-1. **Leia a doutrina e um exemplar.** Leia `_criminalsquad/core/best-practices/skills-alta-performance.md` (princípios, contrato mínimo, portões jurídicos, hard fails) e abra 1–2 skills do mesmo domínio em `skills/` como calibragem de profundidade e tom (ex.: uma `defesa-*` para peça/tese; uma `ep-*` para execução penal).
+1. **Leia a doutrina e um exemplar.** Leia `_criminalsquad/core/best-practices/skills-alta-performance.md` (princípios, contrato mínimo, portões jurídicos, hard fails) e abra 1–2 skills do mesmo domínio em `skills/` como calibragem de profundidade e tom (ex.: uma `defesa-*` para peça/tese; uma `ep-*` para execução penal). Se a doutrina ou o exemplar **não existirem** (área não instalada / catálogo vazio), siga com o contrato v5 abaixo como especificação única e registre a ausência no Quality Report — nunca dilua o contrato por falta de exemplo.
 
 2. **Autore `skills/{nome}/SKILL.md`** com:
    - **Frontmatter inicial mínimo** (o pipeline completa o resto — NÃO escreva à mão o bloco `<!-- CRIMINALSQUAD:HP-CONTRACT -->`, nem `references/`, nem `agents/openai.yaml`, nem o eval):
@@ -567,9 +567,10 @@ If ANY check fails: fix the task file and re-validate. Max 2 fix attempts.
 ### Gate 1c: Reuse Verification (BLOCKING)
 
 O maior valor do squad é **não reinventar expertise**. Para CADA subagente especialista listado no `discovery.yaml` em `specialist_agents` (os experts de `.claude/agents/` escolhidos na Discovery), verifique:
+- [ ] O especialista **EXISTE no disco**: `.claude/agents/{nome}.md` está presente (confira com ls/Glob — **menção não é existência**; delegar a um agente que não está instalado é reuso fantasma e reprova o gate).
 - [ ] Algum agente gerado **ou** step do pipeline referencia esse especialista **pelo nome** (ex.: o texto contém `jurisprudencia-stj-stf`). Use grep em `squads/{code}/agents/` e `squads/{code}/pipeline/`.
 
-Se um especialista escolhido **não** é referenciado por nenhum arquivo do squad, o reuso foi perdido. Corrija: faça o agente/step fino **delegar ao especialista pelo nome** (não recrie a expertise — ver Step B "Reused specialists"). Máx 2 tentativas; depois, apresente ao usuário (o especialista pode ser genuinamente dispensável — deixe o usuário confirmar antes de descartá-lo).
+Se um especialista escolhido **não existe** em `.claude/agents/`, o defeito veio da Discovery (gravou um nome não instalado): remova-o de `specialist_agents`, ajuste o agente/step para cobrir o papel sem delegação fantasma e registre a correção no Quality Report. Se existe mas **não** é referenciado por nenhum arquivo do squad, o reuso foi perdido. Corrija: faça o agente/step fino **delegar ao especialista pelo nome** (não recrie a expertise — ver Step B "Reused specialists"). Máx 2 tentativas; depois, apresente ao usuário (o especialista pode ser genuinamente dispensável — deixe o usuário confirmar antes de descartá-lo).
 
 ### Gate 2: Step Completeness (BLOCKING)
 
@@ -623,7 +624,7 @@ Verifique programaticamente (leia/`grep` os arquivos gerados):
 - [ ] **Ética/sigilo:** algum agente/step referencia a best-practice `etica-oab-sigilo` (e, havendo conteúdo público, `conteudo-juridico-redes`/Provimento 205).
 - [ ] **Meta verificável:** o `squad.yaml` tem `goal` (1 frase) e `success_criteria` (3–6 critérios verificáveis) — o runner usa-os na Verificação da Meta (goal-backward) antes de concluir.
 
-Se QUALQUER item falhar: corrija o arquivo (replicando o padrão do squad-modelo `defesa-criminal-completa` — steps 03/05/07) e revalide. Máx 2 tentativas; depois, apresente ao usuário o que não pôde ser garantido (nunca finalize um squad jurídico sem revisão isolada + Citation Gate).
+Se QUALQUER item falhar: corrija o arquivo (replicando o padrão do squad-modelo `defesa-criminal-completa` — steps 03/05/07 — quando instalado; sem ele, o wiring da seção "Requisitos jurídicos do step" é a referência) e revalide. Máx 2 tentativas; depois, apresente ao usuário o que não pôde ser garantido (nunca finalize um squad jurídico sem revisão isolada + Citation Gate).
 
 ### Gate 5: Skills novas no contrato operacional v5 (BLOCKING)
 
@@ -648,6 +649,8 @@ Additional programmatic checks — read the filesystem to verify:
 - [ ] All step files referenced in `pipeline.yaml` exist
 - [ ] Skills listed in `squad.yaml` are installed in `skills/`
 - [ ] Best-practices files referenced by `format:` fields in steps exist in `_criminalsquad/core/best-practices/`
+- [ ] `squads/{code}/_evals/scores.md` exists with the regression-log header (`| Data | Run/Caso | Nota | Verdict | Observações |`)
+- [ ] At least one fictitious caso-ouro exists in `squads/{code}/_evals/casos/` — o harness de eval nasce com o squad, não depois
 
 ---
 

@@ -21,6 +21,8 @@ Read these files before starting:
 
 Não inicie pesquisa, não crie agente e não desenhe step antes de ler os dois últimos arquivos e reconciliá-los com `discovery.yaml.catalog_context`. Se o domínio incluir execução penal, leia também `_criminalsquad/core/best-practices/execucao-penal-alta-performance.md` antes de qualquer pesquisa ou desenho.
 
+> **Protocolo de ausência (motor sem área instalada):** se `_criminalsquad/core/best-practices/_catalog.yaml`, `skills/_index.yaml` ou o manifesto de integração **não existirem no disco**, não trate como erro nem bloqueie o Design: registre a ausência em `design.yaml` (`catalog_context.note: "sem catálogo — área não instalada"`), pule as leituras correspondentes e prossiga em **modo GAPS** — todo papel sem correspondência de catálogo é desenhado do zero (Phase E), e nenhum agente ou step pode referenciar skill, best-practice ou especialista que não exista no disco.
+
 If investigation ran (check discovery.yaml `investigation` field):
 - `squads/{code}/_investigations/*/raw-content.md` — Raw extracted content per profile
 - `squads/{code}/_investigations/*/pattern-analysis.md` — Pattern analysis per profile
@@ -31,6 +33,8 @@ If investigation ran (check discovery.yaml `investigation` field):
 ## Phase A: Best Practices Consultation
 
 Read `_criminalsquad/core/best-practices/_catalog.yaml` to discover available best-practices files.
+
+Se o catálogo **não existir** (nenhuma área instalada), **pule a Phase A inteira**: registre no design que os agentes serão desenhados sem best-practices de domínio e **não invente conhecimento para compensar** — o modo GAPS é preferível a doutrina fabricada.
 
 Based on the squad's purpose and the domains identified in Discovery, select which best-practice files are relevant:
 
@@ -410,7 +414,7 @@ If this condition is met, after the user approves the design in Phase G, present
 
 > "O squad inclui um agente de design de imagens. Quer escolher um template visual agora para definir a identidade visual? Você pode fazer isso depois também, pedindo para editar o template do designer."
 
-- **If Yes:** Read and follow the instructions in `skills/template-designer/SKILL.md`. The template selection process takes over until the user approves a template. The approved template data (template-reference.html path and visual-identity.md path) should be included in the design.yaml output so the Build phase can reference them.
+- **If Yes:** Read and follow the instructions in `skills/template-designer/SKILL.md`. Se a skill não estiver instalada, informe que a seleção de template não está disponível nesta instalação e siga como em "If No". The template selection process takes over until the user approves a template. The approved template data (template-reference.html path and visual-identity.md path) should be included in the design.yaml output so the Build phase can reference them.
 
 - **If No:** Continue to Build phase. Add a note to design.yaml: `template_selection: skipped` so the Build phase knows no template was chosen.
 
