@@ -74,7 +74,7 @@ Commit inicial: `19e29be`.
   transversal de verdade ou por acidente de fork. Extrair à mão seria uma 2ª cópia; isso é trabalho do
   `build-area` (F1).
 - **A suíte tem 7 falhas conhecidas — dívida documentada, não bug (mas não está verde).**
-  `npm test` → 291 passam, 7 falham, 298 no total, 0 skip, 0 todo. A afirmação anterior deste
+  `npm test` → 314 passam, 7 falham, 321 no total, 0 skip, 0 todo. A afirmação anterior deste
   documento — que as falhas "não são regressão" — **estava errada**: das 98 falhas originais, ~20
   eram regressão de verdade (o F0 apagou os wrappers de IDE do comando, o `catalog-scout` **e os
   dois juízes do loop de qualidade** — `avaliador-squad` e `verificador-citacoes` —, que são
