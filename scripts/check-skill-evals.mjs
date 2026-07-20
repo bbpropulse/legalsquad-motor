@@ -5,17 +5,15 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { extractFrontMatter, parseList, parseScalar } from '../src/frontmatter.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
-const SKILLS = join(ROOT, 'skills');
-const EVALS = join(SKILLS, '_evals');
+const DEFAULT_ROOT = join(__dirname, '..');
 
-function loadCases() {
+function loadCases(evalsDir) {
   const cases = new Map();
   const problems = [];
-  if (!existsSync(EVALS)) return { cases, problems: ['skills/_evals ausente'] };
-  for (const file of readdirSync(EVALS).filter((name) => name.endsWith('.json')).sort()) {
+  if (!existsSync(evalsDir)) return { cases, problems: ['skills/_evals ausente'] };
+  for (const file of readdirSync(evalsDir).filter((name) => name.endsWith('.json')).sort()) {
     let suite;
-    try { suite = JSON.parse(readFileSync(join(EVALS, file), 'utf8')); } catch (error) {
+    try { suite = JSON.parse(readFileSync(join(evalsDir, file), 'utf8')); } catch (error) {
       problems.push(`${file}: JSON inválido (${error.message})`);
       continue;
     }
@@ -39,11 +37,12 @@ function loadCases() {
   return { cases, problems };
 }
 
-export function checkSkillEvals() {
-  const { cases, problems } = loadCases();
+export function checkSkillEvals({ root = DEFAULT_ROOT } = {}) {
+  const skillsDir = join(root, 'skills');
+  const { cases, problems } = loadCases(join(skillsDir, '_evals'));
   const covered = new Set();
-  for (const dir of readdirSync(SKILLS, { withFileTypes: true }).filter((entry) => entry.isDirectory())) {
-    const path = join(SKILLS, dir.name, 'SKILL.md');
+  for (const dir of readdirSync(skillsDir, { withFileTypes: true }).filter((entry) => entry.isDirectory())) {
+    const path = join(skillsDir, dir.name, 'SKILL.md');
     if (!existsSync(path)) continue;
     const fm = extractFrontMatter(readFileSync(path, 'utf8'));
     if (!fm) continue;

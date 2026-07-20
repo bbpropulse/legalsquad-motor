@@ -4,8 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
-const REGISTRY = join(ROOT, '_criminalsquad', 'core', 'authorities');
+const DEFAULT_ROOT = join(__dirname, '..');
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -26,10 +25,16 @@ function isFresh(record, today) {
   return age >= 0 && age <= (limits[record.revalidate_policy] ?? -1);
 }
 
-export function checkLegalAuthorities({ today = localIsoDate() } = {}) {
+export function checkLegalAuthorities({
+  today = localIsoDate(),
+  root = DEFAULT_ROOT,
+  registryDir = join(root, '_criminalsquad', 'core', 'authorities'),
+  skillsDir = join(root, 'skills'),
+} = {}) {
   const problems = [];
   const warnings = [];
   let records = 0;
+  const REGISTRY = registryDir;
   if (!existsSync(REGISTRY)) return { ok: false, problems: ['registro de autoridades ausente'], warnings, records };
 
   for (const file of readdirSync(REGISTRY).filter((name) => name.endsWith('.json')).sort()) {
@@ -58,7 +63,7 @@ export function checkLegalAuthorities({ today = localIsoDate() } = {}) {
       if (!['verified_official', 'discovery_only', 'quarantined'].includes(source.status)) problems.push(`${file}/${source.id}: status inválido`);
     }
     for (const skill of item.affected_skills || []) {
-      if (!existsSync(join(ROOT, 'skills', skill, 'SKILL.md'))) problems.push(`${file}: skill afetada inexistente ${skill}`);
+      if (!existsSync(join(skillsDir, skill, 'SKILL.md'))) problems.push(`${file}: skill afetada inexistente ${skill}`);
     }
   }
   return { ok: problems.length === 0, problems, warnings, records };

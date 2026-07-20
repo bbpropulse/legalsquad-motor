@@ -14,6 +14,7 @@ import {
   parseDeterministicEngines,
   validateSkillCatalog,
 } from '../src/skill-catalog.js';
+import { CORE_DEMO, SKILLS_DEMO } from './fixtures/caminhos.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -66,10 +67,19 @@ test('política de lifecycle cobre os cinco estados e preserva legado como activ
   assert.equal(getSkillLifecyclePolicy('quarantined').selection, 'blocked');
 });
 
-test('catálogo do repositório está fresco, íntegro e serializa gatilhos/lifecycle', async () => {
-  const result = validateSkillCatalog({ skillsDir: join(ROOT, 'skills') });
+test('catálogo da fixture está fresco, íntegro e serializa gatilhos/lifecycle', async () => {
+  // requireIntegration:false — a fixture demo não traz um manifesto de
+  // canonicalização (esse conceito é por área; ver skill-catalog.js:562 na
+  // dívida registrada em F0-SANEAMENTO.md §5-bis). bestPracticesCatalogPath
+  // aponta para o catálogo da própria fixture, não para o do motor.
+  const result = validateSkillCatalog({
+    skillsDir: SKILLS_DEMO,
+    requireIntegration: false,
+    bestPracticesCatalogPath: join(CORE_DEMO, 'best-practices', '_catalog.yaml'),
+  });
   assert.equal(result.ok, true, result.errors.map((error) => `[${error.code}] ${error.message}`).join('\n'));
-  const index = await readFile(join(ROOT, 'skills', '_index.yaml'), 'utf8');
+  assert.ok(result.catalog.entries.length > 0, 'a fixture precisa ter skills para o teste valer algo');
+  const index = await readFile(join(SKILLS_DEMO, '_index.yaml'), 'utf8');
   assert.match(index, /schema_version: 3/);
   assert.match(index, /quality_policy:/);
   assert.match(index, /quality_profile: "legal-calculation"/);
@@ -78,9 +88,9 @@ test('catálogo do repositório está fresco, íntegro e serializa gatilhos/life
   assert.match(index, /eval_case_ids:/);
   assert.match(index, /high_performance_eligible: false/);
   assert.match(index, /blocked_in_production: \[preview, deprecated, quarantined\]/);
-  assert.match(index, /positive_triggers: \["beneficio", "progressao"/);
+  assert.match(index, /positive_triggers: \["demo-calculo-beta", "demo beta"\]/);
   assert.match(index, /negative_triggers: \["entrega_producao", "peca_protocolavel", "parecer_final"\]/);
-  assert.match(index, /engines: \["fraction-date"\]/);
+  assert.match(index, /engines: \["demo-engine"\]/);
 });
 
 test('checker detecta índice stale, pasta sem SKILL, name divergente, ref quebrada e grafo inválido', async () => {
@@ -131,35 +141,59 @@ description: Divergente
   }
 });
 
-test('canonicalization cobre 73 fontes, respeita contagens e lê a entrada MS expandida', async () => {
-  const raw = await readFile(join(ROOT, 'skills', '_execucao-penal-v3-integration.yaml'), 'utf8');
+// O manifesto de canonicalização (`_execucao-penal-v3-integration.yaml`) é, ele
+// próprio, conteúdo por área — a fixture demo não traz um equivalente (ver
+// F0-SANEAMENTO.md §5-bis: o nome do arquivo está hardcoded em três lugares do
+// motor como dívida registrada para o F1). Em vez de ler um manifesto real —
+// criminal ou sintético — este teste vira um teste de unidade puro do parser:
+// o manifesto é escrito aqui mesmo, pequeno e demo-*, e as contagens são
+// derivadas do próprio texto (via regex), nunca hardcodadas — assim o teste
+// continua válido se alguém adicionar uma linha à string amanhã.
+test('parseCanonicalization cobre as fontes do manifesto, respeita as contagens e lê a entrada expandida', () => {
+  const raw = `deterministic_engines:
+  demo-engine:
+    file: scripts/legal-calculators/demo-engine-engine.mjs
+    canonical_skills: [demo-calculo-beta]
+
+canonicalization:
+    ADD: 1
+    MERGE: 1
+    SPLIT: 1
+    ABSORB: 1
+    - {source: demo-fonte-add, action: ADD, targets: [demo-peca-alpha]}
+    - {source: demo-fonte-merge, action: MERGE, targets: [demo-peca-alpha, demo-publicacao]}
+    - {source: demo-fonte-split, action: SPLIT, targets: [demo-peca-alpha, demo-publicacao]}
+    - source: demo-fonte-absorb
+      action: ABSORB
+      targets: [demo-calculo-beta]
+`;
   const canonicalization = parseCanonicalization(raw);
   assert.ok(canonicalization);
-  assert.equal(canonicalization.entries.length, 73);
-  assert.deepEqual(canonicalization.counts, { ADD: 15, MERGE: 37, SPLIT: 7, ABSORB: 14 });
+
+  const expectedEntryCount = [...raw.matchAll(/^ {4}(?:- \{source:|- source:)/gm)].length;
+  assert.ok(expectedEntryCount > 0, 'a string sintética precisa declarar ao menos uma fonte');
+  assert.equal(canonicalization.entries.length, expectedEntryCount);
+
+  const expectedCounts = { ADD: 0, MERGE: 0, SPLIT: 0, ABSORB: 0 };
+  for (const entry of canonicalization.entries) expectedCounts[entry.action]++;
+  assert.deepEqual(canonicalization.counts, expectedCounts);
+
   assert.deepEqual(
-    canonicalization.entries.find((entry) => entry.source === 'ep-peca-mandado-seguranca-correcao'),
-    {
-      source: 'ep-peca-mandado-seguranca-correcao',
-      action: 'MERGE',
-      targets: ['agravo-em-execucao', 'habeas-corpus'],
-    },
+    canonicalization.entries.find((entry) => entry.source === 'demo-fonte-merge'),
+    { source: 'demo-fonte-merge', action: 'MERGE', targets: ['demo-peca-alpha', 'demo-publicacao'] },
   );
+  // A entrada expandida (source/action/targets em linhas separadas) — a forma
+  // que a MS ocupava no manifesto real.
+  assert.deepEqual(
+    canonicalization.entries.find((entry) => entry.source === 'demo-fonte-absorb'),
+    { source: 'demo-fonte-absorb', action: 'ABSORB', targets: ['demo-calculo-beta'] },
+  );
+
   assert.deepEqual(parseDeterministicEngines(raw), [
     {
-      id: 'fraction-date',
-      file: 'scripts/legal-calculators/fraction-date-engine.mjs',
-      canonicalSkills: ['execucao-data-base-beneficios', 'execucao-progressao-regime'],
-    },
-    {
-      id: 'remission',
-      file: 'scripts/legal-calculators/remission-engine.mjs',
-      canonicalSkills: ['execucao-remicao'],
-    },
-    {
-      id: 'executory-limitation',
-      file: 'scripts/legal-calculators/executory-limitation-engine.mjs',
-      canonicalSkills: ['calculadora-prescricao'],
+      id: 'demo-engine',
+      file: 'scripts/legal-calculators/demo-engine-engine.mjs',
+      canonicalSkills: ['demo-calculo-beta'],
     },
   ]);
 });
