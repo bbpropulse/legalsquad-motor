@@ -292,8 +292,15 @@ caminho.
 
 Ordem de execução: **A → B → C → pacote**.
 
-1. `npm test` com **zero falhas e zero `skip`**. Hoje: 206 passam, 98 falham. Depois: as ~21 falhas
-   de Classe B desaparecem porque os testes saem do repo; as ~77 restantes (A + C) **passam**.
+1. `npm test` com **zero `skip`** e falhas apenas as que a dívida da §5-bis torna inevitáveis.
+   Hoje: 206 passam, 98 falham. Depois: 283 passam, **7 falham**.
+
+   As 7 são consequência direta da dívida congelada, não trabalho por fazer: `installAllSkills` e
+   `syncSkillCatalogArtifacts` (`src/init.js`) e o `resource-cli.js` não aceitam raiz parametrizada
+   porque resolvem o manifesto `_execucao-penal-v3-integration.yaml` por nome fixo. Parametrizá-los
+   agora seria inventar a interface do pacote de área **antes** do `build-area` existir — e depois
+   inventá-la de novo. São `init.test.js` (4), `update.test.js` (2) e `cli.test.js` (1), documentadas
+   inline no código, sem `skip` e sem teste comentado: elas falham visivelmente, como devem.
 2. `npm run build:ide` roda **e não modifica** o `CLAUDE.md` — verificado por `git status` limpo
    depois de rodar.
 3. **Não-regressão da fronteira:** o inventário da §5-bis não cresce — nenhum arquivo hoje limpo
@@ -301,9 +308,23 @@ Ordem de execução: **A → B → C → pacote**.
    calibrada em conteúdo criminal.
 4. Empacotar a fixture duas vezes produz **hashes idênticos**.
 5. Um pacote com **um byte adulterado** é recusado na verificação, com erro claro.
-6. `git status` limpo em `~/Documents/Projetos/Devlop/criminalsquad/app` — nada foi escrito lá.
-   (Critério: **nenhuma mudança introduzida**; `output/` e `tmp/` já constam como untracked antes de
-   qualquer trabalho.)
+6. **Nada foi escrito em `~/Documents/Projetos/Devlop/criminalsquad/app` por este trabalho.**
+
+   O critério **não** é "`git status` limpo" — isso não é mais verificável. Durante a execução deste
+   ciclo, uma sessão paralela passou a implementar `sync` e overlay de pacotes *dentro* do
+   CriminalSquad (12 arquivos modificados, `src/packs-overlay.js` e `tests/packs-overlay.test.js`
+   novos). É trabalho deliberado do autor, não interferência deste ciclo.
+
+   O critério passa a ser **diferencial**: registrar `git -C <criminalsquad> status --short` antes de
+   cada tarefa e comparar depois. Só as mudanças introduzidas pela tarefa contam.
+
+   > **Nota para o F1/Plano 2.** Essa implementação paralela cria um `sync` e um formato de cache de
+   > pacotes no CriminalSquad, enquanto a §4 deste spec define o formato de pacote para o LegalSquad.
+   > São o mesmo conceito em dois repositórios — exatamente a duplicação que a
+   > [`MIGRACAO.md`](MIGRACAO.md) chama de "sangria de portar correção à mão entre forks". Antes de
+   > executar o Plano 2, vale decidir se o formato do LegalSquad **adota** o que foi construído lá,
+   > ou se as duas implementações convergem de outra forma. Construir os dois em paralelo, sem essa
+   > decisão, é pagar duas vezes.
 
 ## 5-bis. Dívida descoberta: matéria criminal *dentro* do motor
 
