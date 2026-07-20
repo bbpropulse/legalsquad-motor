@@ -257,3 +257,33 @@ test('CLI propaga o gate pelo exit code e entrega manifesto JSON', () => {
   assert.equal(explicitlySelected.status, 0, explicitlySelected.stderr);
   assert.equal(JSON.parse(explicitlySelected.stdout).selected, 'demo-peca-alpha');
 });
+
+test('skills nativas puras resolvem sem skills/ no disco (curto-circuito antes do catálogo)', async () => {
+  const { mkdtemp, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const raizSemSkills = await mkdtemp(join(tmpdir(), 'runtime-sem-skills-'));
+
+  try {
+    // Um squad que só usa ferramentas nativas (web_search/web_fetch) não pode
+    // ser bloqueado pela ausência do catálogo — as nativas têm bypass declarado
+    // e não dependem de skills/ para nada.
+    const resultado = resolveSkillRuntime(['web_search', 'web_fetch'], {
+      rootDir: raizSemSkills,
+    });
+
+    assert.equal(resultado.success, true);
+    assert.deepEqual(
+      resultado.decisions.map((decisao) => decisao.disposition),
+      ['native', 'native']
+    );
+
+    // O fail-closed continua intacto para o que NÃO é nativo: qualquer id de
+    // catálogo na lista volta a exigir skills/ e a ausência segue sendo erro.
+    assert.throws(
+      () => resolveSkillRuntime(['web_search', 'demo-peca-alpha'], { rootDir: raizSemSkills }),
+      /Diretório de skills ausente/
+    );
+  } finally {
+    await rm(raizSemSkills, { recursive: true, force: true });
+  }
+});

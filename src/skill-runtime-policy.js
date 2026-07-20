@@ -238,10 +238,6 @@ export function resolveSkillRuntime(skillIds, options = {}) {
   const mode = ['selection', 'explicit-selection'].includes(options.mode)
     ? options.mode
     : 'execution';
-  const loaded = options.records
-    ? { records: options.records, audit: options.audit || null }
-    : loadSkillRuntimeRecords(options.rootDir || process.cwd());
-  const records = loaded.records;
   const ids = [...new Set((skillIds || []).map((id) => String(id).trim()).filter(Boolean))];
 
   if (ids.length === 0) {
@@ -253,6 +249,17 @@ export function resolveSkillRuntime(skillIds, options = {}) {
       error: reason('skill-list-empty', 'nenhuma skill foi informada ao resolvedor'),
     };
   }
+
+  // Nativas têm bypass declarado do gate de catálogo: uma lista 100% nativa não
+  // pode ser bloqueada pela ausência de skills/ (o load lança sem o diretório).
+  // Qualquer id de catálogo na lista reativa o caminho fail-closed integral.
+  const somenteNativas = ids.every((id) => NATIVE_RUNTIME_SKILL_SET.has(id));
+  const loaded = options.records
+    ? { records: options.records, audit: options.audit || null }
+    : somenteNativas
+      ? { records: new Map(), audit: null }
+      : loadSkillRuntimeRecords(options.rootDir || process.cwd());
+  const records = loaded.records;
 
   const decisions = ids.map((id) => {
     if (NATIVE_RUNTIME_SKILL_SET.has(id)) {
