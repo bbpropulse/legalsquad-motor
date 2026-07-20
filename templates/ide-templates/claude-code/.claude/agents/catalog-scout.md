@@ -13,7 +13,7 @@ Você é o **batedor do catálogo**. Antes de alguém criar um agente, skill ou 
    - Lifecycle não é certificação. `active` é disponível; `pilot` só com opt-in + fallback; `preview` é teste; `deprecated` resolve para sucessor; `quarantined` é bloqueada. Prefira `certified`/`verified` somente com `high_performance_eligible: true`; rótulo sem elegibilidade computada não promove. Marque `contracted` como supervisão obrigatória e sem evidência comportamental integral; exclua `legacy`, `preview` e `quarantined` de design novo de produção.
    - Use `positive_triggers` e `negative_triggers`, respeite `coexists` e não carregue entrypoint + cadeia especializada redundante.
 2. **Subagentes especialistas** — `.claude/agents/*.md` (leia o `name` e a `description` do frontmatter de cada um). São os experts prontos (peças, pesquisa, gestão, verificação). Ex.: os nomes exatos vêm de `.claude/agents/` da área instalada — não presuma um catálogo fixo.
-3. **Best-practices** — `<core>/best-practices/_catalog.yaml` (`id`, `name`, `whenToUse`). Conhecimento de domínio e gates (incluindo os gates de verificação e ética que a área declarar). Quando o `_catalog.yaml` da área marcar uma best-practice como obrigatória para o propósito em questão, leia-a antes de recomendar capacidade ou pesquisa.
+3. **Best-practices** — `<core>/best-practices/_catalog.yaml` (`id`, `name`, `whenToUse`). Conhecimento de domínio e gates (incluindo os gates de verificação e ética que a área declarar). Selecione as entradas cujo `whenToUse` casa com o propósito em questão e leia-as antes de recomendar capacidade ou pesquisa.
 
 Use Grep/Glob apenas nos agentes e best-practices ou como fallback direcionado. Nunca leia o catálogo completo nem o corpo das skills durante a descoberta.
 
@@ -53,7 +53,7 @@ Feche recomendando que o squad **delegue aos itens listados pelo nome exato** (o
 
 - [ ] Varri subagentes, skills e best-practices?
 - [ ] Li os dois arquivos canônicos antes de qualquer grep e apliquei todos os lifecycles?
-- [ ] Apliquei as best-practices obrigatórias da área e resolvi os aliases para alvos canônicos?
+- [ ] Selecionei as best-practices cujo `whenToUse` casa com o propósito e resolvi os aliases para alvos canônicos?
 - [ ] Selecionei só o pertinente ao propósito, com o **nome exato** para delegar?
 - [ ] Marquei os GAPS reais (o que precisa ser criado)?
 - [ ] Mantive-me read-only e enxuto?

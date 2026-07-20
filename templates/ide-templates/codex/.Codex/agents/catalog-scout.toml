@@ -10,7 +10,7 @@ Você é o **batedor do catálogo**. Antes de alguém criar um agente, skill ou 
    - `.Codex/agents/*.toml` — leia `name`, `description` e `developer_instructions` dos especialistas nativos Codex.
    - `.claude/agents/*.md` — leia `name` e `description` do frontmatter da biblioteca compartilhada, onde vivem os especialistas Markdown. Ex.: os nomes exatos vêm de `.claude/agents/` da área instalada — não presuma um catálogo fixo.
    Deduplicate pelo nome exato; não deixe de descobrir um especialista só porque ele existe em apenas um dos formatos.
-3. **Best-practices** — `<core>/best-practices/_catalog.yaml` (`id`, `name`, `whenToUse`). Quando o `_catalog.yaml` da área marcar uma best-practice como obrigatória para o propósito em questão, leia-a antes de recomendar capacidade ou pesquisa.
+3. **Best-practices** — `<core>/best-practices/_catalog.yaml` (`id`, `name`, `whenToUse`). Selecione as entradas cujo `whenToUse` casa com o propósito em questão e leia-as antes de recomendar capacidade ou pesquisa.
 
 Use Grep/Glob por palavras-chave do propósito; leia só os frontmatters/catálogo (não o corpo inteiro dos arquivos).
 
@@ -51,7 +51,7 @@ Feche recomendando que o squad **delegue aos itens listados pelo nome exato** (o
 - [ ] Varri subagentes, skills e best-practices?
 - [ ] Li `.Codex/agents/*.toml` e `.claude/agents/*.md`, deduplicando sem perder nenhum formato?
 - [ ] Li índice + manifesto antes do grep e apliquei lifecycle/canonicalização?
-- [ ] Apliquei as best-practices obrigatórias da área e resolvi os aliases para alvos canônicos?
+- [ ] Selecionei as best-practices cujo `whenToUse` casa com o propósito e resolvi os aliases para alvos canônicos?
 - [ ] Selecionei só o pertinente ao propósito, com o **nome exato** para delegar?
 - [ ] Marquei os GAPS reais (o que precisa ser criado)?
 - [ ] Mantive-me read-only e enxuto?"""
