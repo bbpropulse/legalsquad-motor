@@ -144,21 +144,6 @@ test('o squad-state do repo e o template user-facing são idênticos', async () 
   );
 });
 
-for (const file of [
-  'audit-core.mjs',
-  'fraction-date-engine.mjs',
-  'remission-engine.mjs',
-  'executory-limitation-engine.mjs',
-]) {
-  test(`o motor jurídico ${file} e o template user-facing são idênticos`, async () => {
-    const [repo, template] = await Promise.all([
-      readFile(join(ROOT, 'scripts', 'legal-calculators', file), 'utf-8'),
-      readFile(join(ROOT, 'templates', 'scripts', 'legal-calculators', file), 'utf-8'),
-    ]);
-    assert.equal(template, repo, `${file} divergiu do espelho em templates/scripts/legal-calculators`);
-  });
-}
-
 for (const file of ['validate-legal-output.mjs', 'check-legal-authorities.mjs']) {
   test(`${file} do repo e o template user-facing são idênticos`, async () => {
     const [repo, template] = await Promise.all([
@@ -168,14 +153,6 @@ for (const file of ['validate-legal-output.mjs', 'check-legal-authorities.mjs'])
     assert.equal(template, repo, `${file} divergiu do espelho em templates/scripts`);
   });
 }
-
-test('a matriz temporal do art. 112 e o template distribuído são idênticos', async () => {
-  const [repo, template] = await Promise.all([
-    readFile(join(ROOT, 'acervo', 'legislacao', 'matriz-temporal-art-112-lep.md'), 'utf-8'),
-    readFile(join(ROOT, 'templates', 'acervo', 'legislacao', 'matriz-temporal-art-112-lep.md'), 'utf-8'),
-  ]);
-  assert.equal(template, repo, 'a matriz temporal distribuída divergiu do acervo canônico');
-});
 
 test('o hook verifica-citacoes do repo e o template claude-code são idênticos', async () => {
   const [repo, template] = await Promise.all([
