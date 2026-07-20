@@ -1,0 +1,43 @@
+# Dependências e artefatos
+node_modules/
+*.tgz
+*.log
+.env
+
+# Runtime de squads na RAIZ (saídas/estado do usuário não são versionados).
+# Os squads de PRODUTO ficam em templates/squads/ e SÃO versionados.
+/squads/*/output/
+/squads/*/state.json
+# Memória de execução por squad (runs.md/memories.md): pode conter o tema/caso
+# real — sigilo/LGPD. O scaffold do produto fica em templates/squads/*/_memory/.
+/squads/*/_memory/
+
+# Instância de memória/sessões do projeto (o produto distribui via _criminalsquad/core/seeds/)
+/_criminalsquad/_memory/company.md
+/_criminalsquad/_memory/preferences.md
+/_criminalsquad/_browser_profile/
+/_criminalsquad/logs/
+
+# Acervo: dados de clientes na RAIZ (sigilo/LGPD). A estrutura-modelo fica em templates/acervo/.
+/acervo/casos/
+
+# Artefatos de processo/dev e config local
+docs/
+temp/
+test-results/
+/dashboard/test-results/
+.superpowers/
+.claude/settings.local.json
+
+# Lixo do macOS
+.DS_Store
+**/.DS_Store
+
+# Runtime/privado (memória, estados, cache, mapa do vault Obsidian)
+/_criminalsquad/_memory/vault-map.yaml
+/_criminalsquad/_memory/states/
+/_criminalsquad/_memory/djen-tracker.jsonl
+
+# Python bytecode (scripts embarcados)
+__pycache__/
+*.pyc

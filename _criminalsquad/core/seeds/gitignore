@@ -1,0 +1,21 @@
+node_modules/
+.env
+*.log
+
+# Runtime de squads (saídas/estado do usuário)
+squads/*/output/
+squads/*/state.json
+# Memória de execução por squad (pode conter tema/caso real — sigilo/LGPD)
+squads/*/_memory/
+
+# Memória/instância e sessões do usuário
+_criminalsquad/_memory/company.md
+_criminalsquad/_memory/preferences.md
+_criminalsquad/_browser_profile/
+_criminalsquad/logs/
+
+# Acervo: dados de clientes (sigilo profissional / LGPD)
+acervo/casos/
+
+# Config local da IDE
+.claude/settings.local.json

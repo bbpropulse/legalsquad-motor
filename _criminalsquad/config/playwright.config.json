@@ -1,0 +1,10 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": false,
+    "userDataDir": "_criminalsquad/_browser_profile",
+    "launchOptions": {
+      "headless": true
+    }
+  }
+}

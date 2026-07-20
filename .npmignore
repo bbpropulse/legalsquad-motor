@@ -1,0 +1,11 @@
+tests/
+test-results/
+temp/squads/
+.claude/settings.local.json
+dashboard/test-results/
+docs/
+.github/
+
+# Não distribuir a instância de memória do projeto-fonte
+# (o init re-semeia company.md a partir de _criminalsquad/core/seeds/)
+/_criminalsquad/_memory/

@@ -1,0 +1,24 @@
+{
+  "name": "criminalsquad-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "indexar-acervo": "node scripts/indexar-acervo.mjs",
+    "indexar-skills": "npx criminalsquad indexar-skills",
+    "contract:skills": "npx criminalsquad contract-skills",
+    "check:skills": "npx criminalsquad check-skills",
+    "audit:skills": "npx criminalsquad audit-skills",
+    "check:legal-authorities": "node scripts/check-legal-authorities.mjs",
+    "validate:legal-output": "node scripts/validate-legal-output.mjs",
+    "calculo:fracao": "node scripts/legal-calculators/fraction-date-engine.mjs",
+    "calculo:remicao": "node scripts/legal-calculators/remission-engine.mjs",
+    "calculo:prescricao-executoria": "node scripts/legal-calculators/executory-limitation-engine.mjs",
+    "eval:resumo": "node scripts/eval-resumo.mjs",
+    "prazos:hoje": "node scripts/orchestra/prazos-hoje.mjs",
+    "prazos:semana": "node scripts/orchestra/prazos-semana.mjs",
+    "intimacoes": "node scripts/orchestra/intimacoes-recentes.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}
