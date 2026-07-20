@@ -9,18 +9,17 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import {
   loadSkillEvaluationEvidence,
   PROMOTION_EVIDENCE_SCHEMA_VERSION,
   readSkillEvidenceBinding,
   validateSkillPromotionEvidence,
 } from '../src/skill-quality.js';
+import { discoverSkillCatalog } from '../src/skill-catalog.js';
+import { SKILLS_DEMO } from './fixtures/caminhos.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
-const SKILLS = join(ROOT, 'skills');
+const SKILLS = SKILLS_DEMO;
 const MODEL = Object.freeze({ provider: 'test-provider', name: 'test-model', version: '2026-07-09' });
 const WHEN = '2026-07-09T12:00:00.000Z';
 
@@ -46,8 +45,8 @@ function scenarios(count) {
 function promotionResult(binding, overrides = {}) {
   const cases = scenarios(12);
   return {
-    evidence_id: 'evidence-habeas-corpus-001',
-    skill: 'habeas-corpus',
+    evidence_id: 'evidence-demo-peca-alpha-001',
+    skill: 'demo-peca-alpha',
     skill_binding: {
       algorithm: binding.algorithm,
       skill_sha256: binding.skill_sha256,
@@ -88,7 +87,7 @@ function promotionResult(binding, overrides = {}) {
       },
     ],
     regression: {
-      suite_id: 'regression-habeas-corpus-v1',
+      suite_id: 'regression-demo-peca-alpha-v1',
       executed_at: WHEN,
       status: 'pass',
       case_count: 12,
@@ -112,8 +111,8 @@ function suite(result, overrides = {}) {
 function withTempSkill(run) {
   const root = mkdtempSync(join(tmpdir(), 'criminalsquad-promotion-'));
   try {
-    mkdirSync(join(root, 'habeas-corpus'), { recursive: true });
-    cpSync(join(SKILLS, 'habeas-corpus', 'SKILL.md'), join(root, 'habeas-corpus', 'SKILL.md'));
+    mkdirSync(join(root, 'demo-peca-alpha'), { recursive: true });
+    cpSync(join(SKILLS, 'demo-peca-alpha', 'SKILL.md'), join(root, 'demo-peca-alpha', 'SKILL.md'));
     mkdirSync(join(root, '_evals', 'results'), { recursive: true });
     return run(root);
   } finally {
@@ -122,7 +121,7 @@ function withTempSkill(run) {
 }
 
 test('evidência v1 válida vincula hash/versão/contrato e certifica R4 com dois humanos', () => {
-  const binding = readSkillEvidenceBinding(SKILLS, 'habeas-corpus');
+  const binding = readSkillEvidenceBinding(SKILLS, 'demo-peca-alpha');
   assert.ok(binding);
   const result = promotionResult(binding);
   const validation = validateSkillPromotionEvidence(suite(result), result, binding);
@@ -132,7 +131,7 @@ test('evidência v1 válida vincula hash/versão/contrato e certifica R4 com doi
 });
 
 test('hash/versão/contrato divergente, baseline inválido ou regressão ausente nunca promovem', () => {
-  const binding = readSkillEvidenceBinding(SKILLS, 'habeas-corpus');
+  const binding = readSkillEvidenceBinding(SKILLS, 'demo-peca-alpha');
   const invalidBinding = promotionResult(binding, {
     skill_binding: {
       algorithm: 'sha256',
@@ -169,7 +168,7 @@ test('hash/versão/contrato divergente, baseline inválido ou regressão ausente
 });
 
 test('mínimos mecânicos e independência impedem certificação R4 subdimensionada', () => {
-  const binding = readSkillEvidenceBinding(SKILLS, 'habeas-corpus');
+  const binding = readSkillEvidenceBinding(SKILLS, 'demo-peca-alpha');
   const result = promotionResult(binding);
   result.scenarios = result.scenarios.slice(0, 11);
   result.baseline.case_ids = result.scenarios.map((item) => item.id);
@@ -192,7 +191,7 @@ test('mínimos mecânicos e independência impedem certificação R4 subdimensio
 
 test('o resultado mais recente revoga um passe antigo, inclusive quando a nova promoção é inválida', () => {
   withTempSkill((skillsDir) => {
-    const binding = readSkillEvidenceBinding(skillsDir, 'habeas-corpus');
+    const binding = readSkillEvidenceBinding(skillsDir, 'demo-peca-alpha');
     const oldPass = promotionResult(binding, {
       awarded_status: 'verified',
       evidence_id: 'old-pass',
@@ -210,14 +209,14 @@ test('o resultado mais recente revoga um passe antigo, inclusive quando a nova p
       join(skillsDir, '_evals', 'results', '002-failed.json'),
       `${JSON.stringify(suite(failedLatest, { evaluated_at: '2026-07-02T12:00:00.000Z' }), null, 2)}\n`,
     );
-    let evidence = loadSkillEvaluationEvidence(skillsDir).get('habeas-corpus');
+    let evidence = loadSkillEvaluationEvidence(skillsDir).get('demo-peca-alpha');
     assert.equal(evidence.evidenceValid, false);
     assert.equal(evidence.qualifiesForPromotion, false);
     assert.match(evidence.validationFailures.join(' '), /verdict deve ser pass/);
 
     const revoked = {
       evidence_id: 'explicit-revocation',
-      skill: 'habeas-corpus',
+      skill: 'demo-peca-alpha',
       skill_binding: {
         algorithm: binding.algorithm,
         skill_sha256: binding.skill_sha256,
@@ -232,7 +231,7 @@ test('o resultado mais recente revoga um passe antigo, inclusive quando a nova p
       join(skillsDir, '_evals', 'results', '003-revoked.json'),
       `${JSON.stringify(suite(revoked, { evaluated_at: '2026-07-03T12:00:00.000Z' }), null, 2)}\n`,
     );
-    evidence = loadSkillEvaluationEvidence(skillsDir).get('habeas-corpus');
+    evidence = loadSkillEvaluationEvidence(skillsDir).get('demo-peca-alpha');
     assert.equal(evidence.awardedStatus, 'revoked');
     assert.equal(evidence.evidenceValid, true);
     assert.equal(evidence.qualifiesForPromotion, false);
@@ -250,7 +249,7 @@ test('o resultado mais recente revoga um passe antigo, inclusive quando a nova p
       join(skillsDir, '_evals', 'results', '004-invalid-latest.json'),
       `${JSON.stringify(suite(invalidLatest, { evaluated_at: '2026-07-04T12:00:00.000Z' }), null, 2)}\n`,
     );
-    evidence = loadSkillEvaluationEvidence(skillsDir).get('habeas-corpus');
+    evidence = loadSkillEvaluationEvidence(skillsDir).get('demo-peca-alpha');
     assert.equal(evidence.evidenceValid, false);
     assert.equal(evidence.qualifiesForPromotion, false);
     assert.match(evidence.validationFailures.join(' '), /sha256 divergente/);
@@ -258,8 +257,13 @@ test('o resultado mais recente revoga um passe antigo, inclusive quando a nova p
 });
 
 test('forward-runs legados continuam observáveis, sem virar promoção', () => {
+  const catalog = discoverSkillCatalog(SKILLS);
   const evidence = loadSkillEvaluationEvidence(SKILLS);
-  assert.equal(evidence.size, 8);
+  // Cada skill da fixture tem uma observação de forward-run — o tamanho do
+  // mapa é por skill (loadSkillEvaluationEvidence chaveia por `skill`), não
+  // pelo número de arquivos em _evals/results/ (a fixture agrupa várias
+  // skills por arquivo, uma por quality_profile).
+  assert.equal(evidence.size, catalog.entries.length);
   for (const item of evidence.values()) {
     assert.equal(item.evidenceKind, 'forward-run');
     assert.equal(item.qualifiesForPromotion, false);
