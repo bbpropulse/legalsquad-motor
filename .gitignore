@@ -21,8 +21,12 @@ node_modules/
 # Acervo: dados de clientes na RAIZ (sigilo/LGPD). A estrutura-modelo fica em templates/acervo/.
 /acervo/casos/
 
-# Artefatos de processo/dev e config local
-docs/
+# Artefatos de processo/dev e config local.
+# EXCEÇÃO: docs/specs/ é a fonte da verdade da arquitetura (CLAUDE.md e README linkam
+# para ela) e VIAJA COM O REPO. Só rascunho de processo fica de fora.
+docs/*
+!docs/specs/
+docs/specs/**/*.pdf
 temp/
 test-results/
 /dashboard/test-results/
