@@ -293,7 +293,8 @@ caminho.
 Ordem de execução: **A → B → C → pacote**.
 
 1. `npm test` com **zero `skip`** e falhas apenas as que a dívida da §5-bis torna inevitáveis.
-   Hoje: 206 passam, 98 falham. Depois: 283 passam, **7 falham**.
+   Hoje: 206 passam, 98 falham. Depois: 284 passam, **7 falham** (291 no total — o próprio
+   `tests/fronteira.test.js`, criado por este ciclo, é o 291º).
 
    As 7 são consequência direta da dívida congelada, não trabalho por fazer — mas por **duas causas
    distintas**, não uma só. **6 delas** — `init.test.js` (4: `apify`/`blotato`/`canva` não instaladas,
