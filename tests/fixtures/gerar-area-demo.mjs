@@ -44,7 +44,7 @@ const SKILLS = [
   // "canônico" em demo-canonicas.json — espelho em miniatura do par v5/canônicas
   // real (catalog-v5.json vs execucao-canonicas.json), exercitando os dois arquivos
   // de especificação de contrato sem introduzir uma segunda skill.
-  { nome: 'demo-preview-engine',  lifecycle: 'preview',     perfil: PERFIL_B, risco: 'r3', entrega: 'audit-calculation',  tipo: 'prompt', versao: '3.0.0' },
+  { nome: 'demo-preview-engine',  lifecycle: 'preview',     perfil: PERFIL_B, risco: 'r3', entrega: 'audit-calculation',  tipo: 'prompt', versao: '3.0.0', engines: ['demo-engine'] },
   { nome: 'demo-piloto',          lifecycle: 'pilot',       perfil: PERFIL_A, risco: 'r2', entrega: 'legal-draft',        tipo: 'prompt', extraEvalIds: ['demo-canon-demo-piloto-001'] },
   { nome: 'demo-quarentena',      lifecycle: 'quarantined', perfil: PERFIL_A, risco: 'r4', entrega: 'legal-draft',        tipo: 'prompt' },
   { nome: 'demo-deprecada',       lifecycle: 'deprecated',  perfil: PERFIL_A, risco: 'r2', entrega: 'legal-draft',        tipo: 'prompt' },
@@ -97,7 +97,9 @@ catálogo, busca, política de runtime e resolvedor — sem conteúdo jurídico 
 
 ## Limites
 
-Não produz entrega de produção. Não substitui revisão humana.
+Não produz entrega de produção. Não substitui revisão humana. Toda citação de
+fonte oficial exige proveniência registrada — ver
+[contrato de alta performance](references/high-performance-contract.md).
 
 <!-- CRIMINALSQUAD:HP-CONTRACT:END -->
 `;

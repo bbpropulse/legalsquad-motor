@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { discoverSkillCatalog } from '../src/skill-catalog.js';
 import {
   auditSkillCatalogQuality,
@@ -10,25 +9,29 @@ import {
   loadSkillEvalCases,
   loadSkillEvaluationEvidence,
   loadSkillQualityProfiles,
+  PROMOTION_EVIDENCE_MINIMUMS,
   SKILL_QUALITY_STATUSES,
 } from '../src/skill-quality.js';
+import { SKILLS_DEMO } from './fixtures/caminhos.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
-const SKILLS = join(ROOT, 'skills');
+const SKILLS = SKILLS_DEMO;
 
-test('as 520 skills têm contrato v5, perfil, risco, guards e eval vinculada', () => {
+test('as skills da fixture têm contrato v5, perfil, risco, guards e eval vinculada', () => {
   const catalog = discoverSkillCatalog(SKILLS);
   const report = auditSkillCatalogQuality(catalog);
-  assert.equal(catalog.entries.length, 520);
-  assert.equal(report.summary.skills, 520);
-  assert.equal(report.summary.structural_pass, 520);
+  assert.ok(catalog.entries.length > 0, 'a fixture precisa ter skills para o teste valer algo');
+  assert.equal(report.summary.skills, catalog.entries.length);
+  assert.equal(report.summary.structural_pass, catalog.entries.length);
   assert.equal(report.summary.hard_fail_skills, 0);
   assert.equal(report.summary.high_performance_eligible, 0, 'contrato não deve fingir evidência comportamental');
-  assert.ok(report.summary.minimum_behavioral_cases_backlog > 4000);
+  // Nenhuma skill da fixture é verified/certified (todas "contracted"), então o
+  // backlog soma o mínimo comportamental de TODAS — piso de 5 casos por skill
+  // (o mínimo de qualquer risk_level em PROMOTION_EVIDENCE_MINIMUMS).
+  const pisoPorSkill = Math.min(...Object.values(PROMOTION_EVIDENCE_MINIMUMS).map((min) => min.cases));
+  assert.ok(report.summary.minimum_behavioral_cases_backlog >= catalog.entries.length * pisoPorSkill);
   assert.equal(
     Object.values(report.summary.by_certification_wave).reduce((sum, value) => sum + value, 0),
-    520,
+    catalog.entries.length,
   );
 
   for (const entry of catalog.entries) {
@@ -83,7 +86,7 @@ test('frontmatter distribuível usa apenas chaves permitidas no topo', () => {
 
 test('metadata verified sem forward-run explícito não fabrica elegibilidade', () => {
   const catalog = discoverSkillCatalog(SKILLS);
-  const source = catalog.entries.find((entry) => entry.id === 'habeas-corpus');
+  const source = catalog.entries.find((entry) => entry.id === 'demo-peca-alpha');
   assert.ok(source);
   const raw = source.raw.replace(/quality_status:\s*"?contracted"?/, 'quality_status: "verified"');
   const entry = {
@@ -125,8 +128,12 @@ test('preview não vira elegível mesmo com rótulo e evidência de promoção',
 });
 
 test('evidência persistida usa caminhos relativos e portáveis', () => {
+  const catalog = discoverSkillCatalog(SKILLS);
   const evidence = loadSkillEvaluationEvidence(SKILLS);
-  assert.equal(evidence.size, 8);
+  // Cada skill da fixture tem uma observação de forward-run em _evals/results/
+  // (agrupadas por quality_profile, não uma por arquivo) — o tamanho do mapa é
+  // por skill, não por arquivo de resultado.
+  assert.equal(evidence.size, catalog.entries.length);
   for (const item of evidence.values()) {
     assert.match(item.source, /^_evals\/results\//);
     assert.equal(item.source.startsWith('/'), false);

@@ -169,6 +169,7 @@ skills:
     categories: ["demo", "sintetico"]
     positive_triggers: ["demo-preview-engine", "demo engine"]
     negative_triggers: ["entrega_producao", "peca_protocolavel", "parecer_final"]
+    engines: ["demo-engine"]
     risk: "r3"
     delivery_type: "audit-calculation"
     skill_schema: "5"

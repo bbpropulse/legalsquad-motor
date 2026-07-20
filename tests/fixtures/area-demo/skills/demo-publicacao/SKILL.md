@@ -41,6 +41,8 @@ catálogo, busca, política de runtime e resolvedor — sem conteúdo jurídico 
 
 ## Limites
 
-Não produz entrega de produção. Não substitui revisão humana.
+Não produz entrega de produção. Não substitui revisão humana. Toda citação de
+fonte oficial exige proveniência registrada — ver
+[contrato de alta performance](references/high-performance-contract.md).
 
 <!-- CRIMINALSQUAD:HP-CONTRACT:END -->
