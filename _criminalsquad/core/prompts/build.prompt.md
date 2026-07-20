@@ -640,17 +640,28 @@ Aplica-se apenas se o squad criou uma ou mais skills novas (Step B2). Se não cr
 
 Se QUALQUER item falhar: ajuste o `SKILL.md`, rode `npx criminalsquad contract-skills` de novo e revalide. Máx 2 tentativas; depois, apresente ao usuário a skill que não pôde ser garantida (nunca conclua o squad carregando uma skill nova fora do contrato).
 
-### Filesystem Validation
+### Filesystem Validation (BLOCKING — gate mecânico, não leitura à mão)
 
-Additional programmatic checks — read the filesystem to verify:
-- [ ] `squad.yaml` exists and is valid YAML
-- [ ] All `.agent.md` files listed in `squad-party.csv` exist
+**Rode o validador em vez de conferir manualmente:**
+
+```bash
+npx criminalsquad check-squad {code}
+```
+
+Ele verifica por **código** (exit != 0 reprova): `code` batendo com a pasta, `goal` preenchido,
+`success_criteria` entre 3 e 6, `_evals/scores.md` com o cabeçalho do log de regressão, ao menos um
+caso-ouro em `_evals/casos/`, todo `file:` de step existindo em disco, todo `agent:` presente no
+`squad-party.csv` **e** com arquivo correspondente, `on_reject` apontando para step real, e cada
+`checkpoints:` existindo entre os steps. Ausência de checkpoint sai como **aviso** (nem todo squad
+precisa de aprovação humana) — os demais são erro.
+
+Corrija tudo que ele apontar e rode de novo até sair limpo. **Não relate como validado o que o
+comando não confirmou** — é exatamente o tipo de checagem que o modelo tende a "dar por feita".
+
+Checagens que o validador ainda não cobre (confira lendo o filesystem):
 - [ ] All task files referenced in agent frontmatter exist
-- [ ] All step files referenced in `pipeline.yaml` exist
 - [ ] Skills listed in `squad.yaml` are installed in `skills/`
-- [ ] Best-practices files referenced by `format:` fields in steps exist in `_criminalsquad/core/best-practices/`
-- [ ] `squads/{code}/_evals/scores.md` exists with the regression-log header (`| Data | Run/Caso | Nota | Verdict | Observações |`)
-- [ ] At least one fictitious caso-ouro exists in `squads/{code}/_evals/casos/` — o harness de eval nasce com o squad, não depois
+- [ ] Best-practices files referenced by `format:` fields in steps exist in `_criminalsquad/core/best-practices/` (quando o diretório existir — ver protocolo de ausência)
 
 ---
 

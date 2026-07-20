@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { parseArgs } from 'node:util';
+import { join } from 'node:path';
 import { init } from '../src/init.js';
 import { installGlobal } from '../src/install-global.js';
 import { update } from '../src/update.js';
@@ -17,6 +18,7 @@ import { skillRuntimeCli } from '../src/skill-runtime-cli.js';
 import { skillSearchCli } from '../src/skill-search.js';
 import { acervoSearchCli } from '../src/acervo-search.js';
 import { capturaCli } from '../src/captura-cli.js';
+import { checkSquad } from '../src/squad-check.js';
 
 const HELP = `
   criminalsquad — Multi-agent orchestration for Claude Code
@@ -43,6 +45,7 @@ const HELP = `
     npx criminalsquad captura <file|URL>      Watch video + transcribe audio (local by default)
     npx criminalsquad captura setup           Install on-use deps (ffmpeg/yt-dlp/faster-whisper)
     npx criminalsquad resolve-skills <id...>  Enforce runtime lifecycle/evidence gates
+    npx criminalsquad check-squad <code>      Validate a squad's structure, rubric and eval harness
     npx criminalsquad runs [squad-name]       View execution history
 
   Learn more: https://github.com/bbpropulse/criminalsquad
@@ -67,6 +70,7 @@ const { positionals, values } = parseArgs({
     json: { type: 'boolean' },
     'pilot-opt-in': { type: 'string', multiple: true },
     'pilot-fallback': { type: 'string', multiple: true },
+    'squads-dir': { type: 'string' },
   },
 });
 
@@ -111,6 +115,34 @@ const commands = {
     checkSuccess: true,
   },
   'check-skills': { run: () => checkSkillsProject(cwd), checkSuccess: true },
+  // Gate mecânico de squad: o que o build.prompt.md descreve como
+  // "Filesystem Validation" verificado por código, com exit code utilizável.
+  'check-squad': {
+    run: () => {
+      const alvo = positionals[1];
+      if (!alvo) {
+        console.error('Uso: npx criminalsquad check-squad <code> [--squads-dir <dir>]');
+        return { success: false };
+      }
+      const squadsDir = values['squads-dir'] || join(cwd, 'squads');
+      const r = checkSquad(alvo, { squadsDir });
+
+      const erros = r.issues.filter((i) => i.severity === 'error');
+      const avisos = r.issues.filter((i) => i.severity === 'warn');
+
+      console.log(`Squad: ${r.squad}`);
+      for (const i of erros) console.log(`  ✖ [${i.code}] ${i.detail}`);
+      for (const i of avisos) console.log(`  ⚠ [${i.code}] ${i.detail}`);
+      console.log(
+        r.ok
+          ? `  ✓ estrutura íntegra${avisos.length ? ` (${avisos.length} aviso(s))` : ''}`
+          : `  ${erros.length} erro(s) — corrija antes de rodar o squad`
+      );
+
+      return { success: r.ok };
+    },
+    checkSuccess: true,
+  },
   'audit-skills': { run: () => auditSkillsProject(cwd), checkSuccess: true },
   'search-skills': {
     run: () => skillSearchCli(values.query || positionals.slice(1).join(' '), cwd, values),
