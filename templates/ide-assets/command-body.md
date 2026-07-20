@@ -252,26 +252,25 @@ When the user runs `/criminalsquad create`:
 
 ### Phase 2: Investigation (optional)
 
-Read `discovery.yaml` to check `investigation.mode`:
+Read `discovery.yaml` and check `investigation.enabled`. (O contrato é o schema que a Discovery
+realmente escreve — `investigation.enabled` + `investigation.profiles[]`, cada perfil com `url`,
+`platform` e `investigation_mode`. Não existe campo `mode` nem `targets`.)
 
-**If `mode: sherlock`:**
-For each target in `investigation.targets`:
-   1. Detect platform from URL
-   2. Dispatch Sherlock subagent with:
+**If `investigation.enabled: true` and `investigation.profiles` is non-empty:**
+For each profile in `investigation.profiles`:
+   1. Dispatch Sherlock subagent with:
       - `_criminalsquad/core/prompts/sherlock-shared.md`
-      - `_criminalsquad/core/prompts/sherlock-{platform}.md` (platform-specific extractor)
-      - URL, investigation_mode, output directory, squad name
-   3. Use fast model tier for Sherlock subagents
-   4. Subagents can run in parallel (one per URL)
-   5. Wait for all to complete
-   6. Validate per target: `raw-content.md` OR `error.md` exists
-   7. If any target has `error.md`: inform user, ask to retry or skip
+      - `_criminalsquad/core/prompts/sherlock-{platform}.md` — use the profile's `platform` field
+        (a Discovery já detectou a plataforma; não re-detecte da URL)
+      - the profile's `url`, `investigation_mode`, output directory, squad name
+   2. Use fast model tier for Sherlock subagents
+   3. Subagents can run in parallel (one per profile)
+   4. Wait for all to complete
+   5. Validate per profile: `raw-content.md` OR `error.md` exists
+   6. If any profile has `error.md`: inform user and offer to retry, skip that profile, or paste
+      the reference content manually (save it to `squads/{code}/_investigations/manual/raw-content.md`)
 
-**If `mode: manual`:**
-   1. Ask user to paste reference content
-   2. Save to `squads/{code}/_investigations/manual/raw-content.md`
-
-**If `mode: none`:** Skip to Phase 3
+**If `investigation.enabled: false`, missing, or `profiles` is empty:** Skip to Phase 3
 
 ### Phase 3: Design
 
