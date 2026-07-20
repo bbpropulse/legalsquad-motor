@@ -259,6 +259,7 @@ test('o resultado mais recente revoga um passe antigo, inclusive quando a nova p
 test('forward-runs legados continuam observáveis, sem virar promoção', () => {
   const catalog = discoverSkillCatalog(SKILLS);
   const evidence = loadSkillEvaluationEvidence(SKILLS);
+  assert.ok(catalog.entries.length > 0, 'a fixture precisa ter skills para o teste valer algo');
   // Cada skill da fixture tem uma observação de forward-run — o tamanho do
   // mapa é por skill (loadSkillEvaluationEvidence chaveia por `skill`), não
   // pelo número de arquivos em _evals/results/ (a fixture agrupa várias

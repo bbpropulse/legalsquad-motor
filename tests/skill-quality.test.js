@@ -54,6 +54,7 @@ test('as skills da fixture têm contrato v5, perfil, risco, guards e eval vincul
 
 test('metadados OpenAI têm prompt explícito e só habilitam invocação implícita com evidência', () => {
   const catalog = discoverSkillCatalog(SKILLS);
+  assert.ok(catalog.entries.length > 0, 'a fixture precisa ter skills para o teste valer algo');
   const eligibility = new Map(
     auditSkillCatalogQuality(catalog).results.map((result) => [result.id, result]),
   );
@@ -71,7 +72,9 @@ test('metadados OpenAI têm prompt explícito e só habilitam invocação implí
 
 test('frontmatter distribuível usa apenas chaves permitidas no topo', () => {
   const allowed = new Set(['name', 'description', 'license', 'allowed-tools', 'metadata']);
-  for (const dir of readdirSync(SKILLS, { withFileTypes: true }).filter((item) => item.isDirectory() && !item.name.startsWith('_'))) {
+  const skillDirs = readdirSync(SKILLS, { withFileTypes: true }).filter((item) => item.isDirectory() && !item.name.startsWith('_'));
+  assert.ok(skillDirs.length > 0, 'a fixture precisa ter skills para o teste valer algo');
+  for (const dir of skillDirs) {
     const path = join(SKILLS, dir.name, 'SKILL.md');
     if (!existsSync(path)) continue;
     const raw = readFileSync(path, 'utf8');
@@ -130,6 +133,7 @@ test('preview não vira elegível mesmo com rótulo e evidência de promoção',
 test('evidência persistida usa caminhos relativos e portáveis', () => {
   const catalog = discoverSkillCatalog(SKILLS);
   const evidence = loadSkillEvaluationEvidence(SKILLS);
+  assert.ok(catalog.entries.length > 0, 'a fixture precisa ter skills para o teste valer algo');
   // Cada skill da fixture tem uma observação de forward-run em _evals/results/
   // (agrupadas por quality_profile, não uma por arquivo) — o tamanho do mapa é
   // por skill, não por arquivo de resultado.
