@@ -18,7 +18,8 @@ const CANONICAL_SOURCES = [
   { src: join(PACKAGE_ROOT, '_criminalsquad', 'core'), dest: join('_criminalsquad', 'core') },
   { src: join(PACKAGE_ROOT, '_criminalsquad', 'config'), dest: join('_criminalsquad', 'config') },
   { src: join(PACKAGE_ROOT, 'dashboard'), dest: 'dashboard' },
-  { src: join(PACKAGE_ROOT, 'scripts', 'legal-calculators'), dest: join('scripts', 'legal-calculators') },
+  // scripts/legal-calculators saiu: calculadoras de matéria são pacote de área,
+  // não motor. Chegam pelo sync, não pelo init.
 ];
 
 const DASHBOARD_EXCLUDES = ['node_modules', 'tsconfig.tsbuildinfo', 'squads', 'test-results'];
