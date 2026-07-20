@@ -1,0 +1,3 @@
+default_prompt: "Execute o fluxo sintético da fixture demo $gerador-imagem"
+short_description: "Fixture demo: gerador-imagem"
+allow_implicit_invocation: false

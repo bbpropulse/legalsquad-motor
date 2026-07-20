@@ -1,0 +1,3 @@
+default_prompt: "Execute o fluxo sintético da fixture demo $demo-quarentena"
+short_description: "Fixture demo: demo-quarentena"
+allow_implicit_invocation: false

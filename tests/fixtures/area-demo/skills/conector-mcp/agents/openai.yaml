@@ -1,0 +1,3 @@
+default_prompt: "Execute o fluxo sintético da fixture demo $conector-mcp"
+short_description: "Fixture demo: conector-mcp"
+allow_implicit_invocation: false

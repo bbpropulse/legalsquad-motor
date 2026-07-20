@@ -1,0 +1,3 @@
+default_prompt: "Execute o fluxo sintético da fixture demo $demo-peca-alpha"
+short_description: "Fixture demo: demo-peca-alpha"
+allow_implicit_invocation: false
