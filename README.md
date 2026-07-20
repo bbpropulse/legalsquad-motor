@@ -55,7 +55,7 @@ jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqu
   é derivável hoje: a interseção de nomes entre `criminalsquad` e `dtsquad` dá exatamente 20 entradas
   (19 skills + `_evals`), sem depender do `ejsquad` — ver
   [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
-- **A suíte está verde:** `npm test` → 283 passam, 7 falham, 0 skip, 0 todo. As 7 falhas são dívida
+- **A suíte está verde:** `npm test` → 284 passam, 7 falham, 291 no total, 0 skip, 0 todo. As 7 falhas são dívida
   documentada (não bug) — `installAllSkills`, `syncSkillCatalogArtifacts` e o `resource-cli` ainda
   resolvem um manifesto de área por nome fixo em vez de raiz parametrizada. Detalhe completo em
   [`F0-SANEAMENTO.md §5-bis`](docs/specs/legalsquad/F0-SANEAMENTO.md). A não-regressão dessa dívida é

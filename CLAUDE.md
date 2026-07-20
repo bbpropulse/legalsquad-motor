@@ -73,8 +73,8 @@ Commit inicial: `19e29be`.
   `ARQUITETURA §3`. `incidente-falsidade-documental` é a única com cara de matéria — o F1 decide se é
   transversal de verdade ou por acidente de fork. Extrair à mão seria uma 2ª cópia; isso é trabalho do
   `build-area` (F1).
-- **A suíte está verde, com 7 falhas conhecidas — não é bug.** `npm test` → 283 passam, 7 falham, 0
-  skip, 0 todo. A afirmação anterior deste documento — que as falhas "não são regressão" — **estava
+- **A suíte está verde, com 7 falhas conhecidas — não é bug.** `npm test` → 284 passam, 7 falham, 291
+  no total, 0 skip, 0 todo. A afirmação anterior deste documento — que as falhas "não são regressão" — **estava
   errada**: das 98 falhas originais, ~20 eram regressão de verdade (o F0 apagou os wrappers de IDE do
   comando e o `catalog-scout`, que são motor, junto com o conteúdo jurídico — foram restaurados),
   ~21 eram matéria jurídica de área (calculadoras criminais, execução penal — removidas com razão) e
