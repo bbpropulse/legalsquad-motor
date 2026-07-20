@@ -55,7 +55,7 @@ jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqu
   é derivável hoje: a interseção de nomes entre `criminalsquad` e `dtsquad` dá exatamente 20 entradas
   (19 skills + `_evals`), sem depender do `ejsquad` — ver
   [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
-- **A suíte tem 7 falhas conhecidas, não está 100% verde:** `npm test` → 284 passam, 7 falham, 291 no
+- **A suíte tem 7 falhas conhecidas, não está 100% verde:** `npm test` → 288 passam, 7 falham, 295 no
   total, 0 skip, 0 todo. São dívida documentada (não bug), mas por **duas causas diferentes**: 6 delas
   (`init.test.js` ×4, `update.test.js` ×1, `cli.test.js` ×1) são ENOENT puro — `installAllSkills` e o
   `resource-cli` tentam copiar skills de um `<repo>/skills` que este repo não tem mais. Só a 7ª

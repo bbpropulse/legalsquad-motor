@@ -74,10 +74,11 @@ Commit inicial: `19e29be`.
   transversal de verdade ou por acidente de fork. Extrair à mão seria uma 2ª cópia; isso é trabalho do
   `build-area` (F1).
 - **A suíte tem 7 falhas conhecidas — dívida documentada, não bug (mas não está verde).**
-  `npm test` → 284 passam, 7 falham, 291 no total, 0 skip, 0 todo. A afirmação anterior deste
+  `npm test` → 288 passam, 7 falham, 295 no total, 0 skip, 0 todo. A afirmação anterior deste
   documento — que as falhas "não são regressão" — **estava errada**: das 98 falhas originais, ~20
-  eram regressão de verdade (o F0 apagou os wrappers de IDE do comando e o `catalog-scout`, que são
-  motor, junto com o conteúdo jurídico — foram restaurados), ~21 eram matéria jurídica de área
+  eram regressão de verdade (o F0 apagou os wrappers de IDE do comando, o `catalog-scout` **e os
+  dois juízes do loop de qualidade** — `avaliador-squad` e `verificador-citacoes` —, que são
+  motor, junto com o conteúdo jurídico — todos foram restaurados generalizados), ~21 eram matéria jurídica de área
   (calculadoras criminais, execução penal — removidas com razão) e ~57 eram motor testado tendo as
   skills criminais como fixture — hoje reapontadas para `tests/fixtures/area-demo/` (sintética, sem
   matéria jurídica real). Das 7 falhas que restam, **duas causas distintas, não uma só**: 6 delas —
