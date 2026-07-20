@@ -1,0 +1,7 @@
+id,name,icon,role,path,execution,skills
+triagem-demo,Tara Triagem,🗂️,Coleta a solicitação sintética e monta a ficha de foco.,./agents/triagem-demo.custom.md,inline,
+analista-demo,Ana Análise,🔎,Analisa os dados fictícios e produz o diagnóstico sintético.,./agents/analista-demo.custom.md,subagent,
+redator-demo,Rui Redação,✍️,Redige o rascunho sintético a partir da análise aprovada.,./agents/redator-demo.custom.md,inline,
+revisor-demo-a,Vitor Revisão A,✅,"Revisão A (checklist técnico) do rascunho sintético, em paralelo com a Revisão B.",./agents/revisor-demo-a.custom.md,subagent,
+revisor-demo-b,Vera Revisão B,🧪,"Revisão B (checklist de consistência) do rascunho sintético, em paralelo com a Revisão A.",./agents/revisor-demo-b.custom.md,subagent,
+publicador-demo,Pedro Publicação,📤,Gera a versão final sintética após aprovação.,./agents/publicador-demo.custom.md,inline,

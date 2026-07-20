@@ -1,0 +1,23 @@
+# Índice do Acervo — GERADO por `npm run indexar-acervo` (não editar à mão; será sobrescrito).
+# Os agentes de pesquisa consultam este índice ANTES da web. Pasta casos/ é omitida (sigilo).
+# Confiança: VERIFIED_OFFICIAL exige declaração explícita; ausência = DISCOVERY_ONLY.
+# Última indexação: 3 arquivos.
+
+acervo:
+  - path: jurisprudencia/tribunal-demo/DEMO_2023.md
+    tipo: jurisprudencia
+    tema: "Tribunal Demo — Tema 2023 (descoberta)"
+    tags: [demo, 2023]
+    confianca: DISCOVERY_ONLY
+  - path: jurisprudencia/tribunal-demo/DEMO_2024.md
+    tipo: jurisprudencia
+    tema: "Tribunal Demo — Tema 2024"
+    tags: [demo, 2024]
+    confianca: VERIFIED_OFFICIAL
+    url_oficial: "https://exemplo.demo/tribunal-demo/tema-2024"
+    consultado_em: "2026-07-09"
+  - path: legislacao/norma-suspeita.md
+    tipo: legislacao
+    tema: "Norma Suspeita (quarentena)"
+    tags: [norma, suspeita]
+    confianca: QUARANTINED

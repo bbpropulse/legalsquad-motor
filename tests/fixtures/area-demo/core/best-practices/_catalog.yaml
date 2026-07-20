@@ -1,0 +1,14 @@
+# Catálogo de best-practices — fixture "demo"
+# O Arquiteto lê este arquivo para descobrir quais best-practices estão disponíveis.
+
+catalog:
+  - id: fluxo-demo-basico
+    name: "Fluxo Demo Básico"
+    whenToUse: "Criar agentes que executam o fluxo sintético triagem → análise → redação da área demo."
+    file: fluxo-demo-basico.md
+
+  - id: revisao-dupla-demo
+    name: "Revisão Dupla Sintética"
+    whenToUse: "Criar agentes que revisam em paralelo um rascunho sintético antes da aprovação final."
+    file: revisao-dupla-demo.md
+

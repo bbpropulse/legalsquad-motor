@@ -13,7 +13,7 @@ metadata:
   quality_profile: "legal-drafting"
   contract_version: "5.0.0"
   quality_status: "contracted"
-  eval_case_ids: ["demo-v5-demo-piloto"]
+  eval_case_ids: ["demo-v5-demo-piloto","demo-canon-demo-piloto-001"]
   risk_level: "r2"
   delivery_type: "legal-draft"
   freshness_policy: "official-current-source-required"

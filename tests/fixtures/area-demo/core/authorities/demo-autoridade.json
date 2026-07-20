@@ -1,0 +1,29 @@
+{
+  "schema_version": "1",
+  "topic": "demo-autoridade-sintetica",
+  "operational_status": "quarantined",
+  "verified_at": "2026-07-09",
+  "revalidate_policy": "same_day",
+  "human_review": {
+    "status": "approved",
+    "reviewer": "fixture",
+    "reviewed_at": "2026-07-09"
+  },
+  "sources": [
+    {
+      "id": "fonte-demo-1",
+      "kind": "legislation",
+      "title": "Norma sintética de demonstração",
+      "official_url": "https://exemplo.demo/norma",
+      "verified_at": "2026-07-09",
+      "status": "discovery_only",
+      "scope": "fixture"
+    }
+  ],
+  "affected_skills": [
+    "demo-calculo-beta"
+  ],
+  "affected_eval_cases": [
+    "demo-v5-demo-calculo-beta"
+  ]
+}

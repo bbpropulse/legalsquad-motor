@@ -1,0 +1,17 @@
+name: "Squad Demo"
+code: "demo-squad"
+description: >
+  Squad de exemplo, sintética e sem matéria jurídica, instalada por padrão para
+  toda instalação nova do motor. Mostra o formato mínimo de um squad.yaml —
+  code igual ao nome da pasta — antes de qualquer pacote de área ser
+  sincronizado. Não é conteúdo jurídico e não deve ser usada em caso real.
+icon: "🧪"
+version: "1.0.0"
+created: "2026-07-20"
+
+# Placeholder deliberado: este seed traz só o squad.yaml (sem pipeline/ nem
+# agents/) para não distribuir uma referência pendurada a um pipeline que não
+# acompanha o pacote. A fixture completa e funcional (squad.yaml + pipeline +
+# agentes) vive em tests/fixtures/area-demo/squads/demo-squad/, usada pelos
+# testes do motor.
+status: "placeholder"
