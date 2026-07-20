@@ -51,7 +51,10 @@ const SKILLS = [
   { nome: 'conector-mcp',         lifecycle: 'active',      perfil: PERFIL_A, risco: 'r2', entrega: 'external-mutation',  tipo: 'mcp',    env: ['DEMO_TOKEN'] },
   { nome: 'gerador-imagem',       lifecycle: 'active',      perfil: PERFIL_A, risco: 'r1', entrega: 'external-mutation',  tipo: 'prompt', env: [] },
   { nome: 'gerador-imagem-env',   lifecycle: 'active',      perfil: PERFIL_A, risco: 'r1', entrega: 'external-mutation',  tipo: 'prompt', env: ['DEMO_API_KEY'] },
-  { nome: 'legalsquad-skill-creator', lifecycle: 'active',  perfil: PERFIL_A, risco: 'r2', entrega: 'system-artifact',    tipo: 'prompt', scripts: true },
+  // Nome real hardcoded no motor (src/skills.js:14 excludeInstalled, src/update.js:206)
+  // — não "legalsquad-*": ver CLAUDE.md e ARQUITETURA.md §6, o identificador
+  // `criminalsquad` permanece por decisão, não é o momento de renomear o produto.
+  { nome: 'criminalsquad-skill-creator', lifecycle: 'active', perfil: PERFIL_A, risco: 'r2', entrega: 'system-artifact', tipo: 'prompt', scripts: true },
 ];
 
 const skillMd = (s) => `---

@@ -124,14 +124,21 @@ test('installSkill throws on invalid skill id', async () => {
   }
 });
 
-test('installSkill copies full directory including subdirs for legalsquad-skill-creator', async () => {
+test('installSkill copies full directory including subdirs for criminalsquad-skill-creator', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
   try {
-    await installSkill('legalsquad-skill-creator', dir, SKILLS_DEMO);
-    const skill = await readFile(join(dir, 'skills', 'legalsquad-skill-creator', 'SKILL.md'), 'utf-8');
+    await installSkill('criminalsquad-skill-creator', dir, SKILLS_DEMO);
+    const skill = await readFile(join(dir, 'skills', 'criminalsquad-skill-creator', 'SKILL.md'), 'utf-8');
     assert.ok(skill.length > 0);
-    const scripts = await readdir(join(dir, 'skills', 'legalsquad-skill-creator', 'scripts'));
+    const scripts = await readdir(join(dir, 'skills', 'criminalsquad-skill-creator', 'scripts'));
     assert.ok(scripts.length > 0);
+    // installSkill não conhece excludeInstalled (só listInstalled filtra) — o
+    // conteúdo real fica em disco, mas listInstalled deve escondê-lo mesmo assim.
+    // Ao contrário do teste "listInstalled excludes..." acima (dir vazio criado à
+    // mão), aqui o caminho de exclusão é exercitado contra uma skill de verdade,
+    // instalada pelo fluxo real (mesmo nome hardcoded em src/skills.js:14).
+    const installed = await listInstalled(dir);
+    assert.ok(!installed.includes('criminalsquad-skill-creator'));
   } finally {
     await rm(dir, { recursive: true });
   }

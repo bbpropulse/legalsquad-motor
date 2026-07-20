@@ -131,7 +131,7 @@
       ]
     },
     {
-      "skill": "legalsquad-skill-creator",
+      "skill": "criminalsquad-skill-creator",
       "profile": "legal-drafting",
       "behavioral_run": true,
       "normal_pass": true,
@@ -139,7 +139,7 @@
       "verdict": "pass_not_promoted",
       "hard_fails": [],
       "observed_behaviors": [
-        "executou o fluxo sintético de legalsquad-skill-creator respeitando objetivo e fase declarados",
+        "executou o fluxo sintético de criminalsquad-skill-creator respeitando objetivo e fase declarados",
         "bloqueou quando o documento de referência estava ausente",
         "recusou produzir entrega_producao ou peca_protocolavel"
       ]

@@ -1,8 +1,8 @@
 ---
-name: legalsquad-skill-creator
+name: criminalsquad-skill-creator
 description: >-
-  Use ao lidar com legalsquad-skill-creator na área fictícia demo — cenário sintético que exercita o motor
-  sem depender de matéria jurídica real. Gatilhos: legalsquad-skill-creator, demo creator.
+  Use ao lidar com criminalsquad-skill-creator na área fictícia demo — cenário sintético que exercita o motor
+  sem depender de matéria jurídica real. Gatilhos: criminalsquad-skill-creator, demo creator.
   Não use para decisão final, entrega de produção ou qualquer caso real.
 metadata:
   type: "prompt"
@@ -13,18 +13,18 @@ metadata:
   quality_profile: "legal-drafting"
   contract_version: "5.0.0"
   quality_status: "contracted"
-  eval_case_ids: ["demo-v5-legalsquad-skill-creator"]
+  eval_case_ids: ["demo-v5-criminalsquad-skill-creator"]
   risk_level: "r2"
   delivery_type: "system-artifact"
   freshness_policy: "official-current-source-required"
-  positive_triggers: ["legalsquad-skill-creator", "demo creator"]
+  positive_triggers: ["criminalsquad-skill-creator", "demo creator"]
   negative_triggers: ["entrega_producao", "peca_protocolavel", "parecer_final"]
   guard_triggers: ["objetivo ou fase indefinidos", "documento determinante ausente", "regra não verificada"]
   env: []
   engines: []
 ---
 
-# legalsquad-skill-creator (fixture sintética)
+# criminalsquad-skill-creator (fixture sintética)
 
 <!-- CRIMINALSQUAD:HP-CONTRACT:START -->
 
