@@ -685,6 +685,19 @@ campo contra o schema real antes de escrever; se divergirem, o schema manda.
 - `tests/fixtures/area-demo/squads/demo-squad/squad.yaml` com `code: demo-squad` — **idêntico ao
   nome da pasta** (`integridade.test.js:84`; o dashboard casa por `code`) — e
   `pipeline/pipeline.yaml`.
+
+> **O `pipeline.yaml` não pode ser um stub.** A revisão da Task 4 constatou que as suítes removidas
+> (`execucao-v4`, `execucao-p0`) carregavam, junto com a matéria, três testes de **mecanismo do
+> Pipeline Runner** — que o [`CLAUDE.md`](../../../CLAUDE.md) põe explicitamente no motor. Eles
+> validavam: `step-id` sequenciais; `checkpoints:` apontando para ids existentes; todo `file:`
+> referenciado existindo em disco; todo `agent:` resolvendo; e o grafo `execution: subagent` +
+> `parallel_group` + `depends_on` + `on_reject`. Não há nenhum outro teste no repositório cobrindo
+> isso (`squad-state.test.js` cobre só a máquina de estados).
+>
+> Portanto o `pipeline.yaml` da fixture precisa exercitar **todas** essas construções: pelo menos 4
+> steps com ids sequenciais, ≥2 checkpoints, um `parallel_group` com dois membros que convergem via
+> `depends_on`, um `on_reject`, e ao menos um `file:` e um `agent:` que resolvam de verdade. É o que
+> permite à Task 7 recriar a cobertura perdida.
 - `tests/fixtures/area-demo/core/best-practices/_catalog.yaml` com **2 entradas** (`id`, `name`,
   `whenToUse`, `file`) e os 2 `.md` correspondentes; todo `file:` precisa resolver
   (`integridade.test.js:30`).
@@ -785,6 +798,26 @@ node --import ./tests/test-setup.js --test tests/<arquivo>.test.js 2>&1 | grep -
 
 4. Commit por suíte — `test: reapontar <suíte> para a fixture sintética`. Commits pequenos aqui
    valem porque um reaponte errado é fácil de isolar e reverter.
+
+- [ ] **Passo 2-bis: Recriar a cobertura de mecanismo perdida na Task 4**
+
+A revisão da Task 4 identificou cobertura de **núcleo** que saiu junto com a matéria e **não tem
+sucessor** em nenhuma suíte remanescente. Recrie-a sobre a fixture, em
+`tests/pipeline-runner.test.js` (novo arquivo — a cobertura é do Pipeline Runner, não de execução
+penal, e o nome deve dizer isso):
+
+1. **Schema do pipeline** — sobre `tests/fixtures/area-demo/squads/demo-squad/pipeline/pipeline.yaml`:
+   os `step-id` são sequenciais e únicos; todo id em `checkpoints:` existe entre os steps; todo
+   `file:` referenciado existe em disco; todo `agent:` resolve.
+2. **Grafo de execução** — o `parallel_group` tem membros independentes que convergem num
+   `depends_on` comum; `on_reject` aponta para um step existente.
+3. **Paridade squad ↔ template** — `tests/fixtures/area-demo/squads/demo-squad/` e
+   `templates/squads/demo-squad/` não divergem naquilo que ambos declaram.
+
+**Guarde-se contra o falso-verde.** A revisão da Task 4 observou que vários testes de `integridade`
+passam hoje em ~0,1 ms porque iteram sobre diretórios vazios — passam sem verificar nada. Cada teste
+acima deve **primeiro** afirmar que a coleção que vai percorrer não está vazia. Um teste que percorre
+zero elementos e passa é pior que teste nenhum, porque compra confiança sem entregar cobertura.
 
 - [ ] **Passo 3: Derivar as asserções calibradas em conteúdo criminal**
 
