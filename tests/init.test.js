@@ -328,6 +328,21 @@ test('init does not create agents dir when no bundled agents exist', async () =>
   }
 });
 
+// BLOQUEADO (Task 7, não corrigido nesta task — ver task-7-report.md).
+// Os 4 testes abaixo dependem de installAllSkills()/syncSkillCatalogArtifacts()
+// (src/init.js), que leem o bundle real do pacote (join(__dirname,'..','skills')
+// e '..', '_criminalsquad', 'core', 'skill-quality-profiles.json' + o manifesto
+// '_execucao-penal-v3-integration.yaml' hardcoded) — sem parâmetro de raiz, ao
+// contrário de validateSkillCatalog/searchSkillCatalog/loadSkillRuntimeRecords.
+// O bundle real (<repo>/skills) não existe neste repo: F0 removeu o conteúdo, e
+// o nome do manifesto de canonicalização está registrado como dívida do F1 em
+// F0-SANEAMENTO.md §5-bis ("Registrado como dívida do F1, não tratado neste
+// ciclo" — mexer nisso agora seria inventar a interface duas vezes, antes do
+// build-area existir). Reapontar estes testes exigiria OU criar um
+// <repo>/skills real (fora do inventário de arquivos do plano — nenhuma task
+// o cria), OU parametrizar init.js/update.js (risco maior que os testes de
+// mecanismo puro desta task, e toca justamente o código com dívida
+// registrada). Deixado vermelho e documentado, não silenciado.
 test('init installs active/pilot skills for discovery and skips preview skills', async () => {
   const tempDir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
   try {
@@ -400,6 +415,9 @@ test('init does not overwrite existing package.json', async () => {
   }
 });
 
+// BLOQUEADO (mesma causa do bloco acima em 'init installs active/pilot
+// skills...' — as duas linhas de skills/habeas-corpus/... dependem do bundle
+// real; o resto do teste, sobre templates/package.json, já passaria sozinho).
 test('init copies package.json to fresh project', async () => {
   const tempDir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
   try {

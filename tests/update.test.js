@@ -183,6 +183,14 @@ test('update preserves user-created agent files', async () => {
   }
 });
 
+// BLOQUEADO (Task 7, não corrigido nesta task — ver task-7-report.md e o
+// mesmo bloco em tests/init.test.js). update() reusa
+// listAvailableSkills/getSkillMeta/installSkill e syncSkillCatalogArtifacts
+// de src/init.js sem nenhum parâmetro de raiz — os dois testes abaixo
+// dependem do bundle real do pacote (<repo>/skills), que não existe neste
+// repo, e o segundo também do manifesto '_execucao-penal-v3-integration.yaml'
+// hardcoded, dívida registrada e congelada para o F1 em
+// F0-SANEAMENTO.md §5-bis.
 test('update auto-imports bundled skills with env requirements', async () => {
   const tempDir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
   try {

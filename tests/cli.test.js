@@ -86,6 +86,16 @@ test('skillsCli rejects an unknown subcommand', async () => {
   }
 });
 
+// BLOQUEADO (Task 7, não corrigido nesta task — ver task-7-report.md).
+// skillsCli() (src/skills-cli.js) passa por createResourceCli() (src/
+// resource-cli.js), que chama resource.install(id, targetDir) — 2 argumentos
+// fixos, sem espaço para o override de bundle aditivo que src/registry.js
+// ganhou nesta task (usado em tests/skills.test.js). Dar esse terceiro
+// argumento a resource-cli.js tocaria um dispatcher genérico compartilhado
+// por skillsCli E agentsCli só para desbloquear este teste — risco
+// desproporcional ao ganho; os outros 4 testes de skillsCli/agentsCli neste
+// arquivo já cobrem o dispatcher (list/install-sem-id/subcomando
+// desconhecido) sem precisar do bundle real.
 test('skillsCli install + list + remove round-trips a bundled skill', async () => {
   const dir = await initializedDir();
   try {
