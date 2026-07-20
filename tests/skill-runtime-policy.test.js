@@ -9,6 +9,7 @@ import {
   loadSkillRuntimeRecords,
   resolveSkillRuntime,
 } from '../src/skill-runtime-policy.js';
+import { AREA_DEMO } from './fixtures/caminhos.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -184,15 +185,21 @@ test('seleção explícita preserva contracted supervisionada sem relaxar o gate
 });
 
 test('catálogo real aplica o mesmo gate sem confiar no campo gerado do índice', () => {
-  const { records } = loadSkillRuntimeRecords(ROOT);
-  const contracted = resolveSkillRuntime(['habeas-corpus'], { records });
-  const supervised = resolveSkillRuntime(['habeas-corpus'], {
+  const { records } = loadSkillRuntimeRecords(AREA_DEMO);
+  assert.ok(records.size > 0, 'a fixture precisa carregar registros para o teste valer algo');
+  const contracted = resolveSkillRuntime(['demo-peca-alpha'], { records });
+  const supervised = resolveSkillRuntime(['demo-peca-alpha'], {
     records,
     supervised: true,
   });
+  // demo-preview-engine (preview) e demo-quarentena (quarantined) — a mesma dupla
+  // de lifecycles bloqueados do teste original, agora com as skills da fixture
+  // cujo lifecycle é literalmente esse (busca-apreensao-escritorio-advocacia, a
+  // fonte original desta segunda posição, não era quarantined na fixture; troquei
+  // por demo-quarentena para preservar a asserção de lifecycle-quarantined-blocked).
   const blocked = resolveSkillRuntime([
-    'ep-fracao-progressao-engine',
-    'busca-apreensao-escritorio-advocacia',
+    'demo-preview-engine',
+    'demo-quarentena',
   ], { records, supervised: true });
 
   assert.equal(contracted.success, false);
@@ -224,29 +231,29 @@ test('CLI propaga o gate pelo exit code e entrega manifesto JSON', () => {
   const blocked = spawnSync(process.execPath, [
     bin,
     'resolve-skills',
-    'habeas-corpus',
+    'demo-peca-alpha',
     '--json',
-  ], { cwd: ROOT, encoding: 'utf8' });
+  ], { cwd: AREA_DEMO, encoding: 'utf8' });
   const supervised = spawnSync(process.execPath, [
     bin,
     'resolve-skills',
-    'habeas-corpus',
+    'demo-peca-alpha',
     '--supervised',
     '--json',
-  ], { cwd: ROOT, encoding: 'utf8' });
+  ], { cwd: AREA_DEMO, encoding: 'utf8' });
   const explicitlySelected = spawnSync(process.execPath, [
     bin,
     'resolve-skills',
-    'habeas-corpus',
+    'demo-peca-alpha',
     '--explicit-selection',
     '--supervised',
     '--json',
-  ], { cwd: ROOT, encoding: 'utf8' });
+  ], { cwd: AREA_DEMO, encoding: 'utf8' });
 
   assert.equal(blocked.status, 1, blocked.stderr);
   assert.equal(JSON.parse(blocked.stdout).decisions[0].reasons[0].code, 'human-supervision-required');
   assert.equal(supervised.status, 0, supervised.stderr);
   assert.equal(JSON.parse(supervised.stdout).decisions[0].disposition, 'supervised-contracted');
   assert.equal(explicitlySelected.status, 0, explicitlySelected.stderr);
-  assert.equal(JSON.parse(explicitlySelected.stdout).selected, 'habeas-corpus');
+  assert.equal(JSON.parse(explicitlySelected.stdout).selected, 'demo-peca-alpha');
 });
