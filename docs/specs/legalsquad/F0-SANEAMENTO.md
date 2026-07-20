@@ -135,7 +135,7 @@ tests/fixtures/area-demo/
 │   ├── conector-mcp/                   # type: mcp · env: [DEMO_TOKEN]
 │   ├── gerador-imagem/                 # env: []
 │   ├── gerador-imagem-env/             # env: [DEMO_API_KEY]
-│   └── legalsquad-skill-creator/       # + scripts/ não-vazio
+│   └── criminalsquad-skill-creator/    # + scripts/ não-vazio; nome real hardcoded no motor
 ├── acervo/
 │   ├── _index.yaml                     # GERADO por indexar-acervo
 │   ├── jurisprudencia/tribunal-demo/DEMO_2024.md   # VERIFIED_OFFICIAL
@@ -295,12 +295,23 @@ Ordem de execução: **A → B → C → pacote**.
 1. `npm test` com **zero `skip`** e falhas apenas as que a dívida da §5-bis torna inevitáveis.
    Hoje: 206 passam, 98 falham. Depois: 283 passam, **7 falham**.
 
-   As 7 são consequência direta da dívida congelada, não trabalho por fazer: `installAllSkills` e
-   `syncSkillCatalogArtifacts` (`src/init.js`) e o `resource-cli.js` não aceitam raiz parametrizada
-   porque resolvem o manifesto `_execucao-penal-v3-integration.yaml` por nome fixo. Parametrizá-los
-   agora seria inventar a interface do pacote de área **antes** do `build-area` existir — e depois
-   inventá-la de novo. São `init.test.js` (4), `update.test.js` (2) e `cli.test.js` (1), documentadas
-   inline no código, sem `skip` e sem teste comentado: elas falham visivelmente, como devem.
+   As 7 são consequência direta da dívida congelada, não trabalho por fazer — mas por **duas causas
+   distintas**, não uma só. **6 delas** — `init.test.js` (4: `apify`/`blotato`/`canva` não instaladas,
+   `criminalsquad-skill-creator/scripts`, `_evals/README.md`,
+   `habeas-corpus/references/high-performance-contract.md`), `update.test.js` (1:
+   `image-ai-generator/SKILL.md`) e `cli.test.js` (1: `skillsCli install` de `image-creator`) — são
+   **ENOENT puro**: `installAllSkills` e o `resource-cli.js` (via `skills.js`) tentam copiar skills de
+   um `<repo>/skills` que este repo não tem. Parametrizar o nome de manifesto algum resolveria essas 6
+   — falta o pacote inteiro, não um arquivo. Só a **7ª** (`update.test.js:225`, teste `update does not
+   auto-import preview skills`) é causada por `syncSkillCatalogArtifacts` (`src/init.js`, chamada por
+   `init` e por `update`) resolver o manifesto `_execucao-penal-v3-integration.yaml` por nome fixo a
+   partir de `PACKAGE_ROOT/skills`: como esse caminho também não existe, a função no-opa
+   silenciosamente (`src/init.js:264`, `catch { // Partial/legacy package without the integration
+   manifest. }`) em vez de lançar, e devolve ao teste o manifesto obsoleto que ele mesmo escreveu.
+   Parametrizar essa raiz resolveria só essa 1ª causa — a maioria das 7 falhas (6 de 7) não tem nada a
+   ver com o nome do manifesto e só se resolve quando o `build-area` existir e produzir um
+   `<repo>/skills` de verdade. As 7 estão documentadas inline no código, sem `skip` e sem teste
+   comentado: elas falham visivelmente, como devem.
 2. `npm run build:ide` roda **e não modifica** o `CLAUDE.md` — verificado por `git status` limpo
    depois de rodar.
 3. **Não-regressão da fronteira:** o inventário da §5-bis não cresce — nenhum arquivo hoje limpo
@@ -345,6 +356,7 @@ código do motor**. A fronteira núcleo × pacote do `CLAUDE.md` está violada n
 | `templates/ide-assets/command-body.md:12,150` | lista os 9 squads criminais e cita `habeas-corpus`, `triagem-novo-caso`, `execução penal`… | **alta** — fonte (`npm run build:ide`) de 7 cópias em `templates/` (linha abaixo) mais a cópia do próprio repo em `.claude/skills/`, fora do escopo deste teste |
 | `templates/ide-assets/instructions-body.md:20` | descreve a biblioteca de skills por matéria: "execução penal, tribunal do júri…" | **alta** — fonte (`npm run build:ide`) das outras 6 cópias em `templates/` (linha abaixo) |
 | 13 cópias geradas dos dois arquivos acima, uma por IDE — mesmo corpo, frontmatter próprio: `templates/ide-templates/claude-code/CLAUDE.md`, `templates/ide-templates/claude-code/.claude/skills/criminalsquad/SKILL.md`, `templates/ide-templates/cursor/.cursor/rules/criminalsquad.mdc`, `templates/ide-templates/qwen-code/QWEN.md`, `templates/ide-templates/qwen-code/.qwen/skills/criminalsquad/SKILL.md`, `templates/ide-templates/codex/AGENTS.md`, `templates/ide-templates/gemini-cli/GEMINI.md`, `templates/ide-templates/gemini-cli/.gemini/skills/criminalsquad/SKILL.md`, `templates/ide-templates/vscode-copilot/.github/prompts/criminalsquad.prompt.md`, `templates/ide-templates/trae/.trae/rules/criminalsquad.md`, `templates/ide-templates/antigravity/.agent/rules/criminalsquad.md`, `templates/ide-templates/antigravity/.agent/workflows/criminalsquad.md`, `templates/ide-templates/opencode/AGENTS.md` | herdam a matéria da linha acima; `npm run build:ide` reintroduz se alguém limpar só a cópia | **alta** — mesma causa raiz, 13 sintomas |
+| `_criminalsquad/core/architect.agent.yaml`, `_criminalsquad/core/runner.pipeline.md`, `_criminalsquad/core/seeds/company.md`, `_criminalsquad/core/prompts/discovery.prompt.md`, `_criminalsquad/core/prompts/design.prompt.md`, `_criminalsquad/core/prompts/build.prompt.md`, `_criminalsquad/core/prompts/sherlock-shared.md`, `_criminalsquad/core/prompts/sherlock-instagram.md`, `_criminalsquad/core/prompts/sherlock-youtube.md`, `_criminalsquad/core/prompts/sherlock-twitter.md`, `_criminalsquad/core/prompts/sherlock-linkedin.md` (11 arquivos) e `.claude/skills/criminalsquad/SKILL.md` (1 arquivo) — **12 ao todo** | instruem o Architect e o Sherlock a ler `execucao-penal-alta-performance.md` e a consultar `skills/_execucao-penal-v3-integration.yaml`; `company.md` lista "execução penal" como nicho de exemplo; `SKILL.md` descreve a biblioteca de 520 skills e os 9 squads criminais | **alta** — `_criminalsquad/core/` está em `CANONICAL_SOURCES` de `src/init.js`: é o caminho pelo qual matéria criminal chega a **todo usuário novo** via `init` |
 
 **Classificado como mecanismo, não matéria:** a regex de
 `templates/ide-templates/*/hooks/verifica-citacoes.mjs:32` (`REsp|HC|Súmula|LEP|CPP|art.`). É o
@@ -357,6 +369,14 @@ citam `LEP` só como token da regex de citação) apareceriam como falso positiv
 **Também propaga matéria:** as duas linhas de `templates/ide-assets/` acima e as 13 cópias por IDE
 que `npm run build:ide` gera a partir delas — 15 arquivos ao todo, todos hoje na `DIVIDA_CONHECIDA`
 de `tests/fronteira.test.js`, que guarda esse inventário contra crescimento.
+
+**Chega a todo usuário novo via `init`:** os 12 arquivos de `_criminalsquad/core/` e
+`.claude/skills/criminalsquad/SKILL.md` acima também estão na `DIVIDA_CONHECIDA` de
+`tests/fronteira.test.js`, que agora varre `_criminalsquad/` e `.claude/` além de
+`src/ bin/ scripts/ templates/`. Diferem em gravidade dos demais: não são só código do motor, são
+**prompt e best-practice do Architect/Sherlock** — o texto que o agente lê para decidir o que fazer
+— e `_criminalsquad/core/` está em `CANONICAL_SOURCES` de `src/init.js`, copiado por todo `init`
+novo. É a rota mais direta de vazamento de matéria para o usuário final.
 
 ### Decisão
 

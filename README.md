@@ -55,11 +55,19 @@ jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqu
   é derivável hoje: a interseção de nomes entre `criminalsquad` e `dtsquad` dá exatamente 20 entradas
   (19 skills + `_evals`), sem depender do `ejsquad` — ver
   [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
-- **A suíte está verde:** `npm test` → 284 passam, 7 falham, 291 no total, 0 skip, 0 todo. As 7 falhas são dívida
-  documentada (não bug) — `installAllSkills`, `syncSkillCatalogArtifacts` e o `resource-cli` ainda
-  resolvem um manifesto de área por nome fixo em vez de raiz parametrizada. Detalhe completo em
+- **A suíte tem 7 falhas conhecidas, não está 100% verde:** `npm test` → 284 passam, 7 falham, 291 no
+  total, 0 skip, 0 todo. São dívida documentada (não bug), mas por **duas causas diferentes**: 6 delas
+  (`init.test.js` ×4, `update.test.js` ×1, `cli.test.js` ×1) são ENOENT puro — `installAllSkills` e o
+  `resource-cli` tentam copiar skills de um `<repo>/skills` que este repo não tem mais. Só a 7ª
+  (`update.test.js:225`) é causada por `syncSkillCatalogArtifacts` (`src/init.js`, chamada por `init`
+  e `update`) resolver o manifesto `_execucao-penal-v3-integration.yaml` por nome fixo em vez de raiz
+  parametrizada. Detalhe completo em
   [`F0-SANEAMENTO.md §5-bis`](docs/specs/legalsquad/F0-SANEAMENTO.md). A não-regressão dessa dívida é
   guardada por `tests/fronteira.test.js`.
+- **`npm run verify` continua vermelho** (não é regressão desta branch): `scripts/verify.mjs` exige
+  487 `SKILL.md`, os motores de `legal-calculators/` e `_criminalsquad/core/authorities/
+  execucao-penal-art-112.json` — tudo conteúdo de área que este repo não tem mais. Só volta a passar
+  quando o `build-area` (F1) alimentar o tarball com um pacote de área real.
 
 ## Regras do projeto
 

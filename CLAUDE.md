@@ -73,20 +73,35 @@ Commit inicial: `19e29be`.
   `ARQUITETURA §3`. `incidente-falsidade-documental` é a única com cara de matéria — o F1 decide se é
   transversal de verdade ou por acidente de fork. Extrair à mão seria uma 2ª cópia; isso é trabalho do
   `build-area` (F1).
-- **A suíte está verde, com 7 falhas conhecidas — não é bug.** `npm test` → 284 passam, 7 falham, 291
-  no total, 0 skip, 0 todo. A afirmação anterior deste documento — que as falhas "não são regressão" — **estava
-  errada**: das 98 falhas originais, ~20 eram regressão de verdade (o F0 apagou os wrappers de IDE do
-  comando e o `catalog-scout`, que são motor, junto com o conteúdo jurídico — foram restaurados),
-  ~21 eram matéria jurídica de área (calculadoras criminais, execução penal — removidas com razão) e
-  ~57 eram motor testado tendo as skills criminais como fixture — hoje reapontadas para
-  `tests/fixtures/area-demo/` (sintética, sem matéria jurídica real). As 7 falhas que restam são dívida
-  documentada e aceita, não trabalho esquecido: `init.test.js` (4), `update.test.js` (2) e
-  `cli.test.js` (1) falham porque `installAllSkills`, `syncSkillCatalogArtifacts` (`src/init.js`) e o
-  `resource-cli` resolvem o manifesto `_execucao-penal-v3-integration.yaml` por nome fixo, em vez de
-  aceitar raiz parametrizada — parametrizar agora seria inventar a interface do pacote de área antes do
-  `build-area` existir. Ver [`F0-SANEAMENTO.md §5-bis`](docs/specs/legalsquad/F0-SANEAMENTO.md). A
-  não-regressão dessa dívida — nenhum arquivo novo passando a conter matéria jurídica — é guardada por
+- **A suíte tem 7 falhas conhecidas — dívida documentada, não bug (mas não está verde).**
+  `npm test` → 284 passam, 7 falham, 291 no total, 0 skip, 0 todo. A afirmação anterior deste
+  documento — que as falhas "não são regressão" — **estava errada**: das 98 falhas originais, ~20
+  eram regressão de verdade (o F0 apagou os wrappers de IDE do comando e o `catalog-scout`, que são
+  motor, junto com o conteúdo jurídico — foram restaurados), ~21 eram matéria jurídica de área
+  (calculadoras criminais, execução penal — removidas com razão) e ~57 eram motor testado tendo as
+  skills criminais como fixture — hoje reapontadas para `tests/fixtures/area-demo/` (sintética, sem
+  matéria jurídica real). Das 7 falhas que restam, **duas causas distintas, não uma só**: 6 delas —
+  `init.test.js` (4: `apify`/`blotato`/`canva` não instaladas, `criminalsquad-skill-creator/scripts`,
+  `_evals/README.md`, `habeas-corpus/references/high-performance-contract.md`), `update.test.js` (1:
+  `image-ai-generator/SKILL.md`) e `cli.test.js` (1: `skillsCli install` de `image-creator`) — são
+  ENOENT puro: este repo não tem mais um `<repo>/skills` de verdade para instalar, e parametrizar
+  qualquer nome de manifesto não resolveria nenhuma delas, porque falta o pacote inteiro, não um
+  arquivo específico. Só a 7ª (`update.test.js:225`, teste `update does not auto-import preview
+  skills`) é causada por `syncSkillCatalogArtifacts` (`src/init.js`, reusado por `update.js`)
+  resolver `_execucao-penal-v3-integration.yaml` por nome fixo a partir de `PACKAGE_ROOT/skills`: como
+  esse caminho também não existe, a função no-opa silenciosamente (`src/init.js:264`) em vez de
+  lançar, e devolve ao teste o manifesto obsoleto que ele mesmo escreveu. Parametrizar o nome do
+  manifesto resolveria só essa 1; as outras 6 exigem que o `build-area` (F1) produza um `<repo>/skills`
+  real. Ver [`F0-SANEAMENTO.md §5-bis`](docs/specs/legalsquad/F0-SANEAMENTO.md). A não-regressão dessa
+  dívida — nenhum arquivo novo passando a conter matéria jurídica — é guardada por
   `tests/fronteira.test.js`.
+- **`npm run verify` continua vermelho** — não é regressão desta branch, já era assim antes; registrado
+  aqui para quem clona não descobrir na marra. `scripts/verify.mjs` é o gate de release do tarball
+  publicável e exige conteúdo de área que este repo não tem mais: exatamente 487 `SKILL.md` (com
+  `references/high-performance-contract.md` e `agents/openai.yaml` correspondentes), os três motores de
+  `legal-calculators/` (fração/data, remição, prescrição executória) e
+  `_criminalsquad/core/authorities/execucao-penal-art-112.json`. Continuará vermelho até o `build-area`
+  (F1) produzir um pacote de área para alimentar o tarball.
 
 ## Próximo passo: F1 — o exportador
 
