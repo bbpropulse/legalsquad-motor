@@ -18,6 +18,11 @@ const MATERIA = 'dosimetria|remicao|remição|habeas.corpus|art\\.? 112|execucao
 // dívida só: command-body.md e instructions-body.md (fonte) e as 13 cópias que
 // `npm run build:ide` gera a partir deles por IDE (mesmo corpo, frontmatter próprio) —
 // ver F0-SANEAMENTO.md §5-bis, "Também propaga matéria".
+//
+// Os 12 arquivos abaixo de _criminalsquad/core/ e .claude/skills/criminalsquad/SKILL.md
+// são outra dívida: _criminalsquad/core/ é copiado pelo `init` (está em CANONICAL_SOURCES
+// de src/init.js) — é o caminho pelo qual matéria criminal chega a todo usuário novo —
+// ver F0-SANEAMENTO.md §5-bis, "Chega a todo usuário novo via init".
 const DIVIDA_CONHECIDA = new Set([
   'src/skill-quality.js',
   'src/skill-catalog.js',
@@ -41,6 +46,18 @@ const DIVIDA_CONHECIDA = new Set([
   'templates/ide-templates/antigravity/.agent/rules/criminalsquad.md',
   'templates/ide-templates/antigravity/.agent/workflows/criminalsquad.md',
   'templates/ide-templates/opencode/AGENTS.md',
+  '_criminalsquad/core/architect.agent.yaml',
+  '_criminalsquad/core/runner.pipeline.md',
+  '_criminalsquad/core/seeds/company.md',
+  '_criminalsquad/core/prompts/discovery.prompt.md',
+  '_criminalsquad/core/prompts/design.prompt.md',
+  '_criminalsquad/core/prompts/build.prompt.md',
+  '_criminalsquad/core/prompts/sherlock-shared.md',
+  '_criminalsquad/core/prompts/sherlock-instagram.md',
+  '_criminalsquad/core/prompts/sherlock-youtube.md',
+  '_criminalsquad/core/prompts/sherlock-twitter.md',
+  '_criminalsquad/core/prompts/sherlock-linkedin.md',
+  '.claude/skills/criminalsquad/SKILL.md',
 ]);
 
 test('a matéria jurídica no motor não se espalha para arquivos novos', () => {
@@ -48,7 +65,7 @@ test('a matéria jurídica no motor não se espalha para arquivos novos', () => 
   try {
     saida = execFileSync(
       'grep',
-      ['-rlEi', MATERIA, 'src/', 'bin/', 'scripts/', 'templates/'],
+      ['-rlEi', MATERIA, 'src/', 'bin/', 'scripts/', 'templates/', '_criminalsquad/', '.claude/'],
       { encoding: 'utf8' }
     );
   } catch (e) {
