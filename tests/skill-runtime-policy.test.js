@@ -287,3 +287,44 @@ test('skills nativas puras resolvem sem skills/ no disco (curto-circuito antes d
     await rm(raizSemSkills, { recursive: true, force: true });
   }
 });
+
+test('lista vazia é rejeitada sem tocar o catálogo (mesmo com skills/ ausente)', async () => {
+  const { mkdtemp, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const raizSemSkills = await mkdtemp(join(tmpdir(), 'runtime-vazio-'));
+
+  try {
+    // Efeito colateral do curto-circuito nativo: a checagem de lista vazia
+    // passou a vir ANTES do load do catálogo. Antes lançava "Diretório de
+    // skills ausente"; agora devolve o erro semanticamente correto. Fica preso
+    // aqui para a ordem não regredir por acidente.
+    const resultado = resolveSkillRuntime([], { rootDir: raizSemSkills });
+
+    assert.equal(resultado.success, false);
+    assert.equal(resultado.error.code, 'skill-list-empty');
+    assert.deepEqual(resultado.decisions, []);
+  } finally {
+    await rm(raizSemSkills, { recursive: true, force: true });
+  }
+});
+
+test('modo selection não promove skill nativa a candidata de alta performance', async () => {
+  const { mkdtemp, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const raizSemSkills = await mkdtemp(join(tmpdir(), 'runtime-selecao-'));
+
+  try {
+    // Nativa tem bypass do gate de catálogo, mas NÃO é evidence-certified:
+    // seleção automática continua exigindo high_performance_eligible.
+    const resultado = resolveSkillRuntime(['web_search'], {
+      rootDir: raizSemSkills,
+      mode: 'selection',
+    });
+
+    assert.equal(resultado.success, false);
+    assert.equal(resultado.selected, null);
+    assert.equal(resultado.error.code, 'no-high-performance-candidate');
+  } finally {
+    await rm(raizSemSkills, { recursive: true, force: true });
+  }
+});

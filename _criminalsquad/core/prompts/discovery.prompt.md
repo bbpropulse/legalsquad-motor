@@ -60,7 +60,7 @@ After the user answers Step 1, classify their intent into one of the following d
 
 Save the detected domain as `domain`.
 
-Se o trabalho for de **execução penal**, leia também, neste ponto e antes de qualquer investigação, `_criminalsquad/core/best-practices/execucao-penal-alta-performance.md`. Ele é o protocolo transversal obrigatório do domínio.
+Se o trabalho for de **execução penal**, leia também, neste ponto e antes de qualquer investigação, `_criminalsquad/core/best-practices/execucao-penal-alta-performance.md`. Ele é o protocolo transversal obrigatório do domínio — **quando instalado**. Se o arquivo não existir (área não instalada), registre `execution_penal_protocol: not_installed` no `discovery.yaml` e siga; **nunca reconstitua o protocolo de memória** nem finja tê-lo aplicado.
 
 ---
 
@@ -297,7 +297,7 @@ The `squad_code` must be a short, URL-safe slug derived from the squad's purpose
 
 ## Rules
 
-- **NEVER load best-practices file contents** — only scan filenames to build the format list, com uma única exceção obrigatória: `execucao-penal-alta-performance.md` quando o domínio for execução penal
+- **NEVER load best-practices file contents** — only scan filenames to build the format list, com uma única exceção obrigatória: `execucao-penal-alta-performance.md` quando o domínio for execução penal **e o arquivo existir** (ausente → registrar `not_installed` e seguir)
 - **NEVER load Sherlock prompts** — investigation setup stays within this prompt
 - **NEVER start designing the squad** — discovery ends at confirmation; squad design is Phase 2
 - **NEVER ask more than 8 questions total** — respect the user's time
