@@ -63,7 +63,7 @@ export function lastCapture(entries = readTracker()) {
 
 /**
  * Imprime 1 linha de frescor do cache — cache velho responde silêncio e vira
- * falsa tranquilidade ("nenhum prazo hoje") num produto de prazo penal.
+ * falsa tranquilidade ("nenhum prazo hoje") num produto de prazo processual.
  * ⚠️ quando vazio ou última captura > maxHoras. Omitido em --json (saída pura).
  */
 export function printFreshness(maxHoras = 24) {

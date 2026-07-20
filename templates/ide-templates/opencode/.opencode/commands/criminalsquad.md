@@ -1,5 +1,5 @@
 ---
-description: CriminalSquad — Orquestração multi-agente para advocacia criminal.
+description: CriminalSquad — Orquestração multi-agente para a prática jurídica.
 ---
 
 Activate the CriminalSquad system. Read `AGENTS.md` at the project root and adopt the CriminalSquad system role. Follow all initialization, command routing, and workflow instructions defined there.

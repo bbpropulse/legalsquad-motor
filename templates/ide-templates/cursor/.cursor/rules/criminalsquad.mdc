@@ -1,13 +1,14 @@
 ---
-description: CriminalSquad — Orquestração multi-agente para advocacia criminal
+description: CriminalSquad — Orquestração multi-agente para a prática jurídica
 alwaysApply: true
 ---
 
 # CriminalSquad — Instruções do Projeto
 
-Este projeto usa o **CriminalSquad**, um framework de orquestração multi-agente para
-**advocacia criminal** (Direito Penal e Processual Penal brasileiro). Toda entrega é
-**rascunho técnico para revisão humana obrigatória**.
+Este projeto usa o **CriminalSquad**, um framework de orquestração multi-agente para a
+**prática jurídica**. O motor não presume área do Direito: a matéria — peças, squads,
+best-practices, vocabulário e moldura ética — vem da **área instalada** e do perfil em
+`company.md`. Toda entrega é **rascunho técnico para revisão humana obrigatória**.
 
 ## Início rápido
 
@@ -22,7 +23,7 @@ Digite `/criminalsquad` para abrir o menu, ou use:
 - `_criminalsquad/core/best-practices/` — Conhecimento jurídico: peça/recurso criminal, pesquisa jurisprudencial, tribunal do júri, justiça negocial, cadeia de custódia, ética OAB, **verificação de citações** e **nichos** (`defesa-*`: drogas, violência doméstica, trânsito, tributários, honra)
 - `_criminalsquad/_memory/company.md` — Perfil da instituição (**tipo** + **polo**); carregado em toda execução
 - `acervo/` — Base de conhecimento local, consultada **antes** da web: `jurisprudencia/`, `doutrina/`, `legislacao/`, `teses-modelos/`. `acervo/casos/` é **sigiloso** (gitignored). Índice em `acervo/_index.yaml`
-- `skills/` — Biblioteca de 520 skills: peças, execução penal, tribunal do júri, análise de provas, leitura de imagens dos autos, inquérito/investigação, acusação e assistente de acusação, estratégia de defesa, ANPP, integrações. O catálogo `skills/_index.yaml` registra domínio, risco, perfil, maturidade e evidência; atualize com `/criminalsquad indexar-skills` e audite com `/criminalsquad auditar-skills`. `contracted` exige supervisão e não equivale a desempenho comprovado; `verified`/`certified` só prevalece com `high_performance_eligible: true`.
+- `skills/` — Biblioteca de skills da **área instalada** (peças, análise de provas, leitura de documentos, integrações — o conjunto depende do pacote). O catálogo `skills/_index.yaml` registra domínio, risco, perfil, maturidade e evidência; atualize com `/criminalsquad indexar-skills` e audite com `/criminalsquad auditar-skills`. Para descobrir o que existe, use `/criminalsquad search-skills` — não presuma um catálogo fixo. `contracted` exige supervisão e não equivale a desempenho comprovado; `verified`/`certified` só prevalece com `high_performance_eligible: true`.
 - `.claude/agents/` — Subagentes jurídicos especialistas (peças, pesquisa, gestão do escritório)
 - `squads/` — Squads jurídicos; `squads/{nome}/output/` é a saída gerada; `squads/{nome}/_investigations/` guarda as pesquisas do Sherlock
 

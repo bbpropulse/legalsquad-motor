@@ -1,5 +1,5 @@
 ---
-description: CriminalSquad — Orquestração multi-agente para advocacia criminal.
+description: CriminalSquad — Orquestração multi-agente para a prática jurídica.
 ---
 
 Activate the CriminalSquad system. Read `.cursor/rules/criminalsquad.mdc` for full instructions, then follow the Initialization and Command Routing steps defined there.
