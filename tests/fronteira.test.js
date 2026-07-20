@@ -3,12 +3,21 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 
 // Matéria jurídica de ÁREA que não deveria estar no motor. Não inclui o vocabulário
-// de citação (REsp, Súmula, CPP) — o Citation Gate é núcleo por definição da
-// ARQUITETURA §2, e reconhecer o formato de uma citação é mecanismo.
-const MATERIA = 'dosimetria|remicao|remição|habeas.corpus|art\\.? 112|execucao.penal|execução.penal|\\bLEP\\b|\\bep-[a-z-]+|queixa-crime|revisao-criminal|mandado-seguranca';
+// de citação (REsp, Súmula, CPP, LEP) — o Citation Gate é núcleo por definição da
+// ARQUITETURA §2, e reconhecer o formato de uma citação é mecanismo. LEP fora do padrão
+// por esse mesmo motivo: em templates/ide-templates/*/hooks/verifica-citacoes.mjs ela é
+// só mais um token da regex de reconhecimento de citação (junto com CPP/CF/Lei/Decreto),
+// não uma referência substantiva à matéria — ver F0-SANEAMENTO.md §5-bis, "Classificado
+// como mecanismo, não matéria".
+const MATERIA = 'dosimetria|remicao|remição|habeas.corpus|art\\.? 112|execucao.penal|execução.penal|\\bep-[a-z-]+|queixa-crime|revisao-criminal|mandado-seguranca';
 
 // Inventário congelado em F0-SANEAMENTO.md §5-bis. Estes arquivos JÁ contêm matéria;
 // a dívida está registrada e datada. Nenhum arquivo NOVO pode entrar nesta lista.
+//
+// Os 15 arquivos abaixo de templates/ide-assets/ e templates/ide-templates/ são uma
+// dívida só: command-body.md e instructions-body.md (fonte) e as 13 cópias que
+// `npm run build:ide` gera a partir deles por IDE (mesmo corpo, frontmatter próprio) —
+// ver F0-SANEAMENTO.md §5-bis, "Também propaga matéria".
 const DIVIDA_CONHECIDA = new Set([
   'src/skill-quality.js',
   'src/skill-catalog.js',
@@ -17,6 +26,21 @@ const DIVIDA_CONHECIDA = new Set([
   'src/init.js',
   'scripts/verify.mjs',
   'templates/package.json',
+  'templates/ide-assets/command-body.md',
+  'templates/ide-assets/instructions-body.md',
+  'templates/ide-templates/claude-code/CLAUDE.md',
+  'templates/ide-templates/claude-code/.claude/skills/criminalsquad/SKILL.md',
+  'templates/ide-templates/cursor/.cursor/rules/criminalsquad.mdc',
+  'templates/ide-templates/qwen-code/QWEN.md',
+  'templates/ide-templates/qwen-code/.qwen/skills/criminalsquad/SKILL.md',
+  'templates/ide-templates/codex/AGENTS.md',
+  'templates/ide-templates/gemini-cli/GEMINI.md',
+  'templates/ide-templates/gemini-cli/.gemini/skills/criminalsquad/SKILL.md',
+  'templates/ide-templates/vscode-copilot/.github/prompts/criminalsquad.prompt.md',
+  'templates/ide-templates/trae/.trae/rules/criminalsquad.md',
+  'templates/ide-templates/antigravity/.agent/rules/criminalsquad.md',
+  'templates/ide-templates/antigravity/.agent/workflows/criminalsquad.md',
+  'templates/ide-templates/opencode/AGENTS.md',
 ]);
 
 test('a matéria jurídica no motor não se espalha para arquivos novos', () => {
@@ -24,7 +48,7 @@ test('a matéria jurídica no motor não se espalha para arquivos novos', () => 
   try {
     saida = execFileSync(
       'grep',
-      ['-rlEi', MATERIA, 'src/', 'bin/', 'scripts/', 'templates/package.json'],
+      ['-rlEi', MATERIA, 'src/', 'bin/', 'scripts/', 'templates/'],
       { encoding: 'utf8' }
     );
   } catch (e) {

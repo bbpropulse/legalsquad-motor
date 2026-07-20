@@ -342,16 +342,21 @@ código do motor**. A fronteira núcleo × pacote do `CLAUDE.md` está violada n
 | `src/skill-quality.js:69,93` | regexes com `calculadora-*`, `ep-*`, `habeas-corpus`, `mandado-seguranca`, `queixa-crime`, `revisão-criminal`… (14 ocorrências) | **alta** — classifica perfil por nome de peça criminal |
 | `scripts/verify.mjs:122-123` | **exige** `execucao-penal-art-112.json` e a matriz temporal do art. 112 no tarball para o build passar | **alta** — o gate de release depende de conteúdo criminal |
 | `templates/package.json:14` | script `calculo:remicao` | baixa — órfão |
+| `templates/ide-assets/command-body.md:12,150` | lista os 9 squads criminais e cita `habeas-corpus`, `triagem-novo-caso`, `execução penal`… | **alta** — fonte (`npm run build:ide`) de 7 cópias em `templates/` (linha abaixo) mais a cópia do próprio repo em `.claude/skills/`, fora do escopo deste teste |
+| `templates/ide-assets/instructions-body.md:20` | descreve a biblioteca de skills por matéria: "execução penal, tribunal do júri…" | **alta** — fonte (`npm run build:ide`) das outras 6 cópias em `templates/` (linha abaixo) |
+| 13 cópias geradas dos dois arquivos acima, uma por IDE — mesmo corpo, frontmatter próprio: `templates/ide-templates/claude-code/CLAUDE.md`, `templates/ide-templates/claude-code/.claude/skills/criminalsquad/SKILL.md`, `templates/ide-templates/cursor/.cursor/rules/criminalsquad.mdc`, `templates/ide-templates/qwen-code/QWEN.md`, `templates/ide-templates/qwen-code/.qwen/skills/criminalsquad/SKILL.md`, `templates/ide-templates/codex/AGENTS.md`, `templates/ide-templates/gemini-cli/GEMINI.md`, `templates/ide-templates/gemini-cli/.gemini/skills/criminalsquad/SKILL.md`, `templates/ide-templates/vscode-copilot/.github/prompts/criminalsquad.prompt.md`, `templates/ide-templates/trae/.trae/rules/criminalsquad.md`, `templates/ide-templates/antigravity/.agent/rules/criminalsquad.md`, `templates/ide-templates/antigravity/.agent/workflows/criminalsquad.md`, `templates/ide-templates/opencode/AGENTS.md` | herdam a matéria da linha acima; `npm run build:ide` reintroduz se alguém limpar só a cópia | **alta** — mesma causa raiz, 13 sintomas |
 
 **Classificado como mecanismo, não matéria:** a regex de
 `templates/ide-templates/*/hooks/verifica-citacoes.mjs:32` (`REsp|HC|Súmula|LEP|CPP|art.`). É o
 **Citation Gate**, que a [`ARQUITETURA §2`](ARQUITETURA.md) põe no núcleo — detectar uma citação
 exige conhecer o formato dela. Está calibrada para o direito brasileiro, o que é aceitável num
-produto brasileiro; não é matéria de *área*.
+produto brasileiro; não é matéria de *área*. `tests/fronteira.test.js` não inclui `LEP` no padrão de
+matéria pelo mesmo motivo — do contrário os dois `verifica-citacoes.mjs` (claude-code e codex, que
+citam `LEP` só como token da regex de citação) apareceriam como falso positivo de dívida nova.
 
-**Também propaga matéria:** `templates/ide-assets/command-body.md` lista os 9 squads criminais e cita
-`habeas-corpus` e `triagem-novo-caso`. Ele é a fonte dos 5 wrappers de IDE restaurados na Classe A,
-então a restauração espalha isso por 5 arquivos.
+**Também propaga matéria:** as duas linhas de `templates/ide-assets/` acima e as 13 cópias por IDE
+que `npm run build:ide` gera a partir delas — 15 arquivos ao todo, todos hoje na `DIVIDA_CONHECIDA`
+de `tests/fronteira.test.js`, que guarda esse inventário contra crescimento.
 
 ### Decisão
 
