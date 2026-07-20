@@ -4,7 +4,7 @@ import globals from "globals";
 export default [
   js.configs.recommended,
   {
-    files: ["src/**/*.js", "bin/**/*.js", "tests/**/*.js", "scripts/**/*.js", "scripts/**/*.mjs"],
+    files: ["src/**/*.js", "bin/**/*.js", "tests/**/*.js", "tests/**/*.mjs", "scripts/**/*.js", "scripts/**/*.mjs"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
