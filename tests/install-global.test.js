@@ -1,9 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile, writeFile, mkdir, stat, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { installGlobal } from '../src/install-global.js';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+// Mesma fonte que src/install-global.js usa (o tarball só ships templates/,
+// não o .claude/ do próprio repo) — deriva a contagem esperada dela em vez
+// de fixar um número calibrado em quantos agentes especialistas o
+// CriminalSquad tinha antes do F0.
+const AGENTS_TEMPLATE_DIR = join(ROOT, 'templates', 'ide-templates', 'claude-code', '.claude', 'agents');
 
 async function withTempHome(fn) {
   const home = await mkdtemp(join(tmpdir(), 'criminalsquad-global-'));
@@ -36,11 +44,14 @@ test('install-global installs the skill into ~/.claude/skills', async () => {
 });
 
 test('install-global installs specialist agents but skips the README index', async () => {
+  const expectedAgents = (await readdir(AGENTS_TEMPLATE_DIR))
+    .filter((name) => name.endsWith('.md') && name !== 'README.md');
+  assert.ok(expectedAgents.length > 0, 'o template de agentes precisa ter ao menos um agente para o teste valer algo');
   await withTempHome(async (home) => {
     const result = await installGlobal({ homeDir: home });
     const agentsDir = join(home, '.claude', 'agents');
     const files = await readdir(agentsDir);
-    assert.ok(result.agentsInstalled > 10, 'expected the specialist agents to be installed');
+    assert.equal(result.agentsInstalled, expectedAgents.length, 'expected the specialist agents to be installed');
     assert.ok(files.includes('catalog-scout.md'));
     assert.ok(!files.includes('README.md'), 'README index must not be copied as an agent');
   });
