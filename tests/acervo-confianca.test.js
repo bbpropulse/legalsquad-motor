@@ -1,11 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { ACERVO_DEMO } from './fixtures/caminhos.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const INDEX = join(__dirname, '..', 'acervo', '_index.yaml');
+const INDEX = join(ACERVO_DEMO, '_index.yaml');
 
 function entries(index) {
   return index.split(/^ {2}- path: /m).slice(1).map((block) => {
