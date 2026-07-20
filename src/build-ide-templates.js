@@ -32,7 +32,9 @@ const MANIFEST = {
     `${IDE}/antigravity/.agent/rules/criminalsquad.md`,
     `${IDE}/cursor/.cursor/rules/criminalsquad.mdc`,
     `${IDE}/trae/.trae/rules/criminalsquad.md`,
-    'CLAUDE.md', // cópia do próprio repo
+    // O CLAUDE.md da raiz NÃO é gerado: é a instrução do projeto LegalSquad
+    // (fronteira núcleo × pacote, regras do build-area), não o corpo distribuído
+    // às IDEs. Gerá-lo aqui sobrescrevia a documentação do repositório.
   ],
 };
 
