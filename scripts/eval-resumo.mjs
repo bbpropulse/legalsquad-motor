@@ -1,70 +1,137 @@
 #!/usr/bin/env node
-// Resumo AGREGADO dos scores de eval de um squad — lê squads/<squad>/_evals/scores.md
-// (preenchido pelo `/criminalsquad eval`). Determinístico (sem IA): serve para ver a
-// nota média/última e pegar REGRESSÃO ao longo do tempo.
-//   node scripts/eval-resumo.mjs <squad>   (ou: npm run eval:resumo <squad>)
-//   node scripts/eval-resumo.mjs           (todos os squads com scores)
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+// Resumo AGREGADO dos scores de eval — lê `<squads>/<squad>/_evals/scores.md`
+// (preenchido pelo `/criminalsquad eval`). Determinístico (sem IA): mostra a
+// nota média/última e pega REGRESSÃO ao longo do tempo.
+//
+//   node scripts/eval-resumo.mjs <squad>                    um squad
+//   node scripts/eval-resumo.mjs                            todos com scores
+//   node scripts/eval-resumo.mjs [<squad>] --squads-dir <d> raiz alternativa
+//
+// (ou: npm run eval:resumo <squad>)
+//
+// AUTO-CONTIDO de propósito: este script é distribuído ao usuário
+// (templates/scripts/eval-resumo.mjs, espelho verificado por
+// tests/templates-paridade.test.js) e roda num projeto que NÃO tem `src/`.
+// Por isso a lógica mora aqui e é exportada para teste, em vez de importada de
+// um módulo do motor.
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const SQUADS = join(__dirname, '..', 'squads');
+const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-// Lê a tabela markdown `| Data | Run/Caso | Nota | Verdict | Observações |` (linhas anexadas).
-function parseScores(file) {
-  const out = [];
-  for (const line of readFileSync(file, 'utf8').split(/\r?\n/)) {
-    if (!line.trim().startsWith('|')) continue;
-    if (/^\|[\s|:-]+\|?\s*$/.test(line)) continue; // linha separadora (---)
-    const cells = line.split('|').map((c) => c.trim());
-    if (cells[1] === 'Data') continue;             // cabeçalho
-    // Extrai o PRIMEIRO número da célula (aceita "85", "8,5", "85/100" → 85) e
-    // ignora placeholders não-numéricos ("n/a", "—", "TBD") — senão a média e a
-    // detecção de regressão eram corrompidas silenciosamente.
-    const m = String(cells[3] ?? '').match(/\d+(?:[.,]\d+)?/);
-    const nota = m ? Number(m[0].replace(',', '.')) : NaN;
-    if (Number.isFinite(nota)) {
-      out.push({ data: cells[1], caso: cells[2], nota, verdict: cells[4] ?? '' });
-    }
-  }
-  return out;
+/** Raiz padrão: `squads/` do projeto onde o script está instalado. */
+export function squadsDirPadrao() {
+  return join(PACKAGE_ROOT, 'squads');
 }
 
-function statsFor(squad) {
-  const file = join(SQUADS, squad, '_evals', 'scores.md');
+/**
+ * Lê a tabela `| Data | Run/Caso | Nota | Verdict | Observações |`.
+ * Ignora cabeçalho, separadores e linhas sem nota numérica.
+ */
+export function parseScores(file) {
+  const linhas = [];
+
+  for (const linha of readFileSync(file, 'utf8').split(/\r?\n/)) {
+    if (!linha.trim().startsWith('|')) continue;
+    if (/^\|[\s|:-]+\|?\s*$/.test(linha)) continue; // separador (---)
+
+    const celulas = linha.split('|').map((c) => c.trim());
+    if (celulas[1] === 'Data') continue; // cabeçalho
+
+    // Primeiro número da célula: aceita "85", "8,5" e "61/100" (lê 61).
+    // Placeholders não-numéricos ("n/a", "—", "TBD") são descartados — se
+    // entrassem como 0, corromperiam média e regressão em silêncio.
+    const m = String(celulas[3] ?? '').match(/\d+(?:[.,]\d+)?/);
+    const nota = m ? Number(m[0].replace(',', '.')) : NaN;
+    if (!Number.isFinite(nota)) continue;
+
+    linhas.push({
+      data: celulas[1],
+      caso: celulas[2],
+      nota,
+      verdict: celulas[4] ?? '',
+    });
+  }
+
+  return linhas;
+}
+
+/**
+ * Estatísticas de um squad. Devolve `null` quando não há `scores.md` —
+ * distinto de `{ n: 0 }`, que significa "log existe, ainda sem avaliação".
+ */
+export function statsForSquad(squad, options = {}) {
+  const squadsDir = options.squadsDir || squadsDirPadrao();
+  const file = join(squadsDir, squad, '_evals', 'scores.md');
   if (!existsSync(file)) return null;
-  const rows = parseScores(file);
-  if (!rows.length) return { squad, n: 0 };
-  const notas = rows.map((r) => r.nota);
+
+  const linhas = parseScores(file);
+  if (!linhas.length) {
+    return { squad, n: 0, media: null, ultima: null, min: null, max: null, aprovados: 0, regressao: false };
+  }
+
+  const notas = linhas.map((l) => l.nota);
   const media = Math.round(notas.reduce((a, b) => a + b, 0) / notas.length);
+  const ultima = notas[notas.length - 1];
+
   return {
     squad,
-    n: rows.length,
+    n: linhas.length,
     media,
-    ultima: rows[rows.length - 1].nota,
+    ultima,
     min: Math.min(...notas),
     max: Math.max(...notas),
-    aprovados: rows.filter((r) => /APROVAD/i.test(r.verdict)).length,
+    aprovados: linhas.filter((l) => /APROVAD/i.test(l.verdict)).length,
+    // O sinal que justifica o log: a última avaliação piorou em relação ao
+    // histórico. Não é veredito de qualidade — é gatilho de investigação.
+    regressao: ultima < media,
   };
 }
 
-const arg = process.argv[2];
-const list = arg
-  ? [arg]
-  : (existsSync(SQUADS) ? readdirSync(SQUADS) : []).filter((d) => existsSync(join(SQUADS, d, '_evals', 'scores.md')));
+/** Todos os squads que já têm `_evals/scores.md`, em ordem de diretório. */
+export function resumirSquads(options = {}) {
+  const squadsDir = options.squadsDir || squadsDirPadrao();
+  if (!existsSync(squadsDir)) return [];
 
-if (!list.length) {
-  console.log('Nenhum squad com _evals/scores.md ainda. Rode /criminalsquad eval <squad> primeiro.');
-  process.exit(0);
+  return readdirSync(squadsDir)
+    .filter((d) => existsSync(join(squadsDir, d, '_evals', 'scores.md')))
+    .map((d) => statsForSquad(d, { squadsDir }))
+    .filter(Boolean);
 }
 
-console.log('Squad | Avaliações | Média | Última | Min–Max | Aprovados');
-console.log('------|-----------|-------|--------|---------|----------');
-for (const sq of list) {
-  const st = statsFor(sq);
-  if (!st) { console.log(`${sq} | (sem scores.md)`); continue; }
-  if (st.n === 0) { console.log(`${sq} | 0 | — | — | — | —`); continue; }
-  const tend = st.ultima < st.media ? ' ⚠️ abaixo da média' : '';
-  console.log(`${sq} | ${st.n} | ${st.media} | ${st.ultima}${tend} | ${st.min}–${st.max} | ${st.aprovados}/${st.n}`);
+export function main(argv = process.argv.slice(2)) {
+  const iDir = argv.indexOf('--squads-dir');
+  const squadsDir = iDir >= 0 ? argv[iDir + 1] : squadsDirPadrao();
+  const squad = argv.filter((a, i) => !a.startsWith('--') && i !== iDir + 1)[0];
+
+  const linhas = squad
+    ? [statsForSquad(squad, { squadsDir })].filter(Boolean)
+    : resumirSquads({ squadsDir });
+
+  if (!linhas.length) {
+    console.log('Nenhum squad com _evals/scores.md ainda. Rode /criminalsquad eval <squad> primeiro.');
+    return 0;
+  }
+
+  console.log('Squad | Avaliações | Média | Última | Min–Max | Aprovados');
+  console.log('------|-----------|-------|--------|---------|----------');
+
+  for (const st of linhas) {
+    if (st.n === 0) {
+      console.log(`${st.squad} | 0 | — | — | — | —`);
+      continue;
+    }
+    const tendencia = st.regressao ? ' ⚠️ abaixo da média' : '';
+    console.log(
+      `${st.squad} | ${st.n} | ${st.media} | ${st.ultima}${tendencia} | ${st.min}–${st.max} | ${st.aprovados}/${st.n}`
+    );
+  }
+
+  return 0;
+}
+
+// Só executa quando chamado direto — importar o arquivo num teste não dispara o CLI.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  process.exit(main());
 }

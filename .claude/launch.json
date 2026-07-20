@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "apsquad-dashboard",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/brunocoutinho/Devlop/APSquad/dashboard"],
+      "port": 5173
+    }
+  ]
+}
