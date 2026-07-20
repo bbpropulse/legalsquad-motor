@@ -296,17 +296,63 @@ Ordem de execução: **A → B → C → pacote**.
    de Classe B desaparecem porque os testes saem do repo; as ~77 restantes (A + C) **passam**.
 2. `npm run build:ide` roda **e não modifica** o `CLAUDE.md` — verificado por `git status` limpo
    depois de rodar.
-3. Nenhum arquivo de matéria jurídica no motor; nenhuma asserção calibrada em conteúdo criminal.
+3. **Não-regressão da fronteira:** o inventário da §5-bis não cresce — nenhum arquivo hoje limpo
+   passa a conter matéria jurídica. Guardado por teste, não por inspeção. E nenhuma asserção de teste
+   calibrada em conteúdo criminal.
 4. Empacotar a fixture duas vezes produz **hashes idênticos**.
 5. Um pacote com **um byte adulterado** é recusado na verificação, com erro claro.
 6. `git status` limpo em `~/Documents/Projetos/Devlop/criminalsquad/app` — nada foi escrito lá.
    (Critério: **nenhuma mudança introduzida**; `output/` e `tmp/` já constam como untracked antes de
    qualquer trabalho.)
 
+## 5-bis. Dívida descoberta: matéria criminal *dentro* do motor
+
+Levantada no pré-voo da execução, **depois** de este spec ser escrito. Não estava prevista porque a
+análise olhou os testes e não o `src/`.
+
+O F0 removeu o conteúdo jurídico dos diretórios, mas **a matéria criminal continua hardcoded no
+código do motor**. A fronteira núcleo × pacote do `CLAUDE.md` está violada no próprio `src/`:
+
+| Arquivo:linha | O que está hardcoded | Gravidade |
+|---|---|---|
+| `src/skill-catalog.js:22` | regex `execucao-penal` → rótulo de grupo "Execução penal" | média |
+| `src/skill-catalog.js:562` · `src/init.js:268` · `src/skill-catalog-cli.js:18` | o nome `_execucao-penal-v3-integration.yaml`, **em três lugares** | **alta** — o manifesto de canonicalização é por área |
+| `src/skill-contract.js:168` | regex com ids `ep-auditoria-calculo-pena`, `ep-remicao-calculator`… | alta |
+| `src/skill-quality.js:69,93` | regexes com `calculadora-*`, `ep-*`, `habeas-corpus`, `mandado-seguranca`, `queixa-crime`, `revisão-criminal`… (14 ocorrências) | **alta** — classifica perfil por nome de peça criminal |
+| `scripts/verify.mjs:122-123` | **exige** `execucao-penal-art-112.json` e a matriz temporal do art. 112 no tarball para o build passar | **alta** — o gate de release depende de conteúdo criminal |
+| `templates/package.json:14` | script `calculo:remicao` | baixa — órfão |
+
+**Classificado como mecanismo, não matéria:** a regex de
+`templates/ide-templates/*/hooks/verifica-citacoes.mjs:32` (`REsp|HC|Súmula|LEP|CPP|art.`). É o
+**Citation Gate**, que a [`ARQUITETURA §2`](ARQUITETURA.md) põe no núcleo — detectar uma citação
+exige conhecer o formato dela. Está calibrada para o direito brasileiro, o que é aceitável num
+produto brasileiro; não é matéria de *área*.
+
+**Também propaga matéria:** `templates/ide-assets/command-body.md` lista os 9 squads criminais e cita
+`habeas-corpus` e `triagem-novo-caso`. Ele é a fonte dos 5 wrappers de IDE restaurados na Classe A,
+então a restauração espalha isso por 5 arquivos.
+
+### Decisão
+
+**Registrado como dívida do F1, não tratado neste ciclo.** Razões:
+
+1. O objetivo deste ciclo é a suíte verde e o contrato de pacote. Des-criminalizar o motor é trabalho
+   ortogonal e maior.
+2. Mexer nessas regexes com a suíte ainda vermelha remove a rede de segurança justamente onde ela é
+   mais necessária.
+3. A correção certa não é apagar as regexes — é **parametrizá-las pelo pacote de área**, e esse
+   parâmetro só existe quando o `build-area` existir. Fazer antes seria inventar a interface duas
+   vezes.
+
+**Consequência para o aceite:** o critério 3 da §5 muda de "nenhuma matéria jurídica no motor"
+(impossível hoje) para **não-regressão**: o inventário acima não cresce. Um teste guarda essa
+fronteira, falhando se aparecer matéria em arquivo que hoje está limpo.
+
 ## 6. Fora de escopo, e por quê
 
 | Item | Por quê |
 |---|---|
+| **Des-criminalizar o `src/`** | Dívida da §5-bis. A correção é parametrizar por pacote de área, e o parâmetro só existe com o `build-area`. |
 | `build-area` | É o F1. Este ciclo entrega o contrato que ele vai cumprir. |
 | Extrair o pacote `transversal` | Extrair as 19 skills transversais *é* trabalho do `build-area`; fazer à mão seria uma 2ª cópia manual, contra a regra "a última cópia". |
 | Rename `criminalsquad` → `legalsquad` | [`ARQUITETURA.md §6`](ARQUITETURA.md) recomenda adiar até a 2ª área ser comercializada. |

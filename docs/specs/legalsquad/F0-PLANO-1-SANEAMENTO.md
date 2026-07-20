@@ -25,8 +25,10 @@ limpo. Nenhum passo escreve nos repositórios de conteúdo.
   e `?? tmp/`, que já existiam). Qualquer linha nova é falha do plano.
 - **Nenhum `skip`, `todo` ou teste comentado.** Se um teste não pode passar, ele é removido com
   justificativa no commit — não silenciado.
-- **Nenhuma matéria jurídica no motor.** Nem em código, nem em teste, nem em exemplo dentro de
-  artefato de motor.
+- **A dívida de fronteira não cresce.** O motor já contém matéria criminal hardcoded em 7 arquivos —
+  inventário congelado em [`F0-SANEAMENTO.md §5-bis`](F0-SANEAMENTO.md), a corrigir no F1. Este ciclo
+  não resolve isso, mas **nenhum arquivo hoje limpo pode passar a conter matéria**, e nenhum teste
+  novo pode ser calibrado em conteúdo criminal. Guardado por `tests/fronteira.test.js` (Task 8).
 - **Conventional commits** (`fix:`, `test:`, `chore:`, `refactor:`), em português, corpo explicando
   o *porquê*.
 - **A fixture usa a área fictícia `demo`** — nunca direito real, para não reintroduzir conteúdo de
@@ -848,15 +850,85 @@ npm run build:ide && git status --short
 
 Esperado: saída **vazia**.
 
-- [ ] **Passo 3: Nenhuma matéria jurídica no motor**
+- [ ] **Passo 3: Não-regressão da fronteira (teste, não inspeção)**
 
-```bash
-grep -rlniE 'dosimetria|remicao|habeas.corpus|art\.? 112|execucao.penal|LEP\b' \
-  src/ bin/ scripts/ tests/ templates/ 2>/dev/null || echo "sem matéria jurídica ✓"
+O critério original — "nenhuma matéria jurídica no motor" — **é impossível hoje** e foi corrigido no
+spec: veja [`F0-SANEAMENTO.md §5-bis`](F0-SANEAMENTO.md). O F0 removeu o conteúdo dos diretórios mas
+deixou matéria criminal hardcoded em 7 arquivos de `src/` e `scripts/` (o nome do manifesto
+`_execucao-penal-v3-integration.yaml` em três lugares, regexes com `ep-*` e nomes de peças criminais,
+e o `verify.mjs` exigindo o art. 112 no tarball). Corrigir isso é dívida do F1 — a solução certa é
+parametrizar por pacote de área, e esse parâmetro só existe quando o `build-area` existir.
+
+O que este ciclo garante é que a dívida **não cresce**. Crie `tests/fronteira.test.js`:
+
+```js
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+
+// Matéria jurídica de ÁREA que não deveria estar no motor. Não inclui o vocabulário
+// de citação (REsp, Súmula, CPP) — o Citation Gate é núcleo por definição da
+// ARQUITETURA §2, e reconhecer o formato de uma citação é mecanismo.
+const MATERIA = 'dosimetria|remicao|remição|habeas.corpus|art\\.? 112|execucao.penal|execução.penal|\\bLEP\\b|\\bep-[a-z-]+|queixa-crime|revisao-criminal|mandado-seguranca';
+
+// Inventário congelado em F0-SANEAMENTO.md §5-bis. Estes arquivos JÁ contêm matéria;
+// a dívida está registrada e datada. Nenhum arquivo NOVO pode entrar nesta lista.
+const DIVIDA_CONHECIDA = new Set([
+  'src/skill-quality.js',
+  'src/skill-catalog.js',
+  'src/skill-catalog-cli.js',
+  'src/skill-contract.js',
+  'src/init.js',
+  'scripts/verify.mjs',
+  'templates/package.json',
+]);
+
+test('a matéria jurídica no motor não se espalha para arquivos novos', () => {
+  let saida = '';
+  try {
+    saida = execFileSync(
+      'grep',
+      ['-rlEi', MATERIA, 'src/', 'bin/', 'scripts/', 'templates/package.json'],
+      { encoding: 'utf8' }
+    );
+  } catch (e) {
+    // grep sai 1 quando não há match — significa fronteira totalmente limpa.
+    if (e.status !== 1) throw e;
+  }
+
+  const encontrados = saida.split('\n').filter(Boolean).map((p) => p.replace(/^\.\//, ''));
+  const novos = encontrados.filter((f) => !DIVIDA_CONHECIDA.has(f));
+
+  assert.deepEqual(
+    novos,
+    [],
+    `Matéria jurídica de área apareceu em arquivo(s) fora do inventário da dívida:\n` +
+      `  ${novos.join('\n  ')}\n\n` +
+      `Ou remova a matéria, ou — se for dívida legítima e consciente — acrescente o arquivo ` +
+      `a DIVIDA_CONHECIDA aqui E à tabela da §5-bis de F0-SANEAMENTO.md. Nunca só aqui.`
+  );
+
+  // O inventário também não pode encolher sem atualizar a doc: se um arquivo foi
+  // limpo, ótimo — mas a §5-bis precisa refletir isso.
+  const resolvidos = [...DIVIDA_CONHECIDA].filter((f) => !encontrados.includes(f));
+  assert.deepEqual(
+    resolvidos,
+    [],
+    `Estes arquivos foram limpos — remova-os de DIVIDA_CONHECIDA e da §5-bis:\n  ${resolvidos.join('\n  ')}`
+  );
+});
 ```
 
-Esperado: `sem matéria jurídica ✓`. Se algo aparecer, avalie: é mecanismo com nome infeliz, ou
-matéria de verdade que escapou?
+Rode:
+
+```bash
+node --import ./tests/test-setup.js --test tests/fronteira.test.js
+```
+
+Esperado: **PASS**. Se falhar apontando arquivo novo, algo no saneamento espalhou matéria — muito
+provavelmente a restauração dos wrappers da Task 1 (o `command-body.md` lista os 9 squads criminais).
+Nesse caso, avalie se o arquivo entra na dívida documentada ou se o texto deve ser generalizado como
+se fez com o `catalog-scout` na Task 2.
 
 - [ ] **Passo 4: Repo fonte intocado**
 
@@ -902,7 +974,7 @@ trabalhista, sem depender dele."
 |---|---|---|
 | 1 | `npm test` sem falha e sem skip | Task 8, Passo 1 |
 | 2 | `build:ide` roda e não altera o `CLAUDE.md` | Task 8, Passo 2 |
-| 3 | Nenhuma matéria jurídica no motor | Task 8, Passo 3 |
+| 3 | A dívida de fronteira não cresce (teste guarda) | Task 8, Passo 3 |
 | 4 | `criminalsquad` intocado | Task 8, Passo 4 |
 | 5 | Documentação alinhada ao real | Task 8, Passo 5 |
 
