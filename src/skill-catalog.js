@@ -74,7 +74,13 @@ export function discoverSkillCatalog(skillsDir) {
 
     const raw = readFileSync(skillPath, 'utf8');
     const metadata = parseSkillMetadata(raw, { fallbackName: id });
-    const policy = getSkillLifecyclePolicy(metadata?.lifecycle);
+    // Informa ao gate se o frontmatter foi realmente lido: sem isso, um
+    // SKILL.md ilegível passava por "sem lifecycle declarado" e herdava o
+    // default `active`.
+    const frontmatter = extractFrontMatter(raw);
+    const policy = getSkillLifecyclePolicy(metadata?.lifecycle, {
+      frontmatterLegivel: frontmatter !== null,
+    });
     entries.push({
       id,
       skillPath,

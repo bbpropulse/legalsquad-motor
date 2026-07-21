@@ -16,7 +16,12 @@ export const SKILL_LIFECYCLES = Object.freeze([
 
 // Returns the raw frontmatter body (between the leading `---` fences) or null.
 export function extractFrontMatter(raw) {
-  const content = raw.replace(/\r\n/g, '\n');
+  // Remove o BOM antes de casar o `---` de abertura. Sem isso, um SKILL.md
+  // salvo no Notepad/Word (que gravam BOM por padrão) tem o frontmatter
+  // considerado INEXISTENTE — e o efeito era grave: sem lifecycle lido, a
+  // skill caía no default `active` e virava production-eligible mesmo estando
+  // quarentenada. Fail-open no gate que é a tese do produto.
+  const content = String(raw || '').replace(/^﻿/, '').replace(/\r\n/g, '\n');
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   return match ? match[1] : null;
 }
@@ -124,7 +129,38 @@ export function parseScalar(fm, key) {
   }
 
   if (!value || (value.startsWith('[') && value.endsWith(']'))) return value || null;
-  return stripMatchingQuotes(value);
+  return stripMatchingQuotes(stripComment(value));
+}
+
+/**
+ * Remove comentário YAML de fim de linha (` # …`).
+ *
+ * Sem isso, `name: demo # nota` devolvia `"demo # nota"` — valor errado, sem
+ * exceção: o pior modo de falha de um parser. Em `name:` quebra o roteamento e
+ * o casamento de id; em `version:` quebra a comparação do update; em
+ * `lifecycle:` fura o gate.
+ *
+ * Duas exceções do YAML que precisam ser respeitadas:
+ *  - `#` só inicia comentário quando precedido de espaço/início — `tag#1` é valor;
+ *  - dentro de aspas, `#` é conteúdo — `"peça #3"` é valor.
+ */
+function stripComment(value) {
+  const texto = String(value);
+  let aspas = null;
+
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (aspas) {
+      if (c === aspas) aspas = null;
+      continue;
+    }
+    if (c === '"' || c === "'") { aspas = c; continue; }
+    // Comentário exige espaço antes (ou início da linha).
+    if (c === '#' && (i === 0 || /\s/.test(texto[i - 1]))) {
+      return texto.slice(0, i).trim();
+    }
+  }
+  return texto;
 }
 
 // Reads a simple YAML list, both inline (`key: [a, b]`) and block form. Lists
@@ -205,7 +241,17 @@ export function parseSkillMetadata(raw, { fallbackName = '' } = {}) {
   };
 }
 
-export function getSkillLifecyclePolicy(value = 'active') {
+export function getSkillLifecyclePolicy(value = 'active', options = {}) {
+  // "Não declarou lifecycle" e "não consegui ler o frontmatter" são coisas
+  // diferentes e exigem respostas opostas. A primeira é legítima e cai no
+  // default `active` (o legacy_default documentado no _index.yaml). A segunda
+  // significa que NÃO SABEMOS o lifecycle — e afirmar `active` aí é fail-open:
+  // uma skill quarentenada, com o SKILL.md ilegível, entrava em produção e era
+  // auto-instalada. Sem leitura confiável, nada é elegível.
+  if (options.frontmatterLegivel === false) {
+    return { lifecycle: 'unknown', productionEligible: false, autoInstallable: false, selection: 'invalid' };
+  }
+
   const lifecycle = String(value || 'active').toLowerCase();
   switch (lifecycle) {
     case 'active':

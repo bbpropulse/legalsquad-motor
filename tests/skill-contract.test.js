@@ -205,3 +205,21 @@ test('contract-skills preserva casos de eval que não gerou (pacote de área imp
     await rm(raiz, { recursive: true, force: true });
   }
 });
+
+test('parseScalar não engole comentário YAML como parte do valor', async () => {
+  const { parseScalar } = await import('../src/frontmatter.js');
+
+  // O parser é caseiro (o repo não tem lib YAML de propósito). Comentário
+  // depois do valor é YAML válido e comum — e devolver o comentário colado ao
+  // valor é o pior modo de falha possível: sem exceção, com dado errado.
+  // Em `name:` quebra roteamento; em `version:` quebra a comparação do update;
+  // em `lifecycle:` fura o gate.
+  assert.equal(parseScalar('name: demo-skill # comentário', 'name'), 'demo-skill');
+  assert.equal(parseScalar('version: "1.0.0"  # bump depois', 'version'), '1.0.0');
+  assert.equal(parseScalar('lifecycle: active # ver ADR-12', 'lifecycle'), 'active');
+
+  // Mas `#` DENTRO de aspas é conteúdo legítimo, não comentário.
+  assert.equal(parseScalar('name: "peça #3"', 'name'), 'peça #3');
+  // E `#` sem espaço antes não inicia comentário em YAML.
+  assert.equal(parseScalar('name: tag#1', 'name'), 'tag#1');
+});

@@ -243,3 +243,52 @@ test('Arquitetura, Discovery, Design e Sherlock usam shortlist local e manifesto
     assert.match(content, /search-skills/);
   }
 });
+
+test('frontmatter ilegível NÃO vira lifecycle active — o gate é fail-closed', async () => {
+  const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join: pjoin } = await import('node:path');
+  const { getSkillLifecyclePolicy, extractFrontMatter } = await import('../src/frontmatter.js');
+
+  // 1) O caso mais comum na prática: arquivo salvo com BOM (Notepad, Word,
+  //    alguns editores no Windows). O `---` deixa de casar no início.
+  const comBom = '﻿---\nname: demo\nmetadata:\n  lifecycle: "quarantined"\n---\n\n# corpo\n';
+  assert.notEqual(
+    extractFrontMatter(comBom),
+    null,
+    'BOM no início não pode impedir a leitura do frontmatter'
+  );
+
+  // 2) E a garantia estrutural: lifecycle DESCONHECIDO não pode ser tratado
+  //    como `active`. Uma skill que o curador quarentenou, se o frontmatter
+  //    ficar ilegível, estava indo para produção auto-instalável.
+  const desconhecido = getSkillLifecyclePolicy('???');
+  assert.equal(desconhecido.productionEligible, false, 'lifecycle desconhecido não é production-eligible');
+  assert.equal(desconhecido.autoInstallable, false, 'lifecycle desconhecido não é auto-instalável');
+
+  // 3) Ausência total de frontmatter também é fail-closed.
+  const semNada = getSkillLifecyclePolicy(undefined, { frontmatterLegivel: false });
+  assert.equal(semNada.productionEligible, false, 'sem frontmatter legível, nada é production-eligible');
+
+  // 4) O caminho feliz continua funcionando.
+  assert.equal(getSkillLifecyclePolicy('active').productionEligible, true);
+
+  // 5) Prova de ponta a ponta: catálogo com uma skill quarentenada + BOM.
+  const tmp = await mkdtemp(pjoin(tmpdir(), 'failopen-'));
+  try {
+    const dir = pjoin(tmp, 'skills', 'demo-com-bom');
+    await mkdir(dir, { recursive: true });
+    await writeFile(pjoin(dir, 'SKILL.md'), comBom);
+    const { discoverSkillCatalog } = await import('../src/skill-catalog.js');
+    const cat = discoverSkillCatalog(pjoin(tmp, 'skills'));
+    const entrada = cat.entries.find((e) => e.id === 'demo-com-bom');
+    assert.ok(entrada, 'a skill deve ser catalogada');
+    assert.equal(
+      entrada.policy.productionEligible,
+      false,
+      'skill QUARENTENADA não pode virar production-eligible por causa de um BOM'
+    );
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
