@@ -9,11 +9,11 @@ baixados por `sync` e liberados por licença.
 | Repositório | Papel | Pode ser modificado? |
 |---|---|---|
 | **`legalsquad`** (este) | Motor + plataforma de distribuição | **sim** — é onde o motor evolui |
-| `~/Documents/Projetos/Devlop/legalsquad/app` | Fonte do conteúdo criminal **e** produto que vende hoje (Núcleo, turma fundadora) | **NÃO** |
+| `~/Documents/Projetos/Devlop/criminalsquad/app` | Fonte do conteúdo criminal **e** produto que vende hoje (Núcleo, turma fundadora) | **NÃO** |
 | `~/Devlop/dtsquad` | Fonte do conteúdo trabalhista | **NÃO** |
 
 > `~/Devlop/ejsquad/app` (fonte do conteúdo extrajudicial) **não existe no disco** — nem
-> `~/Devlop/ejsquad`. Hoje só `legalsquad` (520 skills) e `dtsquad` (405) estão presentes.
+> `~/Devlop/ejsquad`. Hoje só `criminalsquad` (520 skills) e `dtsquad` (405) estão presentes.
 > Ver [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
 
 > **Regra dura:** o `build-area` **lê** os repos de conteúdo e produz pacotes. Nenhum passo escreve
@@ -43,7 +43,7 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
 3. **Degradação graciosa.** Licença vencida nunca vira tijolo: cache segue read-only com selo
    *"desatualizado há N dias"*.
 4. **Uma área só vira pacote com curador de verdade.** Arquitetura ampla, vitrine estreita.
-5. **Motor novo só aqui.** O LegalSquad está em manutenção (correção crítica apenas).
+5. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
 
 ## Documentação
 
@@ -52,23 +52,38 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
 - [`docs/specs/legalsquad/MIGRACAO.md`](docs/specs/legalsquad/MIGRACAO.md) — plano F0–F5.
 - [`docs/specs/legalsquad/F0-SANEAMENTO.md`](docs/specs/legalsquad/F0-SANEAMENTO.md) — o saneamento da
   suíte e da fronteira: por que 20 falhas eram regressão, o que virou fixture sintética, e a dívida de
-  matéria criminal ainda hardcoded no motor (§5-bis).
+  matéria criminal no motor — hoje **paga** (§5-bis).
 - [`docs/specs/acervo-server/SPEC.md`](docs/specs/acervo-server/SPEC.md) — formato de pacote,
   manifesto, assinatura, delta, contratos de API. **Um pipeline carrega skills e acervo.**
 
 ## Estado atual: F0 concluído
 
-Motor copiado do LegalSquad (**a última cópia**) com todo o conteúdo jurídico removido.
+Motor copiado do CriminalSquad (**a última cópia**) com todo o conteúdo jurídico removido.
 Commit inicial: `19e29be`.
+
+**O motor não tem mais categoria de assunto.** Duas mudanças de fundo fecharam isso:
+
+1. **Matéria zerada.** A dívida da `§5-bis` — 34 arquivos do núcleo que falavam de execução penal,
+   habeas corpus, júri e dosimetria — está **paga**. Os prompts do Arquiteto descobrem o manifesto
+   de canonicalização (`skills/_*-integration.yaml`) e as best-practices obrigatórias pelo
+   `_catalog.yaml` **da área instalada**, em vez de nomes criminais fixos. `tests/fronteira.test.js`
+   passou de inventário de dívida a **guarda de não-regressão**: `DIVIDA_CONHECIDA` está vazia e
+   nenhuma matéria pode voltar a entrar.
+2. **Identidade renomeada** para `legalsquad` (comando, `_legalsquad/`, `bin/legalsquad.js`, textos
+   e os wrappers das 13 IDEs). O bin mantém `criminalsquad` como **alias**, então quem já instalou
+   não perde o comando.
+
+**Três identificadores conservam o nome antigo de propósito** — são formato de dados, não marca:
+`CRIMINALSQUAD:HP-CONTRACT` e `CRIMINALSQUAD:CITATION-GATE` (marcadores gravados dentro dos
+`SKILL.md` das 520 skills criminais e das 405 trabalhistas) e
+`criminalsquad.skill-promotion-evidence/v1` (schema versionado). Trocá-los faria o pacote do F1 não
+ser reconhecido pelo motor e quebraria a paridade do F2 em silêncio — é migração de dados, não
+rename.
 
 ### Pendências abertas (não são bugs — é o F0 inacabado por decisão)
 
-- **Identidade interna ainda é `legalsquad`**: o comando, a pasta `_legalsquad/`, textos e
-  templates. Rename é mecânico mas é diff grande — decisão em `ARQUITETURA.md §6`
-  (recomendação: manter `legalsquad` como bundle comercial e renomear quando a 2ª área for
-  vendida). `legalsquad` já existe como alias de bin.
 - **Pacote `transversal` não extraído** — as ~20 skills que servem qualquer área. O conjunto já é
-  **derivável hoje**, sem depender do `ejsquad`: a interseção de nomes entre `legalsquad` e
+  **derivável hoje**, sem depender do `ejsquad`: a interseção de nomes entre `criminalsquad` e
   `dtsquad` dá exatamente 20 entradas (19 skills + `_evals`), confirmando o número da
   `ARQUITETURA §3`. `incidente-falsidade-documental` é a única com cara de matéria — o F1 decide se é
   transversal de verdade ou por acidente de fork. Extrair à mão seria uma 2ª cópia; isso é trabalho do

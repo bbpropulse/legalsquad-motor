@@ -47,7 +47,7 @@ E o **catalog-scout** — o batedor read-only do catálogo, mecanismo de descobe
 - `templates/ide-templates/claude-code/.claude/agents/catalog-scout.md`
 - `templates/ide-templates/codex/.Codex/agents/catalog-scout.toml`
 
-Fonte: leitura de `~/Documents/Projetos/Devlop/legalsquad/app` (read-only), seguida de
+Fonte: leitura de `~/Documents/Projetos/Devlop/criminalsquad/app` (read-only), seguida de
 `npm run build:ide`. O `command-body.md` local é **idêntico** ao do repo fonte — só o frontmatter
 por IDE é próprio de cada arquivo.
 
@@ -321,7 +321,7 @@ Ordem de execução: **A → B → C → pacote**.
    calibrada em conteúdo criminal.
 4. Empacotar a fixture duas vezes produz **hashes idênticos**.
 5. Um pacote com **um byte adulterado** é recusado na verificação, com erro claro.
-6. **Nada foi escrito em `~/Documents/Projetos/Devlop/legalsquad/app` por este trabalho.**
+6. **Nada foi escrito em `~/Documents/Projetos/Devlop/criminalsquad/app` por este trabalho.**
 
    O critério **não** é "`git status` limpo" — isso não é mais verificável. Durante a execução deste
    ciclo, uma sessão paralela passou a implementar `sync` e overlay de pacotes *dentro* do

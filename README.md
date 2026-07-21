@@ -37,22 +37,28 @@ calculadoras específicas de área.
   núcleo × pacote, tipos de pacote, licença e a camada vertical.
 - [`docs/specs/legalsquad/MIGRACAO.md`](docs/specs/legalsquad/MIGRACAO.md) — plano de construção F0–F5.
 - [`docs/specs/legalsquad/F0-SANEAMENTO.md`](docs/specs/legalsquad/F0-SANEAMENTO.md) — o saneamento da
-  suíte e da fronteira núcleo × pacote, incluindo a dívida de matéria criminal ainda hardcoded no
+  suíte e da fronteira núcleo × pacote, incluindo a dívida de matéria criminal, hoje paga, no
   motor.
 - [`docs/specs/acervo-server/SPEC.md`](docs/specs/acervo-server/SPEC.md) — o mecanismo de pacote,
   assinatura, delta e sync (um pipeline carrega **skills e acervo**).
 
 ## Estado: F0 (scaffold)
 
-O motor foi copiado do LegalSquad — **a última cópia que será feita** — e todo o conteúdo
+O motor foi copiado do CriminalSquad — **a última cópia que será feita** — e todo o conteúdo
 jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqui**.
+
+**O motor não tem mais categoria de assunto.** A matéria jurídica de área foi zerada do núcleo (a
+dívida `§5-bis`, de 34 arquivos, está paga — `tests/fronteira.test.js` agora guarda a
+não-regressão com inventário vazio) e a identidade foi renomeada para `legalsquad`. O bin mantém
+`criminalsquad` como alias, e três identificadores de **formato** conservam o nome antigo de
+propósito (`CRIMINALSQUAD:HP-CONTRACT`, `CRIMINALSQUAD:CITATION-GATE` e
+`criminalsquad.skill-promotion-evidence/v1`): eles estão gravados dentro dos `SKILL.md` dos pacotes
+de área, e trocá-los quebraria a paridade do F2.
 
 ### Pendências conhecidas do F0
 
-- **Identidade interna ainda é `legalsquad`** (comando, `_legalsquad/`, textos). O rename é
-  mecânico e está pendente de decisão — ver `ARQUITETURA.md §6`.
 - **Pacote `transversal` ainda não extraído** (as ~20 skills que servem qualquer área). O conjunto já
-  é derivável hoje: a interseção de nomes entre `legalsquad` e `dtsquad` dá exatamente 20 entradas
+  é derivável hoje: a interseção de nomes entre `criminalsquad` e `dtsquad` dá exatamente 20 entradas
   (19 skills + `_evals`), sem depender do `ejsquad` — ver
   [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
 - **A suíte tem 7 falhas conhecidas, não está 100% verde:** `npm test` → 314 passam, 7 falham, 321 no
@@ -72,5 +78,5 @@ jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqu
 ## Regras do projeto
 
 1. **Nenhum passo escreve nos repos de conteúdo.** O `build-area` é somente leitura.
-2. **Motor novo só aqui.** O LegalSquad está em manutenção (correção crítica apenas).
+2. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
 3. **Uma área só vira pacote com curador responsável.**

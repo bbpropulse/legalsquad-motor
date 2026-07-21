@@ -20,7 +20,7 @@ limpo. Nenhum passo escreve nos repositórios de conteúdo.
 
 ## Restrições globais
 
-- **`~/Documents/Projetos/Devlop/legalsquad/app` é READ-ONLY.** É a fonte de leitura da Classe A.
+- **`~/Documents/Projetos/Devlop/criminalsquad/app` é READ-ONLY.** É a fonte de leitura da Classe A.
   Ao final, `git -C <legalsquad> status --short` deve ser **idêntico** ao do início (`?? output/`
   e `?? tmp/`, que já existiam). Qualquer linha nova é falha do plano.
 - **Nenhum `skip`, `todo` ou teste comentado.** Se um teste não pode passar, ele é removido com
@@ -85,7 +85,7 @@ sem tirar essa linha faz o próximo `build:ide` **sobrescrever o `CLAUDE.md` do 
 - [ ] **Passo 1: Registrar o estado do repo fonte (prova de read-only)**
 
 ```bash
-git -C ~/Documents/Projetos/Devlop/legalsquad/app status --short > /tmp/cs-antes.txt
+git -C ~/Documents/Projetos/Devlop/criminalsquad/app status --short > /tmp/cs-antes.txt
 cat /tmp/cs-antes.txt
 ```
 
@@ -103,7 +103,7 @@ Esperado: `pass 0`, `fail 13`. A causa é uma só: `cp` de um diretório inexist
 - [ ] **Passo 3: Copiar os 5 wrappers do repo fonte**
 
 ```bash
-CS=~/Documents/Projetos/Devlop/legalsquad/app
+CS=~/Documents/Projetos/Devlop/criminalsquad/app
 for f in \
   "templates/ide-templates/claude-code/.claude/skills/legalsquad/SKILL.md" \
   "templates/ide-templates/gemini-cli/.gemini/skills/legalsquad/SKILL.md" \
@@ -176,7 +176,7 @@ Esperado: sem erros.
 - [ ] **Passo 9: Confirmar que o repo fonte não foi tocado**
 
 ```bash
-git -C ~/Documents/Projetos/Devlop/legalsquad/app status --short > /tmp/cs-depois.txt
+git -C ~/Documents/Projetos/Devlop/criminalsquad/app status --short > /tmp/cs-depois.txt
 diff /tmp/cs-antes.txt /tmp/cs-depois.txt && echo "READ-ONLY OK"
 ```
 
@@ -221,7 +221,7 @@ dentro de um artefato de motor.
 - [ ] **Passo 1: Copiar os três arquivos**
 
 ```bash
-CS=~/Documents/Projetos/Devlop/legalsquad/app
+CS=~/Documents/Projetos/Devlop/criminalsquad/app
 for f in \
   ".claude/agents/catalog-scout.md" \
   "templates/ide-templates/claude-code/.claude/agents/catalog-scout.md" \
@@ -966,7 +966,7 @@ se fez com o `catalog-scout` na Task 2.
 - [ ] **Passo 4: Repo fonte intocado**
 
 ```bash
-git -C ~/Documents/Projetos/Devlop/legalsquad/app status --short > /tmp/cs-final.txt
+git -C ~/Documents/Projetos/Devlop/criminalsquad/app status --short > /tmp/cs-final.txt
 diff /tmp/cs-antes.txt /tmp/cs-final.txt && echo "READ-ONLY OK"
 ```
 
