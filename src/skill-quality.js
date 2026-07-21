@@ -419,11 +419,23 @@ function candidateIsLater(candidate, current) {
 // older pass, so stale evidence cannot silently survive a regression.
 export function loadSkillEvaluationEvidence(skillsDir) {
   const evidence = new Map();
+  // Problemas de LEITURA acompanham o mapa em vez de sumirem. Descartar um
+  // arquivo ilegível em silêncio é indistinguível de "não há evidência": a
+  // skill deixa de promover e ninguém sabe por quê. O mapa continua sendo um
+  // Map (todos os chamadores usam .get()), então a assinatura não muda.
+  const problemas = [];
+  Object.defineProperty(evidence, 'problemas', { value: problemas, enumerable: false });
+
   for (const path of evaluationResultFiles(join(skillsDir, '_evals', 'results')).sort()) {
     let suite;
     try {
       suite = JSON.parse(readFileSync(path, 'utf8'));
-    } catch {
+    } catch (erro) {
+      problemas.push({
+        code: 'evidencia-ilegivel',
+        arquivo: path,
+        detalhe: `não foi possível ler como JSON: ${erro.message}`,
+      });
       continue;
     }
     let resultIndex = -1;
@@ -656,6 +668,10 @@ export function auditSkillCatalogQuality(catalog, options = {}) {
   return {
     schema_version: '1',
     contract_version: profiles.contract_version,
+    // Arquivos de evidência que não puderam ser lidos. Sobem até aqui para o
+    // relatório poder distinguir "esta skill não tem evidência" de "a evidência
+    // dela existe mas está corrompida" — que exigem ações opostas.
+    evidence_problems: Array.isArray(evidence?.problemas) ? evidence.problemas : [],
     summary: {
       skills: results.length,
       production_skills: production.length,

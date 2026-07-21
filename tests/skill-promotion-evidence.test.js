@@ -272,3 +272,36 @@ test('forward-runs legados continuam observáveis, sem virar promoção', () => 
   const schema = JSON.parse(readFileSync(join(SKILLS, '_evals', 'promotion-evidence.schema.json'), 'utf8'));
   assert.equal(schema.properties.schema_version.const, PROMOTION_EVIDENCE_SCHEMA_VERSION);
 });
+
+test('evidência ilegível é reportada, não descartada em silêncio', async () => {
+  const { mkdtemp, mkdir, writeFile, rm, cp } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join: pjoin } = await import('node:path');
+
+  const raiz = await mkdtemp(pjoin(tmpdir(), 'evid-ilegivel-'));
+  try {
+    await cp(SKILLS, pjoin(raiz, 'skills'), { recursive: true });
+    const results = pjoin(raiz, 'skills', '_evals', 'results');
+    await mkdir(results, { recursive: true });
+    // Um arquivo de evidência corrompido — o caso real: alguém edita à mão,
+    // um merge deixa conflito, um download trunca. Antes, o motor pulava
+    // calado e a skill simplesmente "não tinha evidência".
+    await writeFile(pjoin(results, 'corrompido.json'), '{ "results": [ {,,, ]\n');
+
+    const evidence = loadSkillEvaluationEvidence(pjoin(raiz, 'skills'));
+
+    assert.ok(Array.isArray(evidence.problemas), 'o carregador deve expor os problemas encontrados');
+    assert.equal(evidence.problemas.length, 1, `esperado 1 problema; veio ${JSON.stringify(evidence.problemas)}`);
+    assert.match(evidence.problemas[0].arquivo, /corrompido\.json$/);
+    assert.equal(evidence.problemas[0].code, 'evidencia-ilegivel');
+    // E o mapa continua funcionando para as evidências válidas.
+    assert.ok(evidence instanceof Map, 'a assinatura de retorno não muda: continua um Map');
+  } finally {
+    await rm(raiz, { recursive: true, force: true });
+  }
+});
+
+test('sem arquivo corrompido, não há problemas reportados', () => {
+  const evidence = loadSkillEvaluationEvidence(SKILLS);
+  assert.deepEqual(evidence.problemas, [], 'fixture íntegra não pode acusar problema');
+});

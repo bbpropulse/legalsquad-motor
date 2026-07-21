@@ -28,6 +28,17 @@ console.log(
   + `${summary.promotion_evidence_skills || 0} com evidência de promoção reconhecida.`,
 );
 
+// Evidência ilegível não é "sem evidência": some da contagem acima sem explicar
+// por quê, e a skill deixa de promover em silêncio. Sai em stderr, alto.
+const evidenceProblems = report.evidence_problems || [];
+if (evidenceProblems.length) {
+  console.error(
+    `⚠️  ${evidenceProblems.length} arquivo(s) de evidência ilegíveis — as skills correspondentes `
+    + 'contam como SEM evidência e não vão promover. Corrija ou remova:',
+  );
+  for (const p of evidenceProblems) console.error(`   ${p.arquivo} — ${p.detalhe}`);
+}
+
 const productionFailures = report.results.filter(
   (item) => ['active', 'pilot'].includes(item.lifecycle) && item.hardFails.length,
 );
