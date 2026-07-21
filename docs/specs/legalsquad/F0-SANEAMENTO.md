@@ -3,6 +3,17 @@
 > Fecha as pendências abertas do F0 descritas em [`MIGRACAO.md`](MIGRACAO.md) e no `CLAUDE.md`.
 > **Não** inclui o `build-area` — ele é o F1, e passa a encontrar o contrato de pacote pronto.
 
+> ## ⚠️ Documento **histórico** — não é instrução ativa
+>
+> Registra como o F0 foi executado, incluindo os passos em que artefatos de motor foram recuperados
+> de um checkout externo. **Aquilo aconteceu uma vez e não se repete.**
+>
+> A arquitetura vigente é a do [`CLAUDE.md`](../../../CLAUDE.md): **este repositório é autocontido**
+> e as áreas do Direito chegam **de forma remota**, como pacotes assinados. Nenhum trabalho novo
+> deve ler, inspecionar ou depender de repositório vizinho — inclusive os critérios de aceite deste
+> documento que mencionam `git status` de um checkout externo, hoje substituídos pela verificação
+> com fixture sintética descrita no `CLAUDE.md` ("Aceite do F1").
+
 ## Ponto de partida
 
 `npm test` → **304 testes, 206 passam, 98 falham**. O `CLAUDE.md` diz que as falhas são "testes

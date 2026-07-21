@@ -4,24 +4,19 @@ Este repositório é o **motor** de orquestração multi-agente para o Direito. 
 vivem aqui** — chegam como **pacotes assinados** (skills + squads + best-practices + acervo)
 baixados por `sync` e liberados por licença.
 
-## O arranjo entre repositórios (leia primeiro)
+## Escopo do repositório (leia primeiro)
 
-| Repositório | Papel | Pode ser modificado? |
-|---|---|---|
-| **`legalsquad`** (este) | Motor + plataforma de distribuição | **sim** — é onde o motor evolui |
-| `~/Documents/Projetos/Devlop/criminalsquad/app` | Fonte do conteúdo criminal **e** produto que vende hoje (Núcleo, turma fundadora) | **NÃO** |
-| `~/Devlop/dtsquad` | Fonte do conteúdo trabalhista | **NÃO** |
+**Este repositório é autocontido.** Trabalhe apenas dentro dele — não inspecione, não leia e não
+dependa de repositórios vizinhos. O LegalSquad **baixa as áreas do Direito de forma remota**, como
+pacotes assinados; nenhuma área vive aqui e nenhuma é lida de um diretório irmão.
 
-> `~/Devlop/ejsquad/app` (fonte do conteúdo extrajudicial) **não existe no disco** — nem
-> `~/Devlop/ejsquad`. Hoje só `criminalsquad` (520 skills) e `dtsquad` (405) estão presentes.
-> Ver [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
+O conteúdo de cada área é **autorado por seu curador**, fora daqui. O LegalSquad **executa** o que
+foi baixado — e, quando pedido, **empacota um diretório qualquer** que lhe apontem.
 
-> **Regra dura:** o `build-area` **lê** os repos de conteúdo e produz pacotes. Nenhum passo escreve
-> neles. O critério de aceite de toda fase inclui conferir que esses repos ficam com
-> **`git status` limpo** depois do build.
-
-O conteúdo continua sendo **autorado no repo da área** (com os gates que já funcionam lá); o
-LegalSquad apenas **empacota e distribui**.
+> **Regra dura do empacotador:** `build-area` é **genérico e cego** — recebe o diretório de conteúdo
+> por argumento e **nunca** conhece caminho de repositório específico. Ele **lê** a origem e **jamais
+> escreve** nela; essa invariante é verificada com fixture sintética, no CI, sem depender de nenhuma
+> máquina em particular.
 
 ## Fronteira núcleo × pacote
 
@@ -75,23 +70,26 @@ Commit inicial: `19e29be`.
    eval `lsq-v5-*`. **Sem alias de compatibilidade**: nada foi distribuído, então não há instalação
    a preservar.
 
-> **Requisito que isso cria para o F1 — leia antes de escrever o `build-area`.** As skills do
-> `criminalsquad` (520) e do `dtsquad` (405) têm gravados os marcadores antigos
-> (`<!-- CRIMINALSQUAD:HP-CONTRACT:START -->`) e ids de eval `csq-v5-*`. O **`build-area` precisa
-> traduzir esses identificadores ao empacotar** — de `CRIMINALSQUAD:` para `LEGALSQUAD:`, de
-> `csq-v5-` para `lsq-v5-`, e o `schema_version` da evidência de promoção. É normalização de
-> empacotamento, não migração dos repos de conteúdo (que continuam intocados, como manda a regra
-> dura). Sem essa tradução, o motor não reconhece o contrato das skills importadas e a paridade do
-> F2 falha.
+> **Requisito que isso cria para o F1 — leia antes de escrever o `build-area`.** Conteúdo autorado
+> antes deste rename traz gravados os marcadores antigos (`<!-- CRIMINALSQUAD:HP-CONTRACT:START -->`)
+> e ids de eval `csq-v5-*`. O **`build-area` precisa traduzir esses identificadores ao empacotar** —
+> `CRIMINALSQUAD:` → `LEGALSQUAD:`, `csq-v5-` → `lsq-v5-`, e o `schema_version` da evidência de
+> promoção. É **normalização de fronteira**: acontece no pacote, com a origem intocada. Sem ela, o
+> motor não reconhece o contrato das skills e a paridade do F2 falha.
+>
+> A armadilha, documentada no [`SPEC §6.8`](docs/specs/acervo-server/SPEC.md): reescrever o marcador
+> **muda os bytes** do `SKILL.md`, e `skill_binding.skill_sha256` amarra a evidência de promoção a
+> esses bytes. Normalizar sem re-bindar converte um erro ruidoso em falha silenciosa (a skill vira
+> `contracted` e nunca promove); re-bindar torna o binding tautológico. Não há saída sem custo — é
+> decisão de produto, não de implementação.
 
 ### Pendências abertas (não são bugs — é o F0 inacabado por decisão)
 
-- **Pacote `transversal` não extraído** — as ~20 skills que servem qualquer área. O conjunto já é
-  **derivável hoje**, sem depender do `ejsquad`: a interseção de nomes entre `criminalsquad` e
-  `dtsquad` dá exatamente 20 entradas (19 skills + `_evals`), confirmando o número da
+- **Pacote `transversal` não extraído** — as ~20 skills que servem qualquer área (integrações,
+  mídia, e-mail, OCR, publicação). O número foi confirmado empiricamente e bate com a
   `ARQUITETURA §3`. `incidente-falsidade-documental` é a única com cara de matéria — o F1 decide se é
-  transversal de verdade ou por acidente de fork. Extrair à mão seria uma 2ª cópia; isso é trabalho do
-  `build-area` (F1).
+  transversal de verdade ou por acidente de fork. É trabalho do `build-area`: separar `transversal`
+  de `area.*` é justamente o que ele faz.
 - **A suíte tem 7 falhas conhecidas — dívida documentada, não bug (mas não está verde).**
   `npm test` → 314 passam, 7 falham, 321 no total, 0 skip, 0 todo. A afirmação anterior deste
   documento — que as falhas "não são regressão" — **estava errada**: das 98 falhas originais, ~20
@@ -123,13 +121,23 @@ Commit inicial: `19e29be`.
   `_legalsquad/core/authorities/execucao-penal-art-112.json`. Continuará vermelho até o `build-area`
   (F1) produzir um pacote de área para alimentar o tarball.
 
-## Próximo passo: F1 — o exportador
+## Próximo passo: F1 — o empacotador
 
-`tools/build-area.mjs <repo-de-conteudo> <area-id>` → lê `skills/`, `squads/`,
-`core/best-practices/` e o perfil; separa `transversal` de `area.*`; produz o pacote assinado.
+`tools/build-area.mjs <diretorio-de-conteudo> <area-id>` → lê `skills/`, `squads/`,
+`core/best-practices/` e o perfil **do diretório que receber por argumento**; separa `transversal`
+de `area.*`; produz o pacote assinado.
 
-**Aceite do F1:** gerar `area.criminal` a partir do LegalSquad com **`git status` limpo lá**
-(prova de que o build é read-only) e contagem batendo com as **520 skills**.
+**Genérico e cego por definição:** nenhum caminho de repositório aparece no código, no teste ou no
+aceite. Ele empacota o que apontarem — de um checkout, de um diretório exportado, de um tarball
+extraído. Se um dia precisar saber *de quem* é o conteúdo, o desenho está errado.
+
+**Aceite do F1**, verificável no CI, sem depender de máquina nenhuma:
+1. Empacotar `tests/fixtures/area-demo/` produz um pacote assinado válido, e a contagem de skills
+   bate com a fixture.
+2. O diretório de origem fica **byte a byte idêntico** depois do build (a invariante read-only,
+   provada por hash da árvore antes e depois — não por `git status` de um repo externo).
+3. Empacotar duas vezes dá o **mesmo `content_hash`** (determinismo).
+4. Um pacote com um byte adulterado é **recusado** na verificação.
 
 **Aceite do F2 (paridade):** instalação limpa `legalsquad` + `transversal` + `area.criminal`
 reproduz a experiência atual do LegalSquad — 9 squads, gates verdes, resolvedor e Citation Gate

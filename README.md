@@ -7,18 +7,15 @@ Motor de orquestração multi-agente para o Direito.
 
 ## O arranjo
 
-| Repositório | Papel | Muda? |
-|---|---|---|
-| **`legalsquad`** (este) | Motor + plataforma: roteador, Arquiteto, gates, CLI, `sync`, licença, empacotamento | é onde o motor evolui |
-| `criminalsquad` | Fonte do conteúdo criminal **e** o produto que vende hoje | **intocado** |
-| `dtsquad` | Fonte do conteúdo trabalhista | **intocado** |
+**Este repositório é autocontido.** Ele não depende de nenhum diretório vizinho e não lê
+repositório algum além de si próprio. As áreas do Direito chegam **de forma remota**, como pacotes
+assinados verificados no cliente.
 
-> `ejsquad` (fonte do conteúdo extrajudicial) **não existe no disco**. Hoje só `criminalsquad`
-> (520 skills) e `dtsquad` (405) estão presentes — ver
-> [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
+O conteúdo de cada área é autorado por seu **curador**, fora daqui. O LegalSquad **executa** o que
+foi baixado — e, quando pedido, **empacota um diretório que lhe apontem**.
 
-O `build-area` **lê** um repositório de conteúdo e produz o pacote assinado — **somente leitura**.
-O conteúdo continua sendo autorado no repo da sua área; o LegalSquad empacota e distribui.
+O `build-area` é **genérico**: recebe o caminho do conteúdo por argumento, nunca conhece um
+repositório específico, e **jamais escreve na origem**.
 
 ## O que está aqui (motor)
 
