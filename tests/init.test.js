@@ -780,3 +780,26 @@ test('init with _ides trae creates .trae/mcp.json with playwright server', async
     await rm(tempDir, { recursive: true, force: true });
   }
 });
+
+test('init --yes numa casa já inicializada não apaga as preferências do usuário', async (t) => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'legalsquad-reinit-'));
+  t.after(() => rm(tempDir, { recursive: true, force: true }));
+
+  // 1ª inicialização: o escritório configura nome, idioma e IDEs.
+  await init(tempDir, { _skipPrompts: true, _language: 'English', _ides: ['codex'], skipDeps: true });
+  const prefsPath = join(tempDir, '_legalsquad', '_memory', 'preferences.json');
+  const antes = JSON.parse(await readFile(prefsPath, 'utf-8'));
+  assert.equal(antes.outputLanguage, 'English', 'pré-condição: preferências gravadas');
+
+  // 2ª chamada — exatamente o que a instrução global manda o roteador fazer
+  // automaticamente quando não "vê" o _legalsquad/. Não pode destruir o perfil.
+  await init(tempDir, { _skipPrompts: true, _language: 'Português (Brasil)', _ides: ['claude-code'], skipDeps: true });
+
+  const depois = JSON.parse(await readFile(prefsPath, 'utf-8'));
+  assert.equal(
+    depois.outputLanguage,
+    'English',
+    'o idioma configurado pelo escritório foi sobrescrito por um init automático'
+  );
+  assert.deepEqual(depois.ides, ['codex'], 'as IDEs configuradas foram sobrescritas');
+});

@@ -68,22 +68,53 @@ async function mergePackageJson(templatePath, destPath, backupFn) {
   return true;
 }
 
-async function backupIfExists(destPath) {
+/**
+ * Guarda uma cópia do arquivo antes de o update sobrescrevê-lo.
+ *
+ * Preservar o `.bak` original é a intenção certa — ele guarda o que o usuário
+ * tinha antes da PRIMEIRA atualização. Mas a versão anterior parava aí: se o
+ * `.bak` existia, ela não copiava nada e ainda devolvia `true`, fazendo o
+ * update anunciar "(backup: X.bak)" enquanto sobrescrevia, sem cópia, uma
+ * edição que o usuário fizera DEPOIS. Perda de dados irrecuperável, com
+ * mensagem afirmando o contrário.
+ *
+ * Agora: só não há o que preservar quando o conteúdo atual já está idêntico a
+ * algum backup. Havendo conteúdo novo, ele ganha o próximo slot livre
+ * (`.bak`, `.bak.2`, `.bak.3`…) — o original nunca é perdido e as edições
+ * posteriores também não.
+ *
+ * Devolve o caminho do backup que contém o conteúdo atual, ou `null` quando
+ * não havia arquivo. Quem chama usa isso para dizer a VERDADE ao usuário.
+ */
+export async function backupIfExists(destPath) {
+  let atual;
   try {
-    await stat(destPath);
+    atual = await readFile(destPath, 'utf8');
   } catch {
-    return false; // nothing to back up
+    return null; // nada a preservar
   }
-  const backupPath = destPath + '.bak';
-  // Preserve the user's ORIGINAL: never overwrite an existing .bak on a re-update
-  // (otherwise the backup would hold an already-updated copy, not the original).
-  try {
-    await stat(backupPath);
-    return true; // a backup already exists — keep it
-  } catch {
-    await cp(destPath, backupPath);
-    return true;
+
+  const candidatos = [`${destPath}.bak`];
+  for (let i = 2; i <= 50; i++) candidatos.push(`${destPath}.bak.${i}`);
+
+  for (const candidato of candidatos) {
+    let existente;
+    try {
+      existente = await readFile(candidato, 'utf8');
+    } catch {
+      // Slot livre: é aqui que o conteúdo atual entra.
+      await cp(destPath, candidato);
+      return candidato;
+    }
+    // Já preservado num backup anterior — não duplica.
+    if (existente === atual) return candidato;
   }
+
+  // 50 backups do mesmo arquivo é sinal de algo errado no fluxo, não caso real.
+  // Preservar é mais importante que a estética do nome.
+  const fallback = `${destPath}.bak.${Date.now()}`;
+  await cp(destPath, fallback);
+  return fallback;
 }
 
 export async function update(targetDir) {
@@ -151,7 +182,10 @@ export async function update(targetDir) {
     await cp(entry, destPath);
     const displayPath = relativePath.replaceAll('\\', '/');
     if (backed) {
-      console.log(`  ${t('updatedFile', { path: displayPath })} (backup: ${displayPath}.bak)`);
+      // Nomeia o backup REAL: pode ser .bak, .bak.2… Anunciar sempre ".bak"
+      // mandava o usuário procurar o conteúdo dele no arquivo errado.
+      const nomeBackup = displayPath + backed.slice(destPath.length);
+      console.log(`  ${t('updatedFile', { path: displayPath })} (backup: ${nomeBackup})`);
     } else {
       console.log(`  ${t('updatedFile', { path: displayPath })}`);
     }
@@ -181,7 +215,8 @@ export async function update(targetDir) {
       await cp(entry, destPath);
       const displayPath = relPath.replaceAll('\\', '/');
       if (backed) {
-        console.log(`  ${t('updatedFile', { path: displayPath })} (backup: ${displayPath}.bak)`);
+        const nomeBackup = displayPath + backed.slice(destPath.length);
+        console.log(`  ${t('updatedFile', { path: displayPath })} (backup: ${nomeBackup})`);
       } else {
         console.log(`  ${t('updatedFile', { path: displayPath })}`);
       }

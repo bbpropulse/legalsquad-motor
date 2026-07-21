@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, rm, readFile, writeFile, mkdir, stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { init } from '../src/init.js';
 import { update } from '../src/update.js';
@@ -230,4 +230,59 @@ test('update does not auto-import preview skills', async () => {
   } finally {
     await rm(tempDir, { recursive: true, force: true });
   }
+});
+
+test('update preserva a edição do usuário feita DEPOIS da primeira atualização', async (t) => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'legalsquad-bak-'));
+  t.after(() => rm(tempDir, { recursive: true, force: true }));
+
+  // Simula um arquivo canônico que o motor distribui e o usuário personaliza.
+  const alvo = join(tempDir, '_legalsquad', 'core', 'runner.pipeline.md');
+  await mkdir(dirname(alvo), { recursive: true });
+
+  // Estado após a 1ª atualização: .bak guarda o ORIGINAL, o arquivo tem a
+  // versão do motor — e então o advogado personaliza o arquivo.
+  await writeFile(alvo + '.bak', 'ORIGINAL do usuário\n');
+  await writeFile(alvo, 'EDIÇÃO DO ADVOGADO — semanas de ajuste fino\n');
+
+  const { backupIfExists } = await import('../src/update.js');
+  const resultado = await backupIfExists(alvo);
+
+  // O conteúdo editado precisa estar preservado em ALGUM backup. Antes, a
+  // função via que já existia um .bak e devolvia true sem copiar nada — o
+  // update sobrescrevia a edição e ainda anunciava "(backup: X.bak)",
+  // apontando para um backup que continha outra coisa.
+  const { readdir } = await import('node:fs/promises');
+  const arquivos = await readdir(dirname(alvo));
+  const backups = arquivos.filter((f) => f.startsWith('runner.pipeline.md.bak'));
+
+  const conteudos = await Promise.all(
+    backups.map((f) => readFile(join(dirname(alvo), f), 'utf8'))
+  );
+
+  assert.ok(
+    conteudos.some((c) => c.includes('EDIÇÃO DO ADVOGADO')),
+    `a edição do usuário não foi preservada em nenhum backup. backups: ${JSON.stringify(backups)}, conteúdos: ${JSON.stringify(conteudos)}`
+  );
+  assert.ok(
+    conteudos.some((c) => c.includes('ORIGINAL do usuário')),
+    'o backup original também precisa sobreviver'
+  );
+  assert.ok(resultado, 'a função deve reportar que houve backup');
+});
+
+test('update não cria backup redundante quando nada mudou desde o último', async (t) => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'legalsquad-bak2-'));
+  t.after(() => rm(tempDir, { recursive: true, force: true }));
+
+  const alvo = join(tempDir, 'arquivo.md');
+  await writeFile(alvo, 'mesmo conteúdo\n');
+  await writeFile(alvo + '.bak', 'mesmo conteúdo\n');
+
+  const { backupIfExists } = await import('../src/update.js');
+  await backupIfExists(alvo);
+
+  const { readdir } = await import('node:fs/promises');
+  const backups = (await readdir(tempDir)).filter((f) => f.includes('.bak'));
+  assert.equal(backups.length, 1, `não deve multiplicar backups idênticos; veio ${JSON.stringify(backups)}`);
 });

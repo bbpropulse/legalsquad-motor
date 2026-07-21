@@ -1,4 +1,5 @@
 import { cp, mkdir, readdir, readFile, writeFile, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
@@ -106,18 +107,28 @@ export async function init(targetDir, options = {}) {
 - **IDEs:** ${ides.join(', ')}
 - **Date Format:** YYYY-MM-DD
 `;
-  await writeFile(join(memoryDir, 'preferences.md'), prefsContent, 'utf-8');
-  const prefsJson = {
-    userName,
-    outputLanguage: language,
-    ides,
-    dateFormat: 'YYYY-MM-DD',
-  };
-  await writeFile(
-    join(memoryDir, 'preferences.json'),
-    JSON.stringify(prefsJson, null, 2) + '\n',
-    'utf-8'
-  );
+  // Preferências JÁ existentes são dado do usuário, não artefato do motor:
+  // reinicializar não pode apagar nome, idioma e IDEs que o escritório
+  // configurou. Isso importa porque o `init --yes` é disparado
+  // AUTOMATICAMENTE pelo roteador quando ele não enxerga `_legalsquad/` — um
+  // falso negativo dessa checagem custava o perfil inteiro, sem backup e sem
+  // aviso. Só grava quando ainda não há preferências.
+  const prefsJsonPath = join(memoryDir, 'preferences.json');
+  const prefsMdPath = join(memoryDir, 'preferences.md');
+  const jaConfigurado = existsSync(prefsJsonPath) || existsSync(prefsMdPath);
+
+  if (jaConfigurado) {
+    console.log(`  ${t('preferencesPreserved') || 'Preferências existentes preservadas.'}`);
+  } else {
+    await writeFile(prefsMdPath, prefsContent, 'utf-8');
+    const prefsJson = {
+      userName,
+      outputLanguage: language,
+      ides,
+      dateFormat: 'YYYY-MM-DD',
+    };
+    await writeFile(prefsJsonPath, JSON.stringify(prefsJson, null, 2) + '\n', 'utf-8');
+  }
 
   // Seed the office/institution profile (only if not already present)
   const companyPath = join(targetDir, '_legalsquad', '_memory', 'company.md');
