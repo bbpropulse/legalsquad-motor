@@ -123,7 +123,7 @@ Before starting execution:
 Mantenha o contexto **enxuto e relevante** (boa prática de *context engineering*): não pré-carregue tudo.
 
 - **Acervo:** leia primeiro o **índice** `acervo/_index.yaml` (barato) e então `Read` **apenas** os arquivos relevantes ao caso/tese — **nunca** carregue o acervo inteiro. A pesquisa cita do que leu; o redator usa o `output/pesquisa-juridica.md` (já curado), não relê o acervo cru.
-- **Best-practices:** carregue só as do `format:`/`skills:` do step (já é o padrão da injeção). Não despeje o catálogo. **Exceção obrigatória:** em todo step que **redige ou revisa peça/parecer/memorial penal**, carregue TAMBÉM `_criminalsquad/core/best-practices/redacao-persuasiva-criminal.md` — é a régua de obra-prima (teoria do caso, subsunção explícita, coesão, persuasão) que o redator aplica e o revisor cobra na dimensão (h) da `revisao-juridica`. Se o arquivo **não existir** (área sem essa best-practice instalada), siga sem ele e registre WARNING no log do run — mesma degradação da injeção de `format:` (passo 4a). **E o gate acompanha a carga:** sem a régua no disco, a dimensão (h) da `revisao-juridica` é **declarada não avaliada** no veredito do revisor (não bloqueia a peça e **não** é julgada de memória). As demais dimensões continuam valendo integralmente — inclusive o Citation Gate, que não depende desta best-practice.
+- **Best-practices:** carregue só as do `format:`/`skills:` do step (já é o padrão da injeção). Não despeje o catálogo. **Exceção obrigatória:** em todo step que **redige ou revisa peça/parecer/memorial jurídico**, carregue TAMBÉM a best-practice de **redação persuasiva** da área instalada — o nome do arquivo vem do pacote da área, então **descubra-o no disco** (liste `_criminalsquad/core/best-practices/`), não o presuma. É a régua de obra-prima (teoria do caso, subsunção explícita, coesão, persuasão) que o redator aplica e o revisor cobra na dimensão (h) da `revisao-juridica`. Se o arquivo **não existir** (área sem essa best-practice instalada), siga sem ele e registre WARNING no log do run — mesma degradação da injeção de `format:` (passo 4a). **E o gate acompanha a carga:** sem a régua no disco, a dimensão (h) da `revisao-juridica` é **declarada não avaliada** no veredito do revisor (não bloqueia a peça e **não** é julgada de memória). As demais dimensões continuam valendo integralmente — inclusive o Citation Gate, que não depende desta best-practice.
 - **Loops:** passe **só o delta** (os `fixes`), não o histórico inteiro (já vale para revisão/citação).
 - **Peças longas:** se o output for muito extenso, trabalhe **por seção** e concatene — evita estourar a janela e mantém cada subtarefa focada.
 - **Subagentes:** dão isolamento de contexto de graça — prefira subagente para pesquisa/varredura pesada, devolvendo só o report estruturado ao fio principal.
@@ -349,13 +349,13 @@ Por padrão os steps rodam **em série**. Quando dois ou mais steps são **indep
    ```
    No **fan-in**, volte ao fluxo normal (um `step` com o consolidador em `--working`; os ramos viram `done` automaticamente). O dashboard anima vários `working` ao mesmo tempo e mostra "⚡ N em paralelo" no rodapé.
 
-Exemplo (execução penal — institutos independentes do mesmo cálculo-base):
+Exemplo (institutos independentes derivados da mesma base de cálculo — os nomes de agente vêm do squad da área instalada, este é só o formato):
 
 ```yaml
-- { id: step-prog,   parallel_group: institutos, agent: progressao, execution: subagent, ... }
-- { id: step-livr,   parallel_group: institutos, agent: livramento, execution: subagent, ... }
-- { id: step-remic,  parallel_group: institutos, agent: remicao,    execution: subagent, ... }
-- { id: step-consol, depends_on: [step-prog, step-livr, step-remic], agent: consolidador, ... }  # fan-in
+- { id: step-a,      parallel_group: institutos, agent: instituto-a, execution: subagent, ... }
+- { id: step-b,      parallel_group: institutos, agent: instituto-b, execution: subagent, ... }
+- { id: step-c,      parallel_group: institutos, agent: instituto-c, execution: subagent, ... }
+- { id: step-consol, depends_on: [step-a, step-b, step-c], agent: consolidador, ... }  # fan-in
 ```
 
 Sem `parallel_group` declarado, mantenha a execução **em série** (comportamento padrão). Roteamento de custo: squad simples roda em série/inline; o fan-out (multi-agente, ~mais tokens) justifica-se quando há subtarefas realmente independentes.
@@ -475,7 +475,7 @@ A responsabilidade final é **humana**: o Citation Gate é insumo, não substitu
 Concluir os steps **não** é o mesmo que **atingir a meta**. Antes de marcar `completed`, valide o resultado contra a meta do squad (padrão *goal-backward verification*):
 
 1. **Ler a meta.** No `squad.yaml`, leia `goal` e `success_criteria` (lista). Se o squad **não** declara esses campos → **pule** esta etapa (compatível com squads antigos).
-2. **Verificar (subagente isolado, anti-viés).** Acione o subagente `avaliador-squad` (ou um verificador equivalente) em **contexto fresco** (não quem redigiu) para checar o **output final** contra **cada** `success_criteria` — responde, por critério, ATENDE / NÃO ATENDE / PARCIAL + 1 linha de evidência. (Ex.: "cobre todas as imputações da denúncia?", "desenvolveu as preliminares aprovadas no Step 04?", "respeitou o prazo do art. 396?").
+2. **Verificar (subagente isolado, anti-viés).** Acione o subagente `avaliador-squad` (ou um verificador equivalente) em **contexto fresco** (não quem redigiu) para checar o **output final** contra **cada** `success_criteria` — responde, por critério, ATENDE / NÃO ATENDE / PARCIAL + 1 linha de evidência. (Os critérios são os que o próprio `squad.yaml` declara — não invente critérios de matéria. Ex. de forma: "cobre todos os pontos da peça impugnada?", "desenvolveu as preliminares aprovadas no Step 04?", "respeitou o prazo declarado no critério?").
    - **Voting (alta criticidade).** Leia `meta_verifiers` do `squad.yaml`/step (default **1**) e despache N verificadores independentes em paralelo, cada um em contexto fresco. **Com N=1 (default) não há voting** — vale o veredito do único verificador. **Com N≥3** (declare `meta_verifiers: 3` no `squad.yaml` para peças protocoláveis de maior risco — ver `build.prompt.md`), use **consenso conservador**: um critério só é ATENDE se a maioria confirmar; qualquer NÃO ATENDE/PARCIAL da maioria rebaixa o critério. Mesmo padrão do voting do Citation Gate (cujo default já é 3).
 3. **Decidir.** Se **todos** ATENDEM → siga para concluir. Se houver NÃO ATENDE/PARCIAL → **não conclua em silêncio**: apresente ao usuário o(s) critério(s) falho(s) e ofereça (a) voltar ao step de redação para corrigir (como o loop de revisão) ou (b) concluir mesmo assim sob responsabilidade dele. Registre o resultado no RELATORIO.md (seção "Verificação da meta").
 4. **Custo.** É **uma** verificação no fim — barata frente ao risco de entregar algo "concluído, mas que não atende ao pedido".

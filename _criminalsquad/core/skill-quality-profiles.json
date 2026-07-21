@@ -3,8 +3,8 @@
   "contract_version": "5.0.0",
   "profiles": {
     "legal-drafting": {
-      "label": "Redação jurídica penal",
-      "short_description": "Redação penal verificável e revisável",
+      "label": "Redação jurídica",
+      "short_description": "Redação jurídica verificável e revisável",
       "negative_boundary": "decisão final, assinatura, protocolo ou citação não verificada",
       "minimum_inputs": [
         "objetivo, polo, fase e via processual",
@@ -36,8 +36,8 @@
       "hard_fail_if": ["inventa fato", "cita fonte não verificada", "trata rascunho como peça protocolável"]
     },
     "legal-analysis": {
-      "label": "Análise e estratégia penal",
-      "short_description": "Análise penal estruturada e verificável",
+      "label": "Análise e estratégia jurídica",
+      "short_description": "Análise jurídica estruturada e verificável",
       "negative_boundary": "conclusão definitiva sem autos suficientes, fonte atual ou revisão profissional",
       "minimum_inputs": [
         "pergunta decisória, polo, fase e resultado pretendido",
@@ -103,7 +103,7 @@
     },
     "legal-calculation": {
       "label": "Cálculo jurídico determinístico",
-      "short_description": "Cálculo penal determinístico e auditável",
+      "short_description": "Cálculo jurídico determinístico e auditável",
       "negative_boundary": "escolha automática de lei, fração, marco ou consequência jurídica",
       "minimum_inputs": [
         "modalidade do cálculo e pergunta exata",

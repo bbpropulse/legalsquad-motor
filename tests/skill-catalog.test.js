@@ -212,13 +212,29 @@ test('Arquitetura, Discovery, Design e Sherlock usam shortlist local e manifesto
   for (const file of files.slice(0, 4)) {
     const content = await readFile(join(ROOT, file), 'utf8');
     assert.match(content, /skills\/_index\.yaml/, `${file} não lê o índice`);
-    assert.match(content, /skills\/_execucao-penal-v3-integration\.yaml/, `${file} não lê o manifesto`);
+    // O manifesto de canonicalização é POR ÁREA: o motor referencia o padrão
+    // (`skills/_*-integration.yaml`), não o nome de uma área específica —
+    // fixar `_execucao-penal-v3-integration.yaml` aqui era matéria criminal
+    // dentro do teste, e travava o motor numa única área.
+    assert.match(
+      content,
+      /skills\/_\*-integration\.yaml|manifesto de canonicaliza/i,
+      `${file} não referencia o manifesto de canonicalização da área`
+    );
   }
 
   for (const file of files.slice(0, 4)) {
     const content = await readFile(join(ROOT, file), 'utf8');
     assert.match(content, /search-skills/, `${file} não usa a busca compacta`);
-    assert.match(content, /execucao-penal-alta-performance\.md/, `${file} não descobre o protocolo de execução penal`);
+    // O protocolo obrigatório é declarado PELA ÁREA no `_catalog.yaml`, não
+    // fixado no motor: exigir `execucao-penal-alta-performance.md` aqui
+    // amarrava o núcleo a uma área. O que o motor deve garantir é que
+    // consulta o catálogo de best-practices da área instalada.
+    assert.match(
+      content,
+      /_catalog\.yaml/,
+      `${file} não descobre as best-practices obrigatórias pelo catálogo da área`
+    );
   }
 
   for (const file of files.slice(4)) {

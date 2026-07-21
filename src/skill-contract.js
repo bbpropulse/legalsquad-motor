@@ -123,7 +123,15 @@ function simpleBlock(key, value) {
 }
 
 function inferRiskLevel(entry, profileId) {
-  const critical = /pris[aã]o|liberdade|cust[oó]dia|habeas|flagrante|preventiva|alvar[aá]|prazo|compet[eê]ncia|prescri|c[aá]lcul|dosimetr|den[uú]ncia|acusa[cç][aã]o|anpp|colabora[cç][aã]o|sa[uú]de|urg[eê]ncia|protocolo|assinatura|envio|publica[cç][aã]o/i;
+  // Vocabulário de IRREVERSIBILIDADE, não de matéria: o que eleva o risco é o
+  // efeito (perder prazo, mandar para fora, assinar, calcular errado, tratar de
+  // liberdade ou saúde de alguém), e isso vale em qualquer área. Institutos
+  // típicos de um ramo só não entram aqui — quem conhece o instituto é o pacote
+  // de área, que declara `risk_level` na própria skill.
+  const critical = /liberdade|cust[oó]dia|prazo|decad[eê]ncia|prescri|compet[eê]ncia|c[aá]lcul|liminar|tutela|audi[eê]ncia|sa[uú]de|urg[eê]ncia|protocolo|assinatura|envio|publica[cç][aã]o/i;
+  // Declaração explícita da skill vence a inferência: é o pacote de área que
+  // conhece o instituto e o estrago que ele pode causar.
+  if (/^r[1-4]$/.test(entry.metadata.riskLevel || '')) return entry.metadata.riskLevel;
   const haystack = `${entry.id} ${entry.group} ${(entry.metadata.categories || []).join(' ')}`;
   if (['legal-drafting', 'legal-calculation', 'external-action'].includes(profileId)) return 'r4';
   if (critical.test(haystack)) return 'r4';
@@ -160,18 +168,12 @@ function inferredPositiveTriggers(entry) {
   return [...new Set([entry.id, terms.slice(0, 2).join(' '), terms.slice(-2).join(' ')])].filter(Boolean);
 }
 
+// Quais motores determinísticos uma skill usa é informação de ÁREA: os motores
+// vêm no pacote e só quem escreve a skill sabe de qual depende. O motor não
+// mapeia nome de skill para motor — lê o que a skill declara em
+// `metadata.engines` (e o manifesto de integração do pacote confere o registro).
 function inferredEngines(entry) {
-  const engines = new Set(entry.metadata.engines || []);
-  if (/^ep-(?:auditoria-calculo-pena|cenarios-calculo-comparativo|data-base-analyzer|fracao-progressao-engine|revisor-calculo)$/.test(entry.id)) {
-    engines.add('fraction-date');
-  }
-  if (/^ep-(?:auditoria-calculo-pena|cenarios-calculo-comparativo|remicao-calculator|revisor-calculo)$/.test(entry.id)) {
-    engines.add('remission');
-  }
-  if (/^ep-(?:auditoria-calculo-pena|cenarios-calculo-comparativo|prescricao-executoria|revisor-calculo)$/.test(entry.id)) {
-    engines.add('executory-limitation');
-  }
-  return [...engines];
+  return [...new Set(entry.metadata.engines || [])];
 }
 
 function normalizeFrontmatter(raw, entry, profileId, profile, evalIds, contractVersion, qualityStatus) {
@@ -430,7 +432,7 @@ function displayName(entry) {
 
 function defaultPrompt(entry, profile) {
   const action = ({
-    'legal-drafting': 'produzir uma minuta penal verificável para revisão humana',
+    'legal-drafting': 'produzir uma minuta jurídica verificável para revisão humana',
     'legal-analysis': 'analisar o caso com fatos, provas, fontes e riscos explícitos',
     'evidence-forensics': 'examinar o material com âncoras, confiança e preservação do original',
     'legal-calculation': 'executar um cálculo auditável sem inferir a regra jurídica',

@@ -2,7 +2,7 @@
 
 Load `sherlock-shared.md` before using this extractor.
 
-Do not navigate, inspect or extract until the mandatory compact `search-skills` preflight in `sherlock-shared.md` has run; query the execution-penal integration manifest only when applicable (and apply `execucao-penal-alta-performance.md`).
+Do not navigate, inspect or extract until the mandatory compact `search-skills` preflight in `sherlock-shared.md` has run; query an area integration manifest only when applicable (and apply the area's high-performance protocol when the installed package ships one).
 
 This file contains the LinkedIn-specific extraction process. The Architect loads this file (alongside `sherlock-shared.md`) when the reference URL is a LinkedIn profile or post.
 

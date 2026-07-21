@@ -17,11 +17,11 @@ Read these files before starting:
 - `_criminalsquad/_memory/preferences.md` — User preferences (especially Output Language)
 - `_criminalsquad/core/best-practices/_catalog.yaml` — Best-practices catalog
 - `skills/_index.yaml` — fonte de verdade do catálogo de skills (lifecycle, aliases, relações e gatilhos)
-- `skills/_execucao-penal-v3-integration.yaml` — pontes semânticas e canonicalização das `ep-*`
+- `skills/_*-integration.yaml` — manifesto de canonicalização da área instalada (pontes semânticas e alvos canônicos), **quando existir**
 
-Não inicie pesquisa, não crie agente e não desenhe step antes de ler os dois últimos arquivos e reconciliá-los com `discovery.yaml.catalog_context`. Se o domínio incluir execução penal, leia também `_criminalsquad/core/best-practices/execucao-penal-alta-performance.md` antes de qualquer pesquisa ou desenho.
+Não inicie pesquisa, não crie agente e não desenhe step antes de ler os dois últimos arquivos e reconciliá-los com `discovery.yaml.catalog_context`. Leia também, antes de qualquer pesquisa ou desenho, as best-practices que o `_catalog.yaml` da área marcar como **obrigatórias** para o tipo de trabalho em questão.
 
-> **Protocolo de ausência (motor sem área instalada):** se `_criminalsquad/core/best-practices/_catalog.yaml`, `skills/_index.yaml`, o manifesto de integração **ou qualquer best-practice declarada obrigatória** (incluindo `execucao-penal-alta-performance.md` e as demais leituras "obrigatórias"/"não opcionais" deste documento) **não existirem no disco**, não trate como erro nem bloqueie o Design: registre a ausência em `design.yaml` (`catalog_context.note: "sem catálogo — área não instalada"`; para protocolos de domínio, `execution_penal_protocol: not_installed`), pule as leituras correspondentes e prossiga em **modo GAPS** — todo papel sem correspondência de catálogo é desenhado do zero (Phase E), e nenhum agente ou step pode referenciar skill, best-practice ou especialista que não exista no disco.
+> **Protocolo de ausência (motor sem área instalada):** se `_criminalsquad/core/best-practices/_catalog.yaml`, `skills/_index.yaml`, o manifesto de integração **ou qualquer best-practice declarada obrigatória** (isto é, as demais leituras "obrigatórias"/"não opcionais" deste documento) **não existirem no disco**, não trate como erro nem bloqueie o Design: registre a ausência em `design.yaml` (`catalog_context.note: "sem catálogo — área não instalada"`; para protocolos de domínio, `area_protocol: not_installed`), pule as leituras correspondentes e prossiga em **modo GAPS** — todo papel sem correspondência de catálogo é desenhado do zero (Phase E), e nenhum agente ou step pode referenciar skill, best-practice ou especialista que não exista no disco.
 >
 > Esta cláusula é **geral e vale para todo este documento**: onde se lê "obrigatória", "sempre selecionada", "não é opcional" ou "governa todo o design", entenda **"quando instalada"**. Uma obrigação de leitura nunca se converte em obrigação de fingir que leu — na ausência, registre e siga; jamais reconstitua o protocolo de memória.
 
@@ -45,7 +45,7 @@ Based on the squad's purpose and the domains identified in Discovery, select whi
 3. Read the full content of each selected best-practice file from `_criminalsquad/core/best-practices/{file}`
 4. Use this knowledge to design better agents in Phase E
 
-Para execução penal, `execucao-penal-alta-performance` é sempre selecionada e governa todo o design; não é opcional nem substituída por uma `ep-*` preview.
+As best-practices que o `_catalog.yaml` da área marcar como obrigatórias para o tipo de trabalho são **sempre selecionadas** e governam todo o design; não são opcionais nem substituídas por uma skill em preview.
 
 **Example:** For a content creation squad targeting Instagram:
 - Read `copywriting.md` (for the writer agent)
@@ -59,7 +59,7 @@ Do NOT read all files — only those relevant to this specific squad. The catalo
 
 ## Phase B: Research (gather domain knowledge)
 
-**Gate de catálogo antes da web:** confirme primeiro se a necessidade já está coberta por skill/best-practice ativa, alias ou alvo canônico do manifesto. Pesquise somente a lacuna de conhecimento, não a capacidade que já existe. Em pesquisa jurídica, consulte `acervo/` antes da web, use fontes oficiais e mantenha Citation Gate; em execução penal, siga o protocolo `execucao-penal-alta-performance` e registre data de corte/freshness.
+**Gate de catálogo antes da web:** confirme primeiro se a necessidade já está coberta por skill/best-practice ativa, alias ou alvo canônico do manifesto. Pesquise somente a lacuna de conhecimento, não a capacidade que já existe. Em pesquisa jurídica, consulte `acervo/` antes da web, use fontes oficiais e mantenha Citation Gate; quando a área declarar best-practices obrigatórias, siga os protocolos delas e registre data de corte/freshness.
 
 For each knowledge domain identified in discovery.yaml, do a focused web search. Be direct and efficient — research enough to build solid agent foundations without exhaustive surveys. Move quickly.
 
@@ -140,7 +140,7 @@ investigation:
 
 No CriminalSquad, as skills de **peça, análise e cálculo SÃO o núcleo do trabalho** — cada passo do pipeline carrega a skill certa. Não são um "extra" de última hora. Descubra ANTES de desenhar os steps quais skills o squad vai usar.
 
-1. **Use a shortlist compacta do `catalog-scout`/Discovery.** Se faltar uma capability, rode nova busca local com `npx criminalsquad search-skills --query "<capability>" --limit 8 --json`. `skills/_index.yaml` é a fonte completa do motor, mas nunca deve ser lido por inteiro no prompt. Consulte `skills/_execucao-penal-v3-integration.yaml` somente por busca direcionada quando houver `ep-*`. NÃO busque catálogo na web.
+1. **Use a shortlist compacta do `catalog-scout`/Discovery.** Se faltar uma capability, rode nova busca local com `npx criminalsquad search-skills --query "<capability>" --limit 8 --json`. `skills/_index.yaml` é a fonte completa do motor, mas nunca deve ser lido por inteiro no prompt. Consulte o manifesto de canonicalização da área (`skills/_*-integration.yaml`), quando existir, somente por busca direcionada e apenas para resolver um alvo canônico. NÃO busque catálogo na web.
    - Lifecycle e qualidade são dimensões independentes; não presuma qualidade a partir de `active`.
    - `active`: disponível em produção, sujeito ao gate de qualidade abaixo.
    - `pilot`: apenas com opt-in explícito, escopo controlado e fallback ativo registrado.
@@ -149,19 +149,15 @@ No CriminalSquad, as skills de **peça, análise e cálculo SÃO o núcleo do tr
    - `quarantined`: nunca selecionar, instalar ou executar.
    - Qualidade: prefira `certified`, depois `verified`, **apenas** com `high_performance_eligible: true`; rótulo sem elegibilidade computada é inválido para promoção. `contracted` exige contrato do perfil, guards e revisão humana e não pode ser descrita como comportamentalmente validada; `legacy` não entra em design novo.
    - Confirme `risk`, `delivery_type`, `freshness_policy`, `guard_triggers` e `eval_case_ids`. Use gatilhos positivos, negativos e de guarda; respeite `coexists` e evite cadeias redundantes.
-2. **Mapeie cada necessidade do squad a uma família de capacidade** (reaproveite, não reinvente):
-   - **Peças** — HC, apelação, RESE, resposta à acusação, memoriais, queixa, embargos, contrarrazões (o step de redação carrega a peça certa).
-   - **Execução penal** — aplique `_criminalsquad/core/best-practices/execucao-penal-alta-performance.md`, resolva a canonicalização do manifesto e só então selecione progressão, livramento, remição, excesso de execução, defesa em falta grave/PAD, detração ou liquidação de pena. Preserve `ep-*` preview como fonte auditável, não como dependência de produção.
-   - **Tribunal do júri** — pronúncia, quesitação, plenário, réplica/tréplica, recusas de jurados, teses de plenário.
-   - **Análise de provas** — impugnação de reconhecimento (art. 226), prova ilícita/derivada, cadeia de custódia, matriz de contradições.
-   - **Leitura multimodal dos autos** — as skills `leitura-*` (still de CFTV, laudo pericial em imagem, autenticidade de print, EXIF, croqui) e `ocr-autos-pdf`.
-   - **Cálculo determinístico** — `calculadora-dosimetria`, `calculadora-prescricao`, `calculadora-tempestividade`. **Se o passo envolve pena, prescrição ou prazo, o step INVOCA a calculadora — nunca deixe o agente "calcular de cabeça".**
-   - **Inquérito e investigação** — análise/relatório do IP, trancamento via HC, defesa no inquérito, acesso aos autos.
-   - **Acusação e assistente de acusação** — só para squads do **polo acusatório** (confira o polo em `company.md`; não sugira peça de acusação a quem faz defesa).
-   - **Estratégia** — teoria do caso, mapa de nulidades, matriz de teses, decisão recorrer × negociar.
+2. **Mapeie cada necessidade do squad a uma família de capacidade** (reaproveite, não reinvente). As famílias e os nomes de skill **vêm do catálogo da área instalada** — descubra-os com `search-skills` e pelo `_index.yaml`, **nunca presuma nomes nem invente peças**. As famílias que o motor sempre trata da mesma forma, qualquer que seja a área:
+   - **Peças e recursos** — o step de redação carrega a skill da peça certa, resolvida pelo catálogo (e pelo manifesto de canonicalização, quando houver). Skill em preview nunca é dependência de produção: preserve-a como fonte auditável.
+   - **Análise de provas e leitura dos autos** — skills de leitura documental/multimodal e OCR expostas pela área.
+   - **Cálculo determinístico** — toda skill de calculadora publicada pela área. **Se o passo envolve prazo, valor ou qualquer cálculo com regra fechada, o step INVOCA a calculadora — nunca deixe o agente "calcular de cabeça".**
+   - **Estratégia** — teoria do caso, mapa de nulidades/vícios, matriz de teses, decisão litigar × negociar.
+   - **Polo de atuação** — confira o polo em `company.md` e no `discovery.yaml`; **não sugira peça do polo contrário** ao que o escritório atua.
    - **Integrações** (DJEN, e-mail, agenda, publicação em redes, assinatura) — precisam de setup (env/MCP).
 3. **Como cada tipo entra no squad:**
-   - Skills de **peça/análise/cálculo/estratégia**: entram nos STEPS do pipeline (o step diz "carregue a skill `X`"). **Não precisam de instalação** — já vêm com o CriminalSquad. Registre-as no design.yaml.
+   - Skills de **peça/análise/cálculo/estratégia**: entram nos STEPS do pipeline (o step diz "carregue a skill `X`"). **Não precisam de instalação** — vêm com o pacote da área já instalada. Registre-as no design.yaml.
    - Skills de **integração** (env/MCP): são as ÚNICAS que passam pelo fluxo de instalação abaixo. Ofereça só se o squad realmente precisar.
 4. Para cada skill de INTEGRAÇÃO aceita:
    a. Read the skills engine from `_criminalsquad/core/skills.engine.md`
@@ -188,10 +184,10 @@ Guidelines:
 - Research agents must be direct and focused — no exhaustive surveys
 
 Design the squad with appropriate agents:
-- **Reuse before creating (MANDATORY):** Before designing any agent from scratch, review the specialist subagents in `.claude/agents/` (passed from Discovery as `specialist_agents`). If an existing subagent already covers a role the squad needs (legal research → `jurisprudencia-stj-stf`; case intake → `triagem-novo-caso`; deadline monitoring → `monitor-dje-djen`; reading case files → `resumo-processo`; a peça → `defesa-criminal-resposta-acusacao`), DO NOT recreate that expertise. Create a thin squad agent that **orchestrates/delegates** to the specialist: give it one responsibility and state, in its instructions and in the matching pipeline step, that it relies on the native subagent (e.g., "apoia-se no subagente nativo `jurisprudencia-stj-stf`"). For redator/research roles, also load the matching skill from `skills/` (e.g., the correct peça).
+- **Reuse before creating (MANDATORY):** Before designing any agent from scratch, review the specialist subagents in `.claude/agents/` (passed from Discovery as `specialist_agents`). If an existing subagent already covers a role the squad needs (legal research, case intake, deadline monitoring, reading case files, drafting a peça), DO NOT recreate that expertise. **Os nomes dos especialistas vêm do que está em `.claude/agents/` no disco — descubra com ls/Glob, nunca presuma um nome.** Create a thin squad agent that **orchestrates/delegates** to the specialist: give it one responsibility and state, in its instructions and in the matching pipeline step, that it relies on the native subagent (e.g., "apoia-se no subagente nativo `<id-encontrado-no-disco>`"). For redator/research roles, also load the matching skill from `skills/` (e.g., the correct peça, resolvida pelo catálogo da área).
 - Follow the deep `.agent.md` format with full sections: Persona (Role, Identity, Communication Style), Principles, Operational Framework, Voice Guidance, Output Examples, Anti-Patterns, Quality Criteria, Integration
 - Design from scratch ONLY for roles with no matching specialist — informed by the relevant best-practices files read in Phase A
-- For legal/criminal squads, mirror the existing squads in `squads/` (e.g., `defesa-criminal-completa`, `recurso-criminal`): research = subagent step that consults `acervo/` before the web; redator = inline step that loads the correct peça skill; reviewer enforces preclusões/nulidades and the ethical gate (best-practice `etica-oab-sigilo`)
+- For legal squads, mirror the squads already present in `squads/` (liste o diretório; não presuma que algum squad exista): research = subagent step that consults `acervo/` before the web; redator = inline step that loads the correct peça skill; reviewer enforces preclusões/nulidades and the ethical gate (best-practice `etica-oab-sigilo`)
 - Each agent has exactly one clear responsibility
 - Every squad needs a reviewer agent for quality control
 - YAGNI — never create agents that aren't strictly necessary
@@ -259,7 +255,7 @@ The name should make someone smile — it's a pun tying a common name to the pro
 
 ### Paralelismo (fan-out/fan-in) — quando houver subtarefas independentes
 
-- Marque steps **independentes** (nenhum consome o output do outro) com o **mesmo `parallel_group: {nome}`** — o runner os despacha como subagentes simultâneos. Ex.: execução penal (progressão + livramento + remição do mesmo cálculo-base), ler vários PDFs, pesquisar várias teses em paralelo.
+- Marque steps **independentes** (nenhum consome o output do outro) com o **mesmo `parallel_group: {nome}`** — o runner os despacha como subagentes simultâneos. Ex.: derivar vários pedidos de um mesmo cálculo-base, ler vários PDFs, pesquisar várias teses em paralelo.
 - Faça o **fan-in** com um step seguinte que declare `depends_on: [a, b, c]` (lista).
 - **Anti-padrão:** NÃO paralelize steps que escrevem no mesmo `outputFile`, que tenham `depends_on` entre si, ou que sejam `inline`/`checkpoint`. Na dúvida, série.
 - **Fan-out por ITENS (mesmo agente, N itens):** quando UM step processa N itens independentes do mesmo tipo (ex.: **calcular N prazos**, **pesquisar N teses**, **ler N PDFs**), marque o step `execution: subagent` e descreva no corpo: "havendo N ≥ 3 itens independentes, despache N subagentes em paralelo (um por item, cada um com seu `output/.../{id}...`) e consolide num arquivo único". É o motor do runner (ver "Fan-out por itens"); ganha latência sem N personas distintas. Para N < 3, série.
@@ -358,7 +354,7 @@ Creators for different platforms run as parallel subagents.
 
 For non-content squads (data analysis, automation, etc.), the traditional pattern still applies: researcher + analyst + writer/executor + reviewer, without platform-specific creators.
 
-#### Squads jurídicos (peça / recurso / parecer) — espelhe o padrão-ouro `defesa-criminal-completa`
+#### Squads jurídicos (peça / recurso / parecer) — o padrão-ouro do motor
 
 Para todo squad que produz uma **peça protocolável, recurso ou parecer**, use este pipeline como referência (adapte os nomes ao caso):
 
@@ -374,7 +370,7 @@ Regras não-negociáveis deste pipeline (o Build valida no Gate 4):
 - **Redação** = "todo argumento tem fundamento" (nada de memória); no loop aplica só os `fixes`.
 - **Revisão** = `execution: subagent` (contexto fresco), emite `verdict: APPROVE | REJECT` + `fixes:` no topo do `outputFile`, aciona o subagente `verificador-citacoes` antes do APPROVE, e em REJECT volta à redação retomando pelo checkpoint de re-aprovação (teto `max_review_cycles: 3`).
 - **Checkpoint humano** antes de cada decisão crítica e **antes de protocolar/enviar**.
-- Reuse os subagentes de `.claude/agents/` (ex.: `jurisprudencia-stj-stf`, `resumo-processo`, a peça redatora) — agentes finos que **delegam**, não recriam.
+- Reuse os subagentes que existirem em `.claude/agents/` (liste o diretório; não presuma nomes) — agentes finos que **delegam**, não recriam.
 
 ---
 
@@ -515,8 +511,8 @@ best_practices_consulted:
 
 catalog_decisions:
   index: "skills/_index.yaml"
-  integration_manifest: "skills/_execucao-penal-v3-integration.yaml"
-  execution_penal_protocol: "{execucao-penal-alta-performance.md | not_applicable}"
+  integration_manifest: "{skills/_*-integration.yaml da área instalada | not_installed}"
+  area_protocol: "{best-practices obrigatórias do _catalog.yaml que foram lidas | not_installed | not_applicable}"
   selected:
     - id: "{canonical skill id}"
       lifecycle: "{active | pilot}"
@@ -538,7 +534,7 @@ Antes de mostrar o design e pedir aprovação, rode **uma passada de auto-críti
 
 - [ ] **Reuso:** todo `specialist_agents` do discovery está sendo aproveitado (agente fino que delega), não recriado?
 - [ ] **Catálogo/lifecycle:** `skills/_index.yaml` + manifesto foram lidos; não há `preview`/`quarantined` em produção; `deprecated` foi resolvida; todo `pilot` tem opt-in e fallback?
-- [ ] **Execução penal:** quando aplicável, `execucao-penal-alta-performance` foi consultada e os alvos canônicos do manifesto foram usados?
+- [ ] **Protocolos obrigatórios da área:** quando instaladas, as best-practices marcadas como obrigatórias no `_catalog.yaml` foram consultadas e os alvos canônicos do manifesto foram usados?
 - [ ] **YAGNI:** nenhum agente/step a mais do que o necessário?
 - [ ] **Reviewer:** há reviewer antes da saída final, como `execution: subagent` (contexto fresco), com `on_reject` e `max_review_cycles`?
 - [ ] **Citação:** squads que produzem peças jurídicas passam pelo Citation Gate (subagente `verificador-citacoes` + hook)?

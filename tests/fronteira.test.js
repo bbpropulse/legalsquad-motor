@@ -11,54 +11,19 @@ import { execFileSync } from 'node:child_process';
 // como mecanismo, não matéria".
 const MATERIA = 'dosimetria|remicao|remição|habeas.corpus|art\\.? 112|execucao.penal|execução.penal|\\bep-[a-z-]+|queixa-crime|revisao-criminal|mandado-seguranca';
 
-// Inventário congelado em F0-SANEAMENTO.md §5-bis. Estes arquivos JÁ contêm matéria;
-// a dívida está registrada e datada. Nenhum arquivo NOVO pode entrar nesta lista.
+// A dívida está PAGA: o motor não contém mais matéria jurídica de área.
 //
-// Os 15 arquivos abaixo de templates/ide-assets/ e templates/ide-templates/ são uma
-// dívida só: command-body.md e instructions-body.md (fonte) e as 13 cópias que
-// `npm run build:ide` gera a partir deles por IDE (mesmo corpo, frontmatter próprio) —
-// ver F0-SANEAMENTO.md §5-bis, "Também propaga matéria".
+// Este conjunto era o inventário congelado da F0-SANEAMENTO.md §5-bis — 34 arquivos
+// que ainda falavam de execução penal, habeas corpus, júri e dosimetria dentro do
+// núcleo. Todos foram limpos: a apresentação do comando passou a ser genérica, os
+// prompts do Arquiteto descobrem o manifesto e as best-practices obrigatórias pelo
+// catálogo da ÁREA INSTALADA (`skills/_*-integration.yaml`, `_catalog.yaml`) em vez
+// de nomes criminais fixos, e as calculadoras criminais saíram dos dois package.json.
 //
-// Os 12 arquivos abaixo de _criminalsquad/core/ e .claude/skills/criminalsquad/SKILL.md
-// são outra dívida: _criminalsquad/core/ é copiado pelo `init` (está em CANONICAL_SOURCES
-// de src/init.js) — é o caminho pelo qual matéria criminal chega a todo usuário novo —
-// ver F0-SANEAMENTO.md §5-bis, "Chega a todo usuário novo via init".
-const DIVIDA_CONHECIDA = new Set([
-  'src/skill-quality.js',
-  'src/skill-catalog.js',
-  'src/skill-catalog-cli.js',
-  'src/skill-contract.js',
-  'src/init.js',
-  'scripts/verify.mjs',
-  'templates/package.json',
-  'templates/ide-assets/command-body.md',
-  'templates/ide-assets/instructions-body.md',
-  'templates/ide-templates/claude-code/CLAUDE.md',
-  'templates/ide-templates/claude-code/.claude/skills/criminalsquad/SKILL.md',
-  'templates/ide-templates/cursor/.cursor/rules/criminalsquad.mdc',
-  'templates/ide-templates/qwen-code/QWEN.md',
-  'templates/ide-templates/qwen-code/.qwen/skills/criminalsquad/SKILL.md',
-  'templates/ide-templates/codex/AGENTS.md',
-  'templates/ide-templates/gemini-cli/GEMINI.md',
-  'templates/ide-templates/gemini-cli/.gemini/skills/criminalsquad/SKILL.md',
-  'templates/ide-templates/vscode-copilot/.github/prompts/criminalsquad.prompt.md',
-  'templates/ide-templates/trae/.trae/rules/criminalsquad.md',
-  'templates/ide-templates/antigravity/.agent/rules/criminalsquad.md',
-  'templates/ide-templates/antigravity/.agent/workflows/criminalsquad.md',
-  'templates/ide-templates/opencode/AGENTS.md',
-  '_criminalsquad/core/architect.agent.yaml',
-  '_criminalsquad/core/runner.pipeline.md',
-  '_criminalsquad/core/seeds/company.md',
-  '_criminalsquad/core/prompts/discovery.prompt.md',
-  '_criminalsquad/core/prompts/design.prompt.md',
-  '_criminalsquad/core/prompts/build.prompt.md',
-  '_criminalsquad/core/prompts/sherlock-shared.md',
-  '_criminalsquad/core/prompts/sherlock-instagram.md',
-  '_criminalsquad/core/prompts/sherlock-youtube.md',
-  '_criminalsquad/core/prompts/sherlock-twitter.md',
-  '_criminalsquad/core/prompts/sherlock-linkedin.md',
-  '.claude/skills/criminalsquad/SKILL.md',
-]);
+// O conjunto fica vazio de propósito, e o teste continua valendo: ele agora impede
+// que QUALQUER matéria de área volte a entrar no motor. Se algo legítimo precisar
+// entrar (não deveria), acrescente aqui E na §5-bis — nunca só aqui.
+const DIVIDA_CONHECIDA = new Set([]);
 
 test('a matéria jurídica no motor não se espalha para arquivos novos', () => {
   let saida = '';

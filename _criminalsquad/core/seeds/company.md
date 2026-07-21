@@ -13,22 +13,24 @@
 - Comarcas/Tribunais: <ex.: TJ__, TRF__, STJ, STF>
 
 ## Polo de atuação (define a postura padrão do sistema)
-- Polo principal: <Defesa | Acusação (MP/querelante) | Assistente de acusação | Misto>
+- Polo principal: <Defesa (polo passivo) | Postulante/Acusação (polo ativo) | Terceiro interessado/assistente | Misto>
 - Implicação prática:
-  - **Defesa** → teses defensivas, nulidades, garantias, liberdade, recursos da defesa.
-  - **Acusação** → análise e elaboração de denúncia/queixa, requisições, recursos da acusação.
-  - **Assistente de acusação** → habilitação e atuação ao lado do MP (vítima/querelante), recursos do assistente.
-- Áreas e nichos de foco: Direito Penal e Processual Penal — <ex.: drogas, júri, violência doméstica, econômico/tributário, execução penal, honra>
+  - **Defesa** → teses defensivas, nulidades, garantias, recursos da defesa.
+  - **Postulante/Acusação** → análise e elaboração da peça inicial, requisições, recursos do polo ativo.
+  - **Terceiro interessado/assistente** → habilitação e atuação ao lado do polo principal, recursos próprios.
+  > Os instrumentos concretos de cada polo (nomes de peça, ritos, prazos) vêm do **pacote da área
+  > instalada** — descubra-os com `search-skills` no catálogo instalado, não os presuma aqui.
+- Áreas e nichos de foco: <área(s) do Direito conforme o pacote instalado> — <nichos: os nomes vêm do catálogo da área, descubra com `search-skills`>
 
 ## Posicionamento
-- Proposta de valor: <ex.: defesa técnica combativa, foco em garantias constitucionais>
-- Perfil de cliente/assistido: <ex.: pessoa física acusada; vítima/querelante; empresa em crime econômico>
+- Proposta de valor: <ex.: atuação técnica combativa, foco em garantias constitucionais>
+- Perfil de cliente/assistido: <ex.: pessoa física; pessoa jurídica; ente público — conforme a área de atuação>
 - Tom de voz institucional: formal, técnico e sóbrio — sem sensacionalismo e sem promessa de resultado
 
 ## Conhecimento e fontes
 - Acervo local: `./acervo/` (jurisprudência, doutrina, legislação, teses-modelo) — rode `npm run indexar-acervo` após adicionar material
 - Fontes oficiais: STJ, STF, Planalto, DJEN
-- Peças e habilidades: `./skills/` (peças criminais) e `./.claude/agents/` (subagentes especialistas)
+- Peças e habilidades: `./skills/` (peças da área instalada) e `./.claude/agents/` (subagentes especialistas)
 
 ## Operação
 - Sistemas processuais: <ex.: PJe, e-SAJ, Projudi, Eproc — conforme tribunal>

@@ -27,32 +27,10 @@ discovery_policy:
   query_must_exclude_case_data: true
 
 skills:
-  # ── Peças criminais (1) ──
-  - name: demo-peca-alpha
-    type: prompt
-    grupo: "Peças criminais"
-    desc: "Use ao lidar com demo-peca-alpha na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: demo-peca-alpha, demo…"
-    lifecycle: active
-    production_eligible: true
-    selection: default
-    high_performance_eligible: false
-    version: "1.0.0"
-    categories: ["demo", "sintetico"]
-    positive_triggers: ["demo-peca-alpha", "demo alpha"]
-    negative_triggers: ["entrega_producao", "peca_protocolavel", "parecer_final"]
-    risk: "r4"
-    delivery_type: "legal-draft"
-    skill_schema: "5"
-    quality_profile: "legal-drafting"
-    quality_status: "contracted"
-    contract_version: "5.0.0"
-    freshness_policy: "official-current-source-required"
-    guard_triggers: ["objetivo ou fase indefinidos", "documento determinante ausente", "regra não verificada"]
-    eval_case_ids: ["demo-v5-demo-peca-alpha"]
-  # ── Integrações e ferramentas (2) ──
+  # ── Demo (11) ──
   - name: conector-mcp
     type: mcp
-    grupo: "Integrações e ferramentas"
+    grupo: "Demo"
     desc: "Use ao lidar com conector-mcp na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: conector-mcp, demo mcp.…"
     lifecycle: active
     production_eligible: true
@@ -73,7 +51,7 @@ skills:
     eval_case_ids: ["demo-v5-conector-mcp"]
   - name: criminalsquad-skill-creator
     type: prompt
-    grupo: "Integrações e ferramentas"
+    grupo: "Demo"
     desc: "Use ao lidar com criminalsquad-skill-creator na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos:…"
     lifecycle: active
     production_eligible: true
@@ -92,10 +70,9 @@ skills:
     freshness_policy: "official-current-source-required"
     guard_triggers: ["objetivo ou fase indefinidos", "documento determinante ausente", "regra não verificada"]
     eval_case_ids: ["demo-v5-criminalsquad-skill-creator"]
-  # ── Outras (8) ──
   - name: demo-calculo-beta
     type: prompt
-    grupo: "Outras"
+    grupo: "Demo"
     desc: "Use ao lidar com demo-calculo-beta na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: demo-calculo-beta,…"
     lifecycle: active
     production_eligible: true
@@ -117,7 +94,7 @@ skills:
     eval_case_ids: ["demo-v5-demo-calculo-beta"]
   - name: demo-deprecada
     type: prompt
-    grupo: "Outras"
+    grupo: "Demo"
     desc: "Use ao lidar com demo-deprecada na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: demo-deprecada, demo…"
     lifecycle: deprecated
     production_eligible: false
@@ -136,9 +113,30 @@ skills:
     freshness_policy: "official-current-source-required"
     guard_triggers: ["objetivo ou fase indefinidos", "documento determinante ausente", "regra não verificada"]
     eval_case_ids: ["demo-v5-demo-deprecada"]
+  - name: demo-peca-alpha
+    type: prompt
+    grupo: "Demo"
+    desc: "Use ao lidar com demo-peca-alpha na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: demo-peca-alpha, demo…"
+    lifecycle: active
+    production_eligible: true
+    selection: default
+    high_performance_eligible: false
+    version: "1.0.0"
+    categories: ["demo", "sintetico"]
+    positive_triggers: ["demo-peca-alpha", "demo alpha"]
+    negative_triggers: ["entrega_producao", "peca_protocolavel", "parecer_final"]
+    risk: "r4"
+    delivery_type: "legal-draft"
+    skill_schema: "5"
+    quality_profile: "legal-drafting"
+    quality_status: "contracted"
+    contract_version: "5.0.0"
+    freshness_policy: "official-current-source-required"
+    guard_triggers: ["objetivo ou fase indefinidos", "documento determinante ausente", "regra não verificada"]
+    eval_case_ids: ["demo-v5-demo-peca-alpha"]
   - name: demo-piloto
     type: prompt
-    grupo: "Outras"
+    grupo: "Demo"
     desc: "Use ao lidar com demo-piloto na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: demo-piloto, demo piloto.…"
     lifecycle: pilot
     production_eligible: true
@@ -159,7 +157,7 @@ skills:
     eval_case_ids: ["demo-v5-demo-piloto", "demo-canon-demo-piloto-001"]
   - name: demo-preview-engine
     type: prompt
-    grupo: "Outras"
+    grupo: "Demo"
     desc: "Use ao lidar com demo-preview-engine na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos:…"
     lifecycle: preview
     production_eligible: false
@@ -181,7 +179,7 @@ skills:
     eval_case_ids: ["demo-v5-demo-preview-engine"]
   - name: demo-publicacao
     type: prompt
-    grupo: "Outras"
+    grupo: "Demo"
     desc: "Use ao lidar com demo-publicacao na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: demo-publicacao, demo…"
     lifecycle: active
     production_eligible: true
@@ -202,7 +200,7 @@ skills:
     eval_case_ids: ["demo-v5-demo-publicacao"]
   - name: demo-quarentena
     type: prompt
-    grupo: "Outras"
+    grupo: "Demo"
     desc: "Use ao lidar com demo-quarentena na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: demo-quarentena, demo…"
     lifecycle: quarantined
     production_eligible: false
@@ -223,7 +221,7 @@ skills:
     eval_case_ids: ["demo-v5-demo-quarentena"]
   - name: gerador-imagem
     type: prompt
-    grupo: "Outras"
+    grupo: "Demo"
     desc: "Use ao lidar com gerador-imagem na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos: gerador-imagem, demo…"
     lifecycle: active
     production_eligible: true
@@ -244,7 +242,7 @@ skills:
     eval_case_ids: ["demo-v5-gerador-imagem"]
   - name: gerador-imagem-env
     type: prompt
-    grupo: "Outras"
+    grupo: "Demo"
     desc: "Use ao lidar com gerador-imagem-env na área fictícia demo — cenário sintético que exercita o motor sem depender de matéria jurídica real. Gatilhos:…"
     lifecycle: active
     production_eligible: true

@@ -15,7 +15,7 @@ Um objeto JSON **por linha** (append-only, gitignored — é dado privado/sigilo
   "capturado_em": "2026-06-17T14:00:00Z",
   "processo": "0000000-00.0000.0.00.0000",
   "tribunal": "TJSP",
-  "orgao": "1ª Vara Criminal da Comarca de ...",
+  "orgao": "<órgão julgador, como vem do DJEN>",
   "tipo": "intimacao",            // intimacao | despacho | decisao | sentenca | publicacao
   "teor": "texto da publicação/intimação",
   "cliente": "Fulano de Tal",
@@ -31,7 +31,9 @@ Um objeto JSON **por linha** (append-only, gitignored — é dado privado/sigilo
 
 O agente **`monitor-dje-djen`** / a skill **`djen-api-oficial`** capturam o DJEN e gravam cada item
 com `djen-tracker-add.mjs`. A **data fatal** deve ser calculada pela best-practice
-`gestao-prazos-processuais` (dias corridos, art. 798 CPP; dobro p/ Defensoria) antes de gravar `fatal`.
+`gestao-prazos-processuais` **antes** de gravar `fatal`. A regra de contagem — dias corridos ou
+úteis, termo inicial, suspensões, prazo em dobro — é da **área instalada** e do perfil da
+instituição: não presuma nenhuma; consulte a best-practice e o acervo da área.
 
 ## Consultas (instantâneas, sem API)
 

@@ -72,16 +72,16 @@ Generate these files. Use the Write tool for all file creation — never use Bas
 ### Files to generate:
 
 1. **`squads/{code}/squad.yaml`** — Squad definition with pipeline
-   - Include a **`goal:`** (1 frase: o resultado concreto que o squad deve produzir) and a **`success_criteria:`** list (3–6 critérios verificáveis que definem "deu certo" — usados na Verificação da Meta do runner antes de concluir). Para squads de peça, derive dos requisitos da peça (ex.: "cobre todas as imputações", "desenvolve só as teses aprovadas", "respeita o prazo legal", "toda citação verificada"):
+   - Include a **`goal:`** (1 frase: o resultado concreto que o squad deve produzir) and a **`success_criteria:`** list (3–6 critérios verificáveis que definem "deu certo" — usados na Verificação da Meta do runner antes de concluir). Para squads de peça, derive dos requisitos da peça que a skill carregada define (ex.: "cobre todo o objeto da demanda", "desenvolve só as teses aprovadas", "respeita o prazo legal", "toda citação verificada"):
      ```yaml
-     goal: "Produzir a resposta à acusação (CPP 396-A) protocolável para o caso."
+     goal: "Produzir a peça protocolável do tipo escolhido para o caso."
      success_criteria:
        - "Endereçamento, qualificação e tempestividade (prazo) corretos"
-       - "Todas as teses aprovadas no Step 04 desenvolvidas (e nenhuma a mais)"
+       - "Todas as teses aprovadas no checkpoint de seleção desenvolvidas (e nenhuma a mais)"
        - "Toda citação verificada (sem [NÃO VERIFICADO]/[DIVERGENTE])"
-       - "Estrutura forense completa (preliminares → mérito → provas/testemunhas)"
+       - "Estrutura forense completa (preliminares → mérito → provas)"
      ```
-   - **Voting (peças protocoláveis de maior risco).** Quando o output for **peça protocolável** com precedentes/teses (denúncia respondida, recurso, HC, etc. — sanção real por erro), declare os dois knobs de voting para o runner acionar verificadores em paralelo com consenso conservador (ver `runner.pipeline.md` — Citation Gate e Verificação da Meta). Para squads que **não** produzem peça com citações, **omita** (ficam nos defaults `citation_verifiers: 3` / `meta_verifiers: 1`):
+   - **Voting (peças protocoláveis de maior risco).** Quando o output for **peça protocolável** com precedentes/teses (qualquer peça sujeita a sanção real por erro), declare os dois knobs de voting para o runner acionar verificadores em paralelo com consenso conservador (ver `runner.pipeline.md` — Citation Gate e Verificação da Meta). Para squads que **não** produzem peça com citações, **omita** (ficam nos defaults `citation_verifiers: 3` / `meta_verifiers: 1`):
      ```yaml
      citation_verifiers: 3   # default já é 3; explicite para deixar claro
      meta_verifiers: 3       # eleva a Verificação da Meta a consenso (default é 1, sem voting)
@@ -124,7 +124,7 @@ No `base_agent` field in frontmatter.
 Every agent file must include ALL required sections.
 Use knowledge from the best-practices files to write sections with high quality.
 
-**Reused specialists:** when the design marks an agent as orchestrating an existing subagent from `.claude/agents/` (the `specialist_agents` chosen in Discovery), keep that agent file thin. Its Operational Framework MUST instruct it to invoke/delegate to the native subagent by name (e.g., "use o subagente `jurisprudencia-stj-stf`") and, for redator roles, to load the matching peça skill from `skills/`. Do NOT duplicate the specialist's domain knowledge into the agent file — reference it.
+**Reused specialists:** when the design marks an agent as orchestrating an existing subagent from `.claude/agents/` (the `specialist_agents` chosen in Discovery), keep that agent file thin. Its Operational Framework MUST instruct it to invoke/delegate to the native subagent by name (o nome vem do que existe em `.claude/agents/` — confira no disco, nunca invente: "use o subagente `<id-instalado>`") and, for redator roles, to load the matching peça skill from `skills/`. Do NOT duplicate the specialist's domain knowledge into the agent file — reference it.
 
 **Agentes de alta performance (contrato operacional — TODO agente gerado).** Antes de redigir cada agente, leia `_criminalsquad/core/best-practices/skills-alta-performance.md` — os mesmos princípios de alta performance governam agentes. Se o arquivo **não existir** (área ainda não instalada), os oito pontos abaixo **são** o resumo operacional: aplique-os diretamente e registre a ausência no Quality Report. Não gere agentes "descritivos": gere agentes fail-closed, calibrados e verificáveis. Estes pontos entram, de forma **específica ao papel** (não como texto genérico colado), nos `## Principles`, no `### Decision Criteria` e nas `## Quality Criteria`:
 
@@ -139,7 +139,7 @@ Use knowledge from the best-practices files to write sections with high quality.
 
 Reuse antes de criar agente: quando um subagente especialista de `.claude/agents/` já cobre o papel, o agente do squad delega a ele pelo nome (ver "Reused specialists") em vez de recriar a expertise.
 
-**Qualidade de agentes jurídicos** (redator/pesquisador/revisor de squads de peça — espelhe `defesa-criminal-completa/agents/` quando o squad-modelo estiver instalado; sem ele, os requisitos enumerados aqui e em "Requisitos jurídicos do step" são a especificação completa): os `## Principles` DEVEM incluir, de forma específica (não genérica): **"escopo é lei"** (desenvolver só as teses aprovadas, nada a mais), **"todo argumento tem fundamento"** (cada tese cita súmula/precedente/dispositivo vindo da pesquisa — sem fundamento, não vai para a peça), **estrutura forense completa** da peça (endereçamento → preliminares → mérito → provas/testemunhas → fecho, conforme a best-practice `peticao-criminal`/`recurso-criminal`), e **"no loop, cirurgia"** (em re-execução por `on_reject`, aplicar só os `fixes`). O revisor inclui o veredito estruturado e a conferência de citações. Peças criminais novas (skills) seguem o formato das skills `type: prompt` já existentes em `skills/`.
+**Qualidade de agentes jurídicos** (redator/pesquisador/revisor de squads de peça — espelhe os agentes de um squad-modelo de peça já presente em `squads/`, quando houver; sem ele, os requisitos enumerados aqui e em "Requisitos jurídicos do step" são a especificação completa): os `## Principles` DEVEM incluir, de forma específica (não genérica): **"escopo é lei"** (desenvolver só as teses aprovadas, nada a mais), **"todo argumento tem fundamento"** (cada tese cita súmula/precedente/dispositivo vindo da pesquisa — sem fundamento, não vai para a peça), **estrutura forense completa** da peça (endereçamento → preliminares → mérito → provas → fecho, conforme a best-practice de redação de peça que o `_catalog.yaml` da área expuser), e **"no loop, cirurgia"** (em re-execução por `on_reject`, aplicar só os `fixes`). O revisor inclui o veredito estruturado e a conferência de citações. Skills de peça novas seguem o formato das skills `type: prompt` já existentes em `skills/`.
 
 The squad-party.csv `path` column points to: `./agents/{agent-id}.agent.md`
 
@@ -452,12 +452,12 @@ Reject and redo if ANY of these are true:
 
 ---
 
-### Requisitos jurídicos do step (peça/parecer/recurso) — siga o squad-modelo `defesa-criminal-completa`
+### Requisitos jurídicos do step (peça/parecer/recurso)
 
-Quando o squad produz uma **peça protocolável, parecer ou pesquisa que cita lei/súmula/tese/precedente** (qualquer squad de domínio jurídico que gere documento de saída), os steps GERADOS devem trazer, no corpo, este wiring — não basta planejar no design, tem de estar escrito no step. (Se o squad-modelo não estiver instalado, o wiring abaixo é a especificação completa — não é preciso consultá-lo para cumprir este gate.)
+Quando o squad produz uma **peça protocolável, parecer ou pesquisa que cita lei/súmula/tese/precedente** (qualquer squad de domínio jurídico que gere documento de saída), os steps GERADOS devem trazer, no corpo, este wiring — não basta planejar no design, tem de estar escrito no step. (Havendo um squad-modelo de peça instalado em `squads/`, espelhe-o; o wiring abaixo é a especificação completa e basta por si para cumprir este gate.)
 
 - **Step de PESQUISA:** seção que manda **marcar `[NÃO VERIFICADO]`** toda citação não confirmada no `acervo/` ou fonte oficial (STJ/STF/DJEN) e `[DIVERGENTE]` quando a fonte não bate. Na dúvida, `[NÃO VERIFICADO]`.
-- **Step de REDAÇÃO:** "todo argumento tem fundamento" — nenhuma tese sem citação vinda da pesquisa; nada citado de memória; o hook `verifica-citacoes` bloqueia gravar peça com marcador pendente. No loop (entrada por `on_reject`), aplica **apenas os `fixes`** (feedback-delta), não reescreve do zero. **Padrão de obra-prima:** o step instrui carregar e aplicar a best-practice `redacao-persuasiva-criminal` (teoria do caso em 1 frase antes de escrever; narrativa dos fatos com âncoras concretas; bloco argumentativo completo — afirmação → premissa → aplicação ao fato → consequência; eventualidade sem autofagia; refutação antecipada; subtítulos que afirmam a tese; precedente narrado com similitude fática).
+- **Step de REDAÇÃO:** "todo argumento tem fundamento" — nenhuma tese sem citação vinda da pesquisa; nada citado de memória; o hook `verifica-citacoes` bloqueia gravar peça com marcador pendente. No loop (entrada por `on_reject`), aplica **apenas os `fixes`** (feedback-delta), não reescreve do zero. **Padrão de obra-prima:** o step instrui carregar e aplicar a best-practice de **redação persuasiva** que o `_catalog.yaml` da área expuser (nomeie-a no step pelo id real do catálogo; sem catálogo instalado, escreva os requisitos no próprio step): teoria do caso em 1 frase antes de escrever; narrativa dos fatos com âncoras concretas; bloco argumentativo completo — afirmação → premissa → aplicação ao fato → consequência; eventualidade sem autofagia; refutação antecipada; subtítulos que afirmam a tese; precedente narrado com similitude fática.
 - **Step de REVISÃO** (`execution: subagent`, `model_tier: powerful` — contexto fresco, anti-viés): o `outputFile` começa por um **bloco YAML que o runner parseia**:
   ```yaml
   verdict: APPROVE | REJECT
@@ -477,7 +477,7 @@ O squad pode precisar de uma capability que **nenhuma** skill existente cobre (o
 
 Quando criar for inevitável, para CADA skill nova:
 
-1. **Leia a doutrina e um exemplar.** Leia `_criminalsquad/core/best-practices/skills-alta-performance.md` (princípios, contrato mínimo, portões jurídicos, hard fails) e abra 1–2 skills do mesmo domínio em `skills/` como calibragem de profundidade e tom (ex.: uma `defesa-*` para peça/tese; uma `ep-*` para execução penal). Se a doutrina ou o exemplar **não existirem** (área não instalada / catálogo vazio), siga com o contrato v5 abaixo como especificação única e registre a ausência no Quality Report — nunca dilua o contrato por falta de exemplo.
+1. **Leia a doutrina e um exemplar.** Leia `_criminalsquad/core/best-practices/skills-alta-performance.md` (princípios, contrato mínimo, portões jurídicos, hard fails) e abra 1–2 skills do mesmo domínio em `skills/` como calibragem de profundidade e tom (escolha os exemplares entre as skills que a área instalada realmente publica — descubra com `search-skills`, não presuma nomes). Se a doutrina ou o exemplar **não existirem** (área não instalada / catálogo vazio), siga com o contrato v5 abaixo como especificação única e registre a ausência no Quality Report — nunca dilua o contrato por falta de exemplo.
 
 2. **Autore `skills/{nome}/SKILL.md`** com:
    - **Frontmatter inicial mínimo** (o pipeline completa o resto — NÃO escreva à mão o bloco `<!-- CRIMINALSQUAD:HP-CONTRACT -->`, nem `references/`, nem `agents/openai.yaml`, nem o eval):
@@ -490,7 +490,7 @@ Quando criar for inevitável, para CADA skill nova:
      metadata:
        type: "prompt"          # prompt (metodologia); mcp/script/hybrid quando houver integração/cálculo
        version: "1.0.0"
-       categories: [law, criminal, {domínio}]   # governam o roteamento no índice
+       categories: [law, {área}, {domínio}]     # governam o roteamento no índice
        lifecycle: "active"
      ---
      ```
@@ -612,19 +612,19 @@ If any check fails: warn in the summary but don't block.
 
 ### Gate 4: Conformidade & Qualidade Jurídica (BLOCKING)
 
-Aplica-se a **todo squad que produz peça protocolável, parecer ou pesquisa com citações** (domínio jurídico com documento de saída). Determine isso pelo propósito do squad e pelos `outputFile`s (peça/recurso/parecer/queixa/minuta). Se o squad NÃO produz esse tipo de saída (ex.: gestão de prazos, triagem), pule este gate.
+Aplica-se a **todo squad que produz peça protocolável, parecer ou pesquisa com citações** (domínio jurídico com documento de saída). Determine isso pelo propósito do squad e pelos `outputFile`s (peça/recurso/parecer/minuta). Se o squad NÃO produz esse tipo de saída (ex.: gestão de prazos, triagem), pule este gate.
 
 Verifique programaticamente (leia/`grep` os arquivos gerados):
 - [ ] **Revisão obrigatória e isolada:** existe um step de revisão antes da saída final com `execution: subagent` **e** `model_tier: powerful` (anti-viés — o redator não se revisa). Confirme no frontmatter do step **e** na coluna `execution` do `squad-party.csv` do revisor.
 - [ ] **Veredito parseável:** o step de revisão instrui emitir o bloco `verdict: APPROVE | REJECT` + `fixes:` no topo do `outputFile` (grep por `verdict:` no step).
 - [ ] **Loop com teto:** o step de revisão tem `on_reject: {step de redação}` **e** `max_review_cycles` (no step e/ou no `pipeline.yaml`), retomando pelo checkpoint humano de re-aprovação.
 - [ ] **Citation Gate explícito:** o step de pesquisa manda marcar `[NÃO VERIFICADO]`/`[DIVERGENTE]`; o step de revisão aciona o subagente `verificador-citacoes` e condiciona o APPROVE ao veredito (grep por `verificador-citacoes` e `NÃO VERIFICADO`).
-- [ ] **Padrão de redação (obra-prima):** o step de redação referencia a best-practice `redacao-persuasiva-criminal` e o step de revisão cobre a dimensão de qualidade da redação (teoria do caso, subsunção explícita, coesão — grep por `redacao-persuasiva-criminal`).
+- [ ] **Padrão de redação (obra-prima):** o step de redação referencia pelo id a best-practice de redação persuasiva do `_catalog.yaml` da área (ou, sem catálogo instalado, traz os requisitos escritos no corpo) e o step de revisão cobre a dimensão de qualidade da redação (teoria do caso, subsunção explícita, coesão — grep pelo id referenciado ou por "teoria do caso").
 - [ ] **Checkpoint antes do irreversível:** todo step que protocola/envia e-mail/peça é precedido imediatamente por um `type: checkpoint` (extensão jurídica do Gate 2b).
 - [ ] **Ética/sigilo:** algum agente/step referencia a best-practice `etica-oab-sigilo` (e, havendo conteúdo público, `conteudo-juridico-redes`/Provimento 205).
 - [ ] **Meta verificável:** o `squad.yaml` tem `goal` (1 frase) e `success_criteria` (3–6 critérios verificáveis) — o runner usa-os na Verificação da Meta (goal-backward) antes de concluir.
 
-Se QUALQUER item falhar: corrija o arquivo (replicando o padrão do squad-modelo `defesa-criminal-completa` — steps 03/05/07 — quando instalado; sem ele, o wiring da seção "Requisitos jurídicos do step" é a referência) e revalide. Máx 2 tentativas; depois, apresente ao usuário o que não pôde ser garantido (nunca finalize um squad jurídico sem revisão isolada + Citation Gate).
+Se QUALQUER item falhar: corrija o arquivo (replicando o padrão de um squad-modelo de peça instalado em `squads/`, quando houver; sem ele, o wiring da seção "Requisitos jurídicos do step" é a referência) e revalide. Máx 2 tentativas; depois, apresente ao usuário o que não pôde ser garantido (nunca finalize um squad jurídico sem revisão isolada + Citation Gate).
 
 ### Gate 5: Skills novas no contrato operacional v5 (BLOCKING)
 

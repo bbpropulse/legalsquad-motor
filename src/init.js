@@ -119,7 +119,7 @@ export async function init(targetDir, options = {}) {
     'utf-8'
   );
 
-  // Seed the criminal-law company profile (only if not already present)
+  // Seed the office/institution profile (only if not already present)
   const companyPath = join(targetDir, '_criminalsquad', '_memory', 'company.md');
   try {
     await stat(companyPath);
@@ -258,48 +258,71 @@ async function installAllSkills(targetDir) {
 
 // The top-level catalogue artifacts are not skill directories, so the registry
 // installer does not copy them. Generate the index from what is actually
-// installed (including user skills) and copy the execution-penal integration
-// manifest separately. This guarantees that Architect/Sherlock always have the
+// installed (including user skills) and copy the area package's integration
+// manifest(s) separately. This guarantees that Architect/Sherlock always have the
 // two sources of truth their prompts require.
 export async function syncSkillCatalogArtifacts(targetDir, { overwriteManifest = false, backupFn = null } = {}) {
   const targetSkills = join(targetDir, 'skills');
   await mkdir(targetSkills, { recursive: true });
 
   let count = 0;
-  const manifestName = '_execucao-penal-v3-integration.yaml';
-  const sourceManifest = join(PACKAGE_ROOT, 'skills', manifestName);
-  const targetManifest = join(targetSkills, manifestName);
+  // O manifesto de integração é do PACOTE DE ÁREA e cada área nomeia o seu
+  // (`skills/_<pacote>-integration.yaml`). Descoberto pelo padrão, nunca por nome
+  // fixo — um nome de área hardcoded aqui amarraria o init a uma área só e
+  // fracassaria em silêncio com qualquer outra.
+  const sourceSkills = join(PACKAGE_ROOT, 'skills');
+  let manifestNames = [];
   try {
-    await stat(sourceManifest);
-    let shouldCopy = true;
-    try {
-      await stat(targetManifest);
-      shouldCopy = overwriteManifest && !(await filesIdentical(sourceManifest, targetManifest));
-    } catch {
-      // destination does not exist
-    }
-    if (shouldCopy) {
-      if (overwriteManifest && backupFn) await backupFn(targetManifest);
-      await cp(sourceManifest, targetManifest);
-      count++;
-    }
+    manifestNames = (await readdir(sourceSkills, { withFileTypes: true }))
+      .filter((item) => item.isFile() && /^_.+-integration\.ya?ml$/.test(item.name))
+      .map((item) => item.name)
+      .sort((a, b) => a.localeCompare(b));
   } catch {
-    // Partial/legacy package without the integration manifest.
+    // Partial package without a bundled skills/ library.
+  }
+  for (const manifestName of manifestNames) {
+    const sourceManifest = join(sourceSkills, manifestName);
+    const targetManifest = join(targetSkills, manifestName);
+    try {
+      let shouldCopy = true;
+      try {
+        await stat(targetManifest);
+        shouldCopy = overwriteManifest && !(await filesIdentical(sourceManifest, targetManifest));
+      } catch {
+        // destination does not exist
+      }
+      if (shouldCopy) {
+        if (overwriteManifest && backupFn) await backupFn(targetManifest);
+        await cp(sourceManifest, targetManifest);
+        count++;
+      }
+    } catch {
+      // Manifesto ilegível/removido entre a listagem e a cópia.
+    }
   }
 
   // Eval specifications are top-level catalogue artifacts (their directory
   // starts with `_`) and therefore are not copied by the per-skill installer.
   // Ship immutable specifications, but never copy/overwrite `_evals/results/`:
   // those are local behavioral evidence owned by each mentee installation.
+  //
+  // Quais especificações existem é decisão do pacote de área (cada área traz os
+  // seus casos canônicos). Por isso copiamos TODO arquivo do topo de `_evals/`,
+  // sem lista fixa de nomes; diretórios ficam de fora de propósito — é assim que
+  // `_evals/results/` (evidência local) nunca é sobrescrito.
   const sourceEvals = join(PACKAGE_ROOT, 'skills', '_evals');
   const targetEvals = join(targetSkills, '_evals');
   await mkdir(targetEvals, { recursive: true });
-  for (const specName of [
-    'README.md',
-    'catalog-v5.json',
-    'execucao-canonicas.json',
-    'promotion-evidence.schema.json',
-  ]) {
+  let specNames = [];
+  try {
+    specNames = (await readdir(sourceEvals, { withFileTypes: true }))
+      .filter((item) => item.isFile())
+      .map((item) => item.name)
+      .sort((a, b) => a.localeCompare(b));
+  } catch {
+    // Partial/legacy package without v5 eval specifications.
+  }
+  for (const specName of specNames) {
     const sourceSpec = join(sourceEvals, specName);
     const targetSpec = join(targetEvals, specName);
     try {

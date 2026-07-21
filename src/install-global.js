@@ -34,7 +34,7 @@ async function backupOnce(path, content) {
 // unrelated work. The full procedure lives in the /criminalsquad skill.
 function claudeMdBlock() {
   return `${CLAUDE_MD_BEGIN}
-## CriminalSquad — advocacia criminal (disponível quando você precisar)
+## CriminalSquad — trabalho jurídico e gestão de escritório (disponível quando você precisar)
 
 O CriminalSquad está instalado globalmente. **Vale apenas para pedidos jurídicos ou de gestão de escritório.** Se o pedido NÃO for desse tipo, **ignore este bloco e responda normalmente** — não anuncie planos nem cite gates jurídicos. Se a pasta atual já tiver um \`CLAUDE.md\` de projeto CriminalSquad, **siga aquele**; este bloco vale para conversas fora de uma casa CriminalSquad.
 

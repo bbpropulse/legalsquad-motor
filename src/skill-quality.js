@@ -33,29 +33,14 @@ export const PROMOTION_EVIDENCE_MINIMUMS = Object.freeze({
   r4: Object.freeze({ cases: 12, verifiedReviewers: 2, certifiedReviewers: 2, certifiedHumans: 2 }),
 });
 
+// Regras de mecanismo: classificam pela FUNÇÃO da skill (redigir, calcular,
+// periciar, publicar, orquestrar), nunca pela matéria jurídica que ela trata.
+// O motor não conhece o catálogo da área instalada e por isso não lista nomes
+// de skills aqui — quando estas regras não couberem, a skill declara
+// `metadata.quality_profile` no próprio frontmatter, e essa declaração tem
+// precedência (ver `evaluateSkillQuality`). É lá que o pacote de área resolve
+// seus casos particulares, não neste arquivo.
 const PROFILE_PATTERNS = [
-  // High-confidence overrides must precede broad category/keyword rules. These
-  // names exposed real false positives during independent profile forward-tests.
-  {
-    profile: 'legal-drafting',
-    pattern: /^(?:assistente-acusacao-producao-prova-instrucao|audiencia-de-custodia|ep-editor-persuasivo|ep-modelos-dinamicos-pecas|impugnacao-cadeia-custodia|impugnacao-infiltracao-acao-controlada|incidente-falsidade-documental|interpelacao-judicial-pedido-explicacoes|juri-apelacao-contraria-prova-593d|producao-antecipada-provas|quesitos-pericia|redacao-persuasiva-criminal|revisao-gramatical-ortografica-juridica)(?:\s|$)/i,
-  },
-  {
-    profile: 'legal-analysis',
-    pattern: /^(?:auxilio-direto-cooperacao-penal-mlat|checklist-cabimento-recursal|defesa-preliminar-estrategia|defesa-uso-atestado-falso-e-certidao-falsa|ep-atualizacao-legislativa-jurisprudencial|ep-banco-teses|estrategia-probatoria-defesa|estrategia-representacao-decadencia-crimes-pessoa|impugnacao-prova-ilicita-derivada|impugnacao-testemunho-policial-anonimo|impugnacao-valor-confissao|juri-mapa-completo|juri-soberania-veredicto-limites-nova-apelacao|mapa-nulidades-processuais|mapa-onus-e-standard-probatorio|matriz-teses-defensivas|nulidades-busca-apreensao-domiciliar|nulidades-busca-pessoal-abordagem-policial|obtencao-prova-exterior-defesa|prova-emprestada-admissibilidade|triagem-competencia-foro-criminal)(?:\s|$)/i,
-  },
-  {
-    profile: 'evidence-forensics',
-    pattern: /^(?:ep-guia-recolhimento-validator|ep-leitor-seeu|ep-linha-do-tempo-executoria|ep-revisor-probatorio|ep-triagem-inicial-execucao|leitura-[a-z0-9-]+)(?:\s|$)/i,
-  },
-  {
-    profile: 'client-operations',
-    pattern: /^(?:agenda-semanal|execucao-alertas-beneficios-prazos|preparacao-audiencia)(?:\s|$)/i,
-  },
-  {
-    profile: 'system-orchestration',
-    pattern: /^ep-eval-qualidade-skills(?:\s|$)/i,
-  },
   {
     profile: 'external-action',
     pattern: /^(?:apify|blotato|canva|image-ai-generator|instagram-publisher|publicacao-redes)(?:\s|$)/i,
@@ -66,7 +51,7 @@ const PROFILE_PATTERNS = [
   },
   {
     profile: 'legal-calculation',
-    pattern: /^(?:calculadora-[a-z0-9-]+|ep-(?:auditoria-calculo-pena|cenarios-calculo-comparativo|data-base-analyzer|fracao-progressao-engine|prescricao-executoria|remicao-calculator|revisor-calculo)|execucao-data-base-beneficios)(?:\s|$)/i,
+    pattern: /^calculadora-[a-z0-9-]+(?:\s|$)|\bcalculador|\bc[aá]lculo\b|\bcalculo-|\bcontagem-de-prazo\b/i,
   },
   {
     profile: 'authority-content',
@@ -82,7 +67,7 @@ const PROFILE_PATTERNS = [
   },
   {
     profile: 'evidence-forensics',
-    pattern: /\bprova|per[ií]cia|laudo|cadeia|cust[oó]dia|ocr|pdf|imagem|cftv|deepfake|manuscrito|transcri[cç][aã]o|classificador|extrator|documental|depoimento|reconhecimento/i,
+    pattern: /^leitura-[a-z0-9-]+(?:\s|$)|\bprova|per[ií]cia|laudo|cadeia|cust[oó]dia|ocr|pdf|imagem|cftv|deepfake|manuscrito|transcri[cç][aã]o|classificador|extrator|documental|depoimento|reconhecimento/i,
   },
   {
     profile: 'system-orchestration',
@@ -90,7 +75,10 @@ const PROFILE_PATTERNS = [
   },
   {
     profile: 'legal-drafting',
-    pattern: /\bpe[cç]a(?:s)?\b|habeas-corpus|mandado-seguranca|resposta-acusa[cç][aã]o|defesa-preliminar|alega[cç][oõ]es-finais|memoriais|recurso|apela[cç][aã]o|\brese\b|agravo|embargos|contrarrazoes|revis[aã]o-criminal|queixa-crime|den[uú]ncia|representa[cç][aã]o|requerimento|peti[cç][aã]o|acusa[cç][aã]o e assistente/i,
+    // Vocabulário de REDAÇÃO forense, comum a qualquer área: peça, petição,
+    // recurso, memoriais, minuta. Nomes de peças típicas de uma área (e as suas
+    // siglas) não entram aqui — quem escreve a skill declara o perfil.
+    pattern: /\bpe[cç]a(?:s)?\b|peti[cç][aã]o|minuta|manifesta[cç][aã]o|alega[cç][oõ]es-finais|memoriais|recurso|apela[cç][aã]o|agravo|embargos|contrarrazoes|contestacao|requerimento|redacao-|reda[cç][aã]o/i,
   },
 ];
 

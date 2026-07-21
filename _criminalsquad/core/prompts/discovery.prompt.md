@@ -26,7 +26,7 @@ Before starting, silently read:
 - `_criminalsquad/_memory/company.md` — company name, tone, brand, products
 - `_criminalsquad/_memory/preferences.md` — user's preferred language, tools, defaults
 
-Em seguida, reduza o objetivo a termos de capability sem dados do caso e rode `npx criminalsquad search-skills --query "<capability>" --limit 8 --json`. Use somente a shortlist; não leia `skills/_index.yaml` por inteiro. Em trabalho de evolução, `--include-preview` revela fontes de teste. Consulte `skills/_execucao-penal-v3-integration.yaml` apenas por busca direcionada quando a shortlist ou o domínio exigir canonicalização das `ep-*`.
+Em seguida, reduza o objetivo a termos de capability sem dados do caso e rode `npx criminalsquad search-skills --query "<capability>" --limit 8 --json`. Use somente a shortlist; não leia `skills/_index.yaml` por inteiro. Em trabalho de evolução, `--include-preview` revela fontes de teste. Se a área instalada trouxer um manifesto de canonicalização (`skills/_*-integration.yaml`), consulte-o apenas por busca direcionada quando a shortlist exigir resolver um alvo canônico; se não houver manifesto no disco, siga sem ele.
 
 Faça este preflight **antes de criar, sugerir ou pesquisar qualquer capacidade**. Aplique lifecycle, rótulo e evidência separadamente: `active` é disponível, não necessariamente comprovada; `pilot` exige opt-in e fallback; `preview` é teste; `deprecated` resolve para sucessor; `quarantined` é bloqueada. Prefira `certified`/`verified` somente quando `high_performance_eligible: true`; rótulo sem essa elegibilidade não promove. Aceite `contracted` somente com guards, contrato do perfil e supervisão humana explícita; `legacy` não entra em design novo. Nunca selecione `preview` ou `quarantined` para produção.
 
@@ -55,12 +55,12 @@ After the user answers Step 1, classify their intent into one of the following d
 | `research` | data, analysis, reports, competitor, market, insights, scraping, summarizing, monitoring |
 | `automation` | workflows, triggers, scheduling, notifications, integrations, pipelines, bots, recurring tasks |
 | `analysis` | metrics, dashboards, KPIs, performance, trends, tracking, visualization |
-| `legal` | peça, recurso, defesa, acusação, processo/direito penal, jurisprudência, súmula, tese, prazo, intimação, DJEN, audiência, júri, execução penal, cliente/réu, OAB, Ministério Público, vara/comarca |
+| `legal` | peça, recurso, defesa, acusação, processo, jurisprudência, súmula, tese, prazo, intimação, DJEN, audiência, cliente/parte, OAB, vara/comarca/tribunal |
 | `mixed` | answer spans two or more domains above |
 
 Save the detected domain as `domain`.
 
-Se o trabalho for de **execução penal**, leia também, neste ponto e antes de qualquer investigação, `_criminalsquad/core/best-practices/execucao-penal-alta-performance.md`. Ele é o protocolo transversal obrigatório do domínio — **quando instalado**. Se o arquivo não existir (área não instalada), registre `execution_penal_protocol: not_installed` no `discovery.yaml` e siga; **nunca reconstitua o protocolo de memória** nem finja tê-lo aplicado.
+Se o domínio for `legal`, verifique em `_criminalsquad/core/best-practices/_catalog.yaml` quais best-practices a área instalada marca como **obrigatórias** para o tipo de trabalho detectado e leia-as neste ponto, antes de qualquer investigação — **quando instaladas**. Se o `_catalog.yaml` ou as best-practices que ele declara obrigatórias não existirem (área não instalada), registre `area_protocol: not_installed` no `discovery.yaml` e siga; **nunca reconstitua um protocolo de memória** nem finja tê-lo aplicado.
 
 ---
 
@@ -89,9 +89,9 @@ Based on the detected domain, ask the most relevant contextual question first. W
 3. What format should the output take? (multiple choice: dashboard / PDF report / spreadsheet / automated alert / other)
 
 **If domain = `legal`:**
-1. Qual o tipo de trabalho? (múltipla escolha: peça de 1º grau / recurso / habeas corpus / execução penal / tribunal do júri / gestão de prazos e intimações / triagem de cliente / conteúdo de autoridade / outro)
-2. Qual o **polo de atuação** deste squad? (defesa / acusação-querelante / assistente de acusação) — herde do `company.md` se já definido e apenas confirme.
-3. Há **prazo/tempestividade** crítico (ex.: 10 dias do art. 396 CPP, prazo recursal)? E qual o **nicho penal** (drogas, júri, violência doméstica, econômico/tributário, crimes contra a honra, geral)?
+1. Qual o tipo de trabalho? (múltipla escolha: peça de 1º grau / recurso / medida de urgência / gestão de prazos e intimações / triagem de cliente / conteúdo de autoridade / outro). **Se houver área instalada, monte as opções a partir dos tipos de peça que o catálogo da área expõe** (descubra com `search-skills`, não presuma nomes); sem área instalada, use a lista genérica acima.
+2. Qual o **polo de atuação** deste squad? (autor/requerente / réu/requerido / terceiro interessado, conforme o vocabulário da área) — herde do `company.md` se já definido e apenas confirme.
+3. Há **prazo/tempestividade** crítico? E há **subárea/nicho** de atuação? As opções de nicho vêm do perfil da área instalada — pergunte em aberto se não houver catálogo no disco; não presuma nichos.
 > Sempre: conflito de interesses (art. 17 EAOAB) na triagem; toda peça passa pelo Citation Gate (subagente `verificador-citacoes`) + revisão humana obrigatória.
 
 **If domain = `mixed`:**
@@ -105,14 +105,14 @@ Do NOT ask the user about tools. Instead:
 
 1. Use a shortlist produzida por `search-skills`; só abra `skills/<id>/SKILL.md` dos finalistas depois do resolvedor. Não leia o índice completo, não faça scan cego do diretório e não pesquise o catálogo na web.
    - Confirme `lifecycle`, `production_eligible`, `quality_status`, `high_performance_eligible`, `quality_profile`, `risk`, `delivery_type`, `freshness_policy`, `guard_triggers`, `eval_case_ids`, aliases e gatilhos. `high_performance_eligible` falso ou ausente exige supervisão e impede alegar validação comportamental, ainda que `quality_status` diga `verified`/`certified`.
-   - Para execução penal, resolva cada candidato por `skills/_execucao-penal-v3-integration.yaml` e pelo protocolo `execucao-penal-alta-performance`; `ep-*` em preview não substitui alvo canônico ativo.
+   - Quando a área instalada publicar um manifesto de canonicalização (`skills/_*-integration.yaml`) e/ou best-practices declaradas obrigatórias no `_catalog.yaml`, resolva cada candidato por eles; skill em preview nunca substitui alvo canônico ativo.
 2. Based on the squad's purpose and target formats, select which skills are relevant:
    - Content squads targeting Instagram → check for: image-creator, image-ai-generator, template-designer, instagram-publisher
    - Content squads targeting any platform → check for: image-fetcher, blotato
    - Research squads → check for: apify
-   - Legal/criminal squads → check for the peça skills (apelacao, rese, habeas-corpus, queixa-crime, embargos-*, contrarrazoes-*, revisao-criminal, etc.) and the integration skills (email-juridico, agenda-juridica, monitor-dje, publicacao-redes)
+   - Legal squads → check for the peça skills published by the installed area (os nomes vêm do catálogo da área — descubra com `search-skills`, nunca presuma) and for the integration skills (email-juridico, agenda-juridica, monitor-dje, publicacao-redes)
    - Any squad → note built-in capabilities: web browsing, file reading/writing, code execution
-3. **Reuse scan — delegue ao subagente `catalog-scout` quando possível.** Para mapear o que reaproveitar — best-practices (`_catalog.yaml`), skills (`skills/`) e **subagentes especialistas** (`.claude/agents/`, ex.: `jurisprudencia-stj-stf`, `defesa-criminal-resposta-acusacao`, `triagem-novo-caso`, `monitor-dje-djen`, `resumo-processo`) — prefira acionar o subagente read-only **`catalog-scout`** passando o propósito do squad: ele varre tudo em **contexto isolado** e devolve uma **shortlist** dos itens reutilizáveis (mantém a Discovery enxuta). Se não for possível delegar (execução aninhada), faça o scan inline. O squad **DEVE REUSAR** esses especialistas em vez de recriar a expertise. **Os nomes citados são exemplos de uma área instalada** — a lista real é o conteúdo efetivo de `.claude/agents/`: valide cada candidato com ls/Glob antes de gravá-lo em `specialist_agents` e **nunca grave um nome que não exista no disco**. Numa instalação sem área, o catálogo se resume ao núcleo (`catalog-scout`, `verificador-citacoes`, `avaliador-squad`) e `specialist_agents` pode legitimamente ficar vazio.
+3. **Reuse scan — delegue ao subagente `catalog-scout` quando possível.** Para mapear o que reaproveitar — best-practices (`_catalog.yaml`), skills (`skills/`) e **subagentes especialistas** (`.claude/agents/` — os nomes vêm da área instalada; descubra-os com ls/Glob, não presuma) — prefira acionar o subagente read-only **`catalog-scout`** passando o propósito do squad: ele varre tudo em **contexto isolado** e devolve uma **shortlist** dos itens reutilizáveis (mantém a Discovery enxuta). Se não for possível delegar (execução aninhada), faça o scan inline. O squad **DEVE REUSAR** esses especialistas em vez de recriar a expertise. **A lista real é o conteúdo efetivo de `.claude/agents/`** — valide cada candidato com ls/Glob antes de gravá-lo em `specialist_agents` e **nunca grave um nome que não exista no disco**. Numa instalação sem área, o catálogo se resume ao núcleo (`catalog-scout`, `verificador-citacoes`, `avaliador-squad`) e `specialist_agents` pode legitimamente ficar vazio.
 4. Save the auto-selected tools in `tools_needed`, the reusable specialists in `specialist_agents`, and the catalogue decision in `catalog_context` — they will appear in the Step 7 summary where the user can adjust them. Registre também candidatos recusados por lifecycle para o Design não reintroduzi-los.
 
 ---
@@ -253,20 +253,20 @@ context:
   decisions: "{answer from Step 3}"
   output_format: "{answer from Step 3}"
   # For legal squads:
-  work_type: "{peça 1º grau | recurso | HC | execução penal | júri | prazos/intimações | triagem | conteúdo}"
-  polo: "{defesa | acusacao-querelante | assistente — herdado de company.md}"
+  work_type: "{peça 1º grau | recurso | medida de urgência | prazos/intimações | triagem | conteúdo | tipo exposto pelo catálogo da área}"
+  polo: "{polo de atuação, no vocabulário da área — herdado de company.md}"
   prazo: "{prazo/tempestividade crítico, se houver}"
-  nicho: "{drogas | juri | violencia-domestica | economico-tributario | honra | geral}"
+  nicho: "{subárea/nicho informado pelo usuário ou pelo perfil da área; geral se não houver}"
 
 tools_needed:
   - "{skill or integration name}"
 
 specialist_agents:  # existing subagents from .claude/agents/ to REUSE (never recreate)
-  - "{subagent name, e.g. jurisprudencia-stj-stf}"
+  - "{subagent name found on disk}"
 
 catalog_context:
   index: "skills/_index.yaml"
-  integration_manifest: "skills/_execucao-penal-v3-integration.yaml"
+  integration_manifest: "{skills/_*-integration.yaml da área instalada | not_installed}"
   lifecycle_policy: "active_default; pilot_opt_in; preview_test_only; deprecated_compatibility; quarantined_blocked"
   selected:
     - id: "{canonical active skill id}"
@@ -276,7 +276,7 @@ catalog_context:
     - id: "{candidate id}"
       lifecycle: "{preview | deprecated | quarantined}"
       reason: "{blocked, successor chosen, or test-only}"
-  execution_penal_protocol: "{_criminalsquad/core/best-practices/execucao-penal-alta-performance.md | not_applicable}"
+  area_protocol: "{best-practices que o _catalog.yaml da área marca como obrigatórias e foram lidas | not_installed | not_applicable}"
 
 investigation:
   enabled: {true | false}
@@ -297,7 +297,7 @@ The `squad_code` must be a short, URL-safe slug derived from the squad's purpose
 
 ## Rules
 
-- **NEVER load best-practices file contents** — only scan filenames to build the format list, com uma única exceção obrigatória: `execucao-penal-alta-performance.md` quando o domínio for execução penal **e o arquivo existir** (ausente → registrar `not_installed` e seguir)
+- **NEVER load best-practices file contents** — only scan filenames to build the format list, com uma única exceção obrigatória: as best-practices que o `_catalog.yaml` da área instalada declara obrigatórias para o tipo de trabalho detectado, **e apenas quando existirem no disco** (ausentes → registrar `area_protocol: not_installed` e seguir)
 - **NEVER load Sherlock prompts** — investigation setup stays within this prompt
 - **NEVER start designing the squad** — discovery ends at confirmation; squad design is Phase 2
 - **NEVER ask more than 8 questions total** — respect the user's time

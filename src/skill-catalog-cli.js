@@ -2,6 +2,7 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   discoverSkillCatalog,
+  findIntegrationManifest,
   renderSkillIndex,
   validateSkillCatalog,
 } from './skill-catalog.js';
@@ -15,12 +16,16 @@ function projectProfilesPath(targetDir) {
 
 function validateProjectCatalog(targetDir) {
   const skillsDir = join(targetDir, 'skills');
-  const integrationPath = join(skillsDir, '_execucao-penal-v3-integration.yaml');
+  // O manifesto de integração vem do pacote de área e cada área nomeia o seu;
+  // aqui ele é descoberto pelo padrão, e sua ausência apenas desliga a checagem
+  // (uma instalação pode não ter pacote de área instalado ainda).
+  const integrationPath = findIntegrationManifest(skillsDir);
   return validateSkillCatalog({
     skillsDir,
-    requireIntegration: existsSync(integrationPath),
+    integrationPath,
+    requireIntegration: Boolean(integrationPath),
     // Production installs intentionally do not receive the preserved preview
-    // source directories. Validate the 73-row manifest itself, not their local
+    // source directories. Validate the manifest's own table, not their local
     // presence. The package/repository gate uses the strict default instead.
     requireCanonicalSources: false,
   });

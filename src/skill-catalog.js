@@ -12,45 +12,40 @@ import {
 } from './frontmatter.js';
 import { auditSkillCatalogQuality } from './skill-quality.js';
 
-// Classification is intentionally centralized here: the indexer, checker and
-// tests must agree on the catalogue a routing agent sees.
-const GROUP_RULES = [
-  [/justica-militar|administracao-militar|\bcppm\b|\bcpm\b|\bjm-|\bmpm-/, 'Justiça militar'],
-  [/eleitoral/, 'Crimes eleitorais'],
-  [/cooperacao-internacional|extradicao|rogatoria|interpol|difusao-vermelha|\btpi\b|\bmlat\b|jurisdicao-internacional|sentenca-penal-estrangeira|prova-exterior|transferencia-pessoas-condenadas|auxilio-direto/, 'Cooperação internacional'],
-  [/propriedade-imaterial|propriedade-industrial|direito-autoral|pirataria|marca-patente|\b9279\b|\b9609\b|concorrencia-desleal|segredo-empresa/, 'Propriedade intelectual e industrial'],
-  [/execucao-penal|execucao/, 'Execução penal'],
-  [/\bjuri\b|plenario|pronuncia|quesit|jurado/, 'Tribunal do júri'],
-  [/inquerito|investigacao/, 'Inquérito e investigação'],
-  [/\bhonra\b|calunia|difamacao|injuria/, 'Crimes contra a honra'],
-  [/\btransito\b|\bctb\b/, 'Crimes de trânsito'],
-  [/fe-publica/, 'Crimes de fé pública'],
-  [/administracao-publica|administracao-justica|peculato|concussao|prevaricacao|desacato|desobediencia|corrupcao-passiva|licitacao|responsabilidade-prefeito|responsabilidade-governador|\bdl-201\b|governador-lei-1079|imunidade-parlamentar|inviolabilidade-vereador/, 'Crimes contra a Adm. Pública'],
-  [/sonegacao|tributari|previdenciari|mercado-capitais|ordem-economica|lavagem|contrabando|descaminho|financeiro|sistema-financeiro|\b7492\b|evasao-divisas|dolar-cabo|marco-cambial|piramide|captacao-irregular|criptoativo|171a-marco|economia-popular|\busura\b|\b1521\b|organizacao-trabalho|obtencao-desvio-financiamento/, 'Crimes econômicos e tributários'],
-  [/patrimonio|patrimonial|insignificancia|arrependimento-reparacao|perdimento|confisco-alargado/, 'Crimes contra o patrimônio'],
-  [/paz-publica|perigo-comum|\bincendio\b|explosao|inundacao|contra-familia|bigamia|abandono-material|mortos-e-sentimento|sentimento-religioso|trafico-pessoas|\b149-?a\b|estatuto-torcedor|maus-tratos-animais/, 'Outros tipos penais'],
-  [/contra-pessoa|crimes-pessoa|crimes-contra-liberdade|defesa-ameaca|sequestro-carcere|reducao-condicao|abandono-omissao-socorro|constrangimento|maus-tratos|periclitacao|aborto|rixa|perseguicao-stalking|\b147-?a\b|importunacao-sexual|\b215-?a\b|violencia-psicologica|\b147-?b\b|induzimento-instigacao|automutilacao|divulgacao-cena|\b218-?c\b|revenge-porn|violacao-domicilio/, 'Crimes contra a pessoa'],
-  [/leis-especiais|drogas|entorpecente|\b11343\b|desarmamento|tortura|terrorismo|genocidio|saude-publica|dignidade-sexual|vulneravel-217a|estatuto-crianca|\beca\b|ambiental|idoso|contravencao|protetiv|violencia-domestica|maria-penha|maria-da-penha|\b11340\b|henry-borel|consumidor|falimentar|prisao-temporaria|epidemia|adulteracao-alimentos|exercicio-ilegal-medicina|falsificacao-medicamentos|charlatanismo/, 'Leis especiais e vulneráveis'],
-  [/multimodal|cftv|deepfake|manuscrito|croqui/, 'Leitura de imagens'],
-  [/acusacao|assistente/, 'Acusação e assistente'],
-  [/\bprova\b|provas|pericia|cadeia-custodia|reconhecimento/, 'Análise de provas'],
-  [/recurso|recursal/, 'Recursos'],
-  [/estrategia|transversal|matriz|mapa-|arvore-decisao|linha-tempo|imputacao|excludentes|standard-probatorio|efeitos-extrapenais|concurso-crimes|nulidades|prescricao-virtual|viabilidade-suspensao|cabimento-recursal|teoria-do-caso|selecao-tese|decisao-recorrer|redacao-persuasiva|antecedentes|justica-gratuita|perdao-perempcao|foro-criminal|conflito-competencia|inquiricao|oratoria|argumentacao|persuasao|retorica|protesto|consignacao-ata|revisao-gramatical|ortografica|correicao-parcial|restauracao-autos/, 'Estratégia e análise'],
-  [/\bpeca\b|pecas/, 'Peças criminais'],
-  [/creator|monitor-dje|\bdjen\b|obsidian|template-designer|transcricao|assinatura|triagem-email|integracao|infra|ferramenta|\bmcp\b|social|email|agenda|midia|conteudo/, 'Integrações e ferramentas'],
-];
+// O agrupamento é mecanismo — serve para o agente de roteamento ler o catálogo
+// em blocos em vez de uma lista plana. A TAXONOMIA, porém, é da área: o motor
+// não conhece os ramos do Direito do pacote instalado e não pode carregar uma
+// tabela de ramos de nenhuma área. Por isso o grupo vem do que a própria skill
+// declara em `categories:`, e só dois eixos genéricos restam como fallback:
+// ferramenta (type != prompt) e "Outras". Um pacote de área que queira grupos
+// próprios só precisa declarar a categoria certa em cada SKILL.md.
+const TOOLING_GROUP = 'Integrações e ferramentas';
+const FALLBACK_GROUP = 'Outras';
 
-const GROUP_ORDER = [...new Set(GROUP_RULES.map(([, label]) => label)), 'Outras'];
+// Caudas fixas da ordenação: grupos declarados pela área vêm primeiro (em ordem
+// alfabética), depois ferramentas e, por último, o balde das não classificadas.
+const GROUP_TAIL = [TOOLING_GROUP, FALLBACK_GROUP];
 
-export function classifySkillGroup(categories, type, name) {
-  if (/^leitura-/.test(name)) return 'Leitura de imagens';
-  if (/^ep-/.test(name)) return 'Execução penal';
-  const haystack = `${categories.join(' ')} ${name}`.toLowerCase();
-  for (const [pattern, label] of GROUP_RULES) {
-    if (pattern.test(haystack)) return label;
-  }
-  if (type && type !== 'prompt') return 'Integrações e ferramentas';
-  return 'Outras';
+function groupRank(group) {
+  const index = GROUP_TAIL.indexOf(group);
+  return index === -1 ? 0 : index + 1;
+}
+
+function humanizeGroup(category) {
+  const label = String(category || '').trim().replace(/[_-]+/g, ' ');
+  if (!label) return '';
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// `name` continua na assinatura por compatibilidade com os chamadores, mas
+// deliberadamente não classifica mais nada: prefixo de nome é convenção de cada
+// área, e adivinhar matéria pelo nome era exatamente o que prendia o motor a uma
+// área só.
+export function classifySkillGroup(categories, type, name) { // eslint-disable-line no-unused-vars
+  const declared = (categories || []).map(humanizeGroup).find(Boolean);
+  if (declared) return declared;
+  if (type && type !== 'prompt') return TOOLING_GROUP;
+  return FALLBACK_GROUP;
 }
 
 export function summarizeSkillDescription(description) {
@@ -92,8 +87,8 @@ export function discoverSkillCatalog(skillsDir) {
   }
 
   entries.sort((a, b) => {
-    const group = GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group);
-    return group || a.id.localeCompare(b.id);
+    const rank = groupRank(a.group) - groupRank(b.group);
+    return rank || a.group.localeCompare(b.group) || a.id.localeCompare(b.id);
   });
 
   return { skillsDir, directories, entries, missingSkillFiles };
@@ -440,14 +435,17 @@ function validateCanonicalization(raw, catalog, errors, {
 
   const packId = raw.match(/^ {2}id:\s*([^\s]+)\s*$/m)?.[1] || '';
   const declaredPackSize = Number(raw.match(/^ {2}skills:\s*(\d+)\s*$/m)?.[1] || 0);
-  let expectedSources = catalog.entries
+  // As fontes do pack são as skills que DECLARAM `source_package: <id do pack>`.
+  // Não há mais heurística por prefixo de nome: prefixo é convenção de área e o
+  // motor não conhece a do pacote instalado. Sem nenhuma skill declarando
+  // procedência, os cruzamentos por fonte são pulados — o que dá para validar
+  // sem elas (ações, targets, cobertura da tabela) continua valendo.
+  const expectedSources = catalog.entries
     .filter((entry) => entry.metadata.sourcePackage === packId)
     .map((entry) => entry.id);
-  if (!expectedSources.length) {
-    expectedSources = catalog.entries.filter((entry) => entry.id.startsWith('ep-')).map((entry) => entry.id);
-  }
+  const crossCheckSources = requireSourceSkills && expectedSources.length > 0;
 
-  if (requireSourceSkills && declaredPackSize && expectedSources.length !== declaredPackSize) {
+  if (crossCheckSources && declaredPackSize && expectedSources.length !== declaredPackSize) {
     errors.push(issue(
       'invalid-canonicalization',
       `pack declara ${declaredPackSize} skills, catálogo encontrou ${expectedSources.length}`,
@@ -463,7 +461,7 @@ function validateCanonicalization(raw, catalog, errors, {
   }
 
   const expectedSet = new Set(expectedSources);
-  if (requireSourceSkills) {
+  if (crossCheckSources) {
     for (const source of expectedSources) {
       if (!sources.has(source)) {
         errors.push(issue('invalid-canonicalization', `fonte do pack sem decisão canônica: ${source}`, integrationPath));
@@ -556,10 +554,25 @@ function validateGraph(catalog, errors) {
   }
 }
 
+// O manifesto de integração/canonicalização é artefato do PACOTE DE ÁREA e cada
+// área nomeia o seu (`skills/_<pacote>-integration.yaml`). O motor descobre pelo
+// padrão — nunca por um nome fixo, que amarraria o núcleo a uma área. Havendo
+// mais de um, o primeiro em ordem alfabética é o canônico.
+export const INTEGRATION_MANIFEST_PATTERN = /^_.+-integration\.ya?ml$/;
+
+export function findIntegrationManifest(skillsDir) {
+  if (!skillsDir || !existsSync(skillsDir)) return '';
+  const found = readdirSync(skillsDir, { withFileTypes: true })
+    .filter((item) => item.isFile() && INTEGRATION_MANIFEST_PATTERN.test(item.name))
+    .map((item) => item.name)
+    .sort((a, b) => a.localeCompare(b));
+  return found.length ? join(skillsDir, found[0]) : '';
+}
+
 export function validateSkillCatalog({
   skillsDir,
   indexPath = join(skillsDir, '_index.yaml'),
-  integrationPath = join(skillsDir, '_execucao-penal-v3-integration.yaml'),
+  integrationPath = findIntegrationManifest(skillsDir),
   checkIndex = true,
   requireIntegration = true,
   bestPracticesCatalogPath = join(dirname(skillsDir), '_criminalsquad', 'core', 'best-practices', '_catalog.yaml'),
@@ -600,9 +613,13 @@ export function validateSkillCatalog({
 
   validateGraph(catalog, errors);
 
-  if (requireIntegration && !existsSync(integrationPath)) {
-    errors.push(issue('missing-integration-manifest', 'manifesto de integração de execução penal ausente', integrationPath));
-  } else if (existsSync(integrationPath)) {
+  if (requireIntegration && !(integrationPath && existsSync(integrationPath))) {
+    errors.push(issue(
+      'missing-integration-manifest',
+      'manifesto de integração do pacote de área ausente (esperado skills/_<pacote>-integration.yaml)',
+      integrationPath || skillsDir,
+    ));
+  } else if (integrationPath && existsSync(integrationPath)) {
     const ids = new Set(catalog.entries.map((entry) => entry.id));
     const raw = readFileSync(integrationPath, 'utf8');
     const canonicalSources = new Set(parseCanonicalization(raw)?.entries.map((entry) => entry.source) || []);
