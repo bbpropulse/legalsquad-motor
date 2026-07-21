@@ -43,13 +43,60 @@ function parseCsvLine(line) {
   return out;
 }
 
+const semAspas = (s) => s.trim().replace(/^["']|["']$/g, '');
+
+/**
+ * Recorta o corpo de `steps:` até a próxima chave de topo. Sem isso, o bloco do
+ * ÚLTIMO step ia até o fim do arquivo e engolia `checkpoints:` e o `output:`
+ * do pipeline — o que faria a leitura de artefatos por step atribuir ao último
+ * step a lista de entregas do squad inteiro.
+ */
+function secaoSteps(pipeline) {
+  const inicio = pipeline.search(/^steps:[ \t]*$/m);
+  if (inicio < 0) return pipeline; // pipeline sem a chave: mantém o comportamento antigo
+  const resto = pipeline.slice(inicio);
+  const corpo = resto.slice(resto.indexOf('\n') + 1);
+  const fim = corpo.search(/^\S/m);
+  return fim < 0 ? corpo : corpo.slice(0, fim);
+}
+
+/** Aceita as três formas de lista YAML que o formato admite. */
+function parseListaDeStep(bloco, chave) {
+  const inline = bloco.match(new RegExp(`^ {4}${chave}:[ \\t]+(.+)$`, 'm'));
+  if (inline) {
+    const valor = inline[1].trim();
+    if (valor.startsWith('[')) {
+      return valor.replace(/^\[|\]$/g, '').split(',').map(semAspas).filter(Boolean);
+    }
+    return [semAspas(valor)].filter(Boolean);
+  }
+  const emBloco = bloco.match(new RegExp(`^ {4}${chave}:[ \\t]*\\n((?: {6}- .*\\n)+)`, 'm'));
+  if (!emBloco) return [];
+  return [...emBloco[1].matchAll(/^ {6}- (.+)$/gm)].map((m) => semAspas(m[1])).filter(Boolean);
+}
+
+/** `output.artifacts` de um step (indentação 4/6/8). */
+function parseArtefatosDoStep(bloco) {
+  const m = bloco.match(/^ {4}output:[ \t]*\n {6}artifacts:[ \t]*\n((?: {8}- .*\n)+)/m);
+  if (!m) return [];
+  return [...m[1].matchAll(/^ {8}- (.+)$/gm)].map((linha) => semAspas(linha[1])).filter(Boolean);
+}
+
+/** `output.artifacts` do pipeline (indentação 0/2/4) — o que o squad promete entregar. */
+function parseArtefatosDoPipeline(pipeline) {
+  const m = pipeline.match(/^output:[ \t]*\n {2}artifacts:[ \t]*\n((?: {4}- .*\n)+)/m);
+  if (!m) return [];
+  return [...m[1].matchAll(/^ {4}- (.+)$/gm)].map((linha) => semAspas(linha[1])).filter(Boolean);
+}
+
 function parseSteps(pipeline) {
-  const ids = [...pipeline.matchAll(/^ {2}- id: (\S+)$/gm)].map((m) => m[1]);
+  const secao = secaoSteps(pipeline);
+  const ids = [...secao.matchAll(/^ {2}- id: (\S+)$/gm)].map((m) => m[1]);
 
   return ids.map((id) => {
-    const start = pipeline.indexOf(`  - id: ${id}\n`);
-    const next = pipeline.indexOf('\n  - id:', start + 1);
-    const bloco = pipeline.slice(start, next < 0 ? undefined : next);
+    const start = secao.indexOf(`  - id: ${id}\n`);
+    const next = secao.indexOf('\n  - id:', start + 1);
+    const bloco = secao.slice(start, next < 0 ? undefined : next);
 
     return {
       id,
@@ -57,8 +104,42 @@ function parseSteps(pipeline) {
       file: bloco.match(/^ {4}file: (\S+)\s*$/m)?.[1] || null,
       agent: bloco.match(/^ {4}agent: (\S+)\s*$/m)?.[1] || null,
       onReject: bloco.match(/^ {4}on_reject: (\S+)\s*$/m)?.[1] || null,
+      dependsOn: parseListaDeStep(bloco, 'depends_on'),
+      parallelGroup: bloco.match(/^ {4}parallel_group: (\S+)\s*$/m)?.[1] || null,
+      artefatos: parseArtefatosDoStep(bloco),
     };
   });
+}
+
+/**
+ * Devolve um ciclo no grafo de dependências, ou `null`. DFS com cores: cinza =
+ * na pilha atual (aresta de retorno = ciclo), preto = subárvore já fechada.
+ */
+function acharCiclo(steps) {
+  const porId = new Map(steps.map((s) => [s.id, s]));
+  const cor = new Map();
+  const pilha = [];
+
+  function visitar(id) {
+    if (cor.get(id) === 'preto') return null;
+    if (cor.get(id) === 'cinza') return [...pilha.slice(pilha.indexOf(id)), id];
+    cor.set(id, 'cinza');
+    pilha.push(id);
+    for (const dep of porId.get(id)?.dependsOn || []) {
+      if (!porId.has(dep)) continue; // referência inválida já é reportada à parte
+      const ciclo = visitar(dep);
+      if (ciclo) return ciclo;
+    }
+    pilha.pop();
+    cor.set(id, 'preto');
+    return null;
+  }
+
+  for (const step of steps) {
+    const ciclo = visitar(step.id);
+    if (ciclo) return ciclo;
+  }
+  return null;
 }
 
 function parseCheckpoints(pipeline) {
@@ -184,6 +265,78 @@ export function checkSquad(squad, options = {}) {
 
     if (step.onReject && !steps.some((s) => s.id === step.onReject)) {
       issues.push(issue('error', 'on-reject-invalido', `${step.id}: on_reject "${step.onReject}" não é um step`));
+    }
+  }
+
+  // --- grafo: depends_on aponta para step real, e o grafo é acíclico ---
+  for (const step of steps) {
+    for (const dep of step.dependsOn) {
+      if (!steps.some((s) => s.id === dep)) {
+        issues.push(issue('error', 'depends-on-invalido', `${step.id}: depends_on "${dep}" não é um step`));
+      }
+    }
+  }
+
+  const ciclo = acharCiclo(steps);
+  if (ciclo) {
+    issues.push(issue(
+      'error',
+      'depends-on-ciclico',
+      `ciclo em depends_on: ${ciclo.join(' → ')} — nenhum desses steps chega a executar`
+    ));
+  }
+
+  // --- parallel_group: os ramos precisam voltar a se encontrar ---
+  const grupos = new Map();
+  for (const step of steps) {
+    if (!step.parallelGroup) continue;
+    if (!grupos.has(step.parallelGroup)) grupos.set(step.parallelGroup, []);
+    grupos.get(step.parallelGroup).push(step.id);
+  }
+  for (const [grupo, membros] of grupos) {
+    if (membros.length < 2) {
+      issues.push(issue(
+        'warn',
+        'parallel-group-unitario',
+        `parallel_group "${grupo}" tem um único membro (${membros[0]}) — nada a paralelizar`
+      ));
+      continue;
+    }
+    const convergencia = steps.some(
+      (s) => !membros.includes(s.id) && membros.every((m) => s.dependsOn.includes(m))
+    );
+    if (!convergencia) {
+      issues.push(issue(
+        'error',
+        'parallel-group-sem-convergencia',
+        `parallel_group "${grupo}" (${membros.join(', ')}) não converge: nenhum step depende de todos os membros`
+      ));
+    }
+  }
+
+  // --- output.artifacts: quem promete precisa ter quem produza ---
+  const produtorDoArtefato = new Map();
+  for (const step of steps) {
+    for (const artefato of step.artefatos) {
+      const anterior = produtorDoArtefato.get(artefato);
+      if (anterior) {
+        issues.push(issue(
+          'error',
+          'artefato-duplicado',
+          `"${artefato}" é declarado por ${anterior} e por ${step.id} — um sobrescreve o outro`
+        ));
+        continue;
+      }
+      produtorDoArtefato.set(artefato, step.id);
+    }
+  }
+  for (const artefato of parseArtefatosDoPipeline(pipeline)) {
+    if (!produtorDoArtefato.has(artefato)) {
+      issues.push(issue(
+        'error',
+        'artefato-sem-produtor',
+        `output.artifacts promete "${artefato}", mas nenhum step o declara em output.artifacts`
+      ));
     }
   }
 

@@ -3,17 +3,57 @@
 // Varre acervo/ e (re)gera acervo/_index.yaml — o catálogo que os agentes de
 // pesquisa consultam ANTES da web (best-practice `pesquisa-jurisprudencial`).
 // Uso: npm run indexar-acervo
+//      node scripts/indexar-acervo.js --root /caminho/do/projeto [--strict]
 // A pasta acervo/casos/ é IGNORADA (dados sensíveis de cliente — LGPD/sigilo).
+//
+// A raiz é parametrizável porque o pack-apply (F3) instala o pacote de área no
+// projeto do USUÁRIO e precisa reindexar lá, não dentro do pacote. Sem `--root`
+// o default é a pasta que contém este script — o comportamento antigo, intacto.
 
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, dirname, relative, basename, extname } from 'node:path';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, dirname, relative, basename, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..', 'acervo');
-const VAULT_MAP = join(__dirname, '..', '_legalsquad', '_memory', 'vault-map.yaml');
+
+// `--root DIR`, `--root=DIR` ou o primeiro argumento posicional. Flags conhecidas
+// (--strict) nunca são confundidas com raiz.
+function raizDosArgumentos(argv, padrao) {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--root') {
+      if (!argv[i + 1]) {
+        console.error('--root exige um diretório.');
+        process.exit(1);
+      }
+      return resolve(argv[i + 1]);
+    }
+    if (arg.startsWith('--root=')) {
+      const value = arg.slice('--root='.length);
+      if (!value) {
+        console.error('--root exige um diretório.');
+        process.exit(1);
+      }
+      return resolve(value);
+    }
+    if (!arg.startsWith('-')) return resolve(arg);
+  }
+  return padrao;
+}
+
+const PROJETO = raizDosArgumentos(process.argv.slice(2), join(__dirname, '..'));
+const ROOT = join(PROJETO, 'acervo');
+const VAULT_MAP = join(PROJETO, '_legalsquad', '_memory', 'vault-map.yaml');
 
 const STRICT = process.argv.includes('--strict'); // CI: falha (exit 1) se houver wikilink quebrado
+
+// Fail-closed com diagnóstico: raiz errada é o erro mais provável de quem passa
+// `--root`, e um stack de ENOENT não diz qual pasta faltou.
+if (!existsSync(ROOT)) {
+  console.error(`Pasta de acervo não existe: ${ROOT}`);
+  console.error('Passe --root <diretório do projeto> ou crie o acervo antes de indexar.');
+  process.exit(1);
+}
 
 const SKIP_DIRS = new Set(['casos']); // sigilo de cliente — nunca indexar
 const TIPO_POR_PASTA = {
@@ -27,6 +67,13 @@ const EXT_OK = new Set(['.md', '.pdf', '.txt', '.docx', '.rtf']);
 // Formatos binários: se houver um .md irmão (mesmo nome), indexa só o .md legível
 // (os agentes leem markdown; o .docx fica como fonte original não indexada).
 const PREFER_MD_OVER = new Set(['.docx', '.rtf']);
+// Packs de acervo do SPEC (docs/specs/acervo-server/SPEC.md) chegam como
+// `.jsonl.zst` — um contêiner comprimido de N documentos, não um documento.
+// Este indexador ainda NÃO sabe abri-los (é trabalho do F3). Até lá eles são
+// reportados, nunca silenciados: "não sei ler" ≠ "não existe".
+const EXT_PACK = ['.jsonl.zst'];
+const ehPack = (nome) => EXT_PACK.some((suf) => nome.toLowerCase().endsWith(suf));
+const packsEncontrados = [];
 const CONFIANCA_VALIDA = new Set(['VERIFIED_OFFICIAL', 'DISCOVERY_ONLY', 'QUARANTINED']);
 
 function frontmatterDe(full) {
@@ -125,6 +172,10 @@ function walk(dir, acc) {
       if (!SKIP_DIRS.has(e.name)) walk(full, acc);
       continue;
     }
+    if (ehPack(e.name)) {
+      packsEncontrados.push(rel);
+      continue;
+    }
     const ext = extname(e.name).toLowerCase();
     if (!EXT_OK.has(ext) || e.name === '_index.yaml' || e.name === 'README.md') continue;
     // .docx/.rtf com .md irmão → pula o binário, indexa só o .md.
@@ -161,6 +212,13 @@ for (const it of entries) {
 }
 writeFileSync(join(ROOT, '_index.yaml'), y, 'utf8');
 console.log(`Indexados ${entries.length} arquivos em acervo/_index.yaml`);
+if (packsEncontrados.length) {
+  console.warn(
+    `Atenção: ${packsEncontrados.length} pack(s) de acervo (.jsonl.zst) NÃO foram indexados — o indexador ainda não abre packs:`,
+  );
+  for (const p of packsEncontrados) console.warn(`  - ${p}`);
+  console.warn('O conteúdo deles existe, mas está invisível para a busca. Não trate como acervo vazio.');
+}
 const classificacoesInvalidas = entries.filter((it) => it.classificacaoInvalida);
 if (classificacoesInvalidas.length) {
   console.error('Classificações de confiança inválidas foram colocadas em QUARANTINED:');

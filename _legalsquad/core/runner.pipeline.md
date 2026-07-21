@@ -421,21 +421,44 @@ After an agent completes a step (before moving to the next step):
 This creates an internal quality loop BEFORE the reviewer sees the content,
 catching obvious issues early and reducing review cycle waste.
 
-### Review Loops (máquina de estados)
+### Review Loops (máquina de estados) — a contabilidade é do CÓDIGO, não sua
 
-When a step has `on_reject: {step-id}`, run it as a **writer→reviewer state machine** — não um retry cego:
+When a step has `on_reject: {step-id}`, run it as a **writer→reviewer state machine** — não um retry cego.
+
+**Divisão de trabalho, inegociável:** ao LLM cabe **só o mérito** (ler a minuta e emitir APPROVE/REJECT + `fixes`). Toda a **contabilidade** — contar ciclo, comparar `fixes` com os dos ciclos anteriores, aplicar o teto, fundir vereditos de revisores paralelos, decidir a transição e persistir — é de `scripts/squad-state.mjs` (módulo `src/review-loop.js`). **Não faça essa conta de cabeça**: aritmética de cabeça erra em silêncio, e o ledger em disco é o que permite retomar um run interrompido.
 
 1. **Reviewer em contexto isolado.** Prefira o step de revisão como `execution: subagent` (contexto fresco): quem redige a peça **não** deve ser quem a julga — mesmo princípio anti-viés do Citation Gate.
-2. **Veredito estruturado.** O reviewer grava no seu `outputFile` um bloco YAML no topo, que o runner **parseia** (não interpreta prosa livre):
+2. **Abrir o loop** (uma vez, ao chegar no step revisor):
+   ```bash
+   node scripts/squad-state.mjs review-open squads/{name} \
+     --loop {step-revisor} --target {step-id do on_reject} --max {max_review_cycles}
+   ```
+   `--max` default **3** (lido do step ou do `pipeline.yaml`).
+3. **Veredito estruturado.** O reviewer grava no seu `outputFile` um bloco YAML no topo:
    ```yaml
    verdict: APPROVE | REJECT
    fixes:
      - "{correção específica e acionável}"
      - "{...}"
    ```
-3. **APPROVE** → segue para o próximo step.
-4. **REJECT** → volta ao `on_reject: {step-id}` passando **apenas** (a) a lista `fixes` e (b) o caminho da minuta anterior (**feedback-delta**, não "reescreva do zero"). A execução então **retoma para a frente** pelo pipeline a partir desse step — incluindo eventuais **checkpoints intermediários**: um checkpoint humano entre o writer e o reviewer é intencional quando a aprovação do usuário é necessária a cada ciclo (comum no jurídico).
-5. **Teto + não-convergência.** `max_review_cycles` (default **3**; lido do step ou do `pipeline.yaml`). A cada ciclo, compare o `fixes` novo com o anterior: se uma mesma correção **reaparecer** (não convergiu), **escale ao usuário imediatamente** com o histórico — não gaste os ciclos restantes. Atingido o teto sem APPROVE → escale ao usuário para decisão manual.
+   Registre esse veredito — **um comando por revisor**, transcrevendo o que o reviewer escreveu (sem editorializar):
+   ```bash
+   node scripts/squad-state.mjs review-verdict squads/{name} \
+     --reviewer {step-id} --verdict REJECT --fix "..." --fix "..." [--expect N]
+   ```
+   **`--expect N` = quantos revisores julgam este mesmo ciclo.** Com dois revisores num `parallel_group` (ambos com o mesmo `on_reject`), use `--expect 2` nos dois comandos: o primeiro devolve `await` e **nada anda**; a decisão só sai com os dois vereditos. Regra do combinador (já implementada): **qualquer REJECT derruba os APPROVEs** e os `fixes` de quem rejeitou são unidos — um revisor que aprova não anula o problema que o outro achou.
+4. **Obedeça a `action` do JSON devolvido** — ela é a decisão, não uma sugestão:
+   - `advance` → siga para o próximo step.
+   - `revise` → volte ao `target` passando **apenas** (a) a lista `fixes` do JSON e (b) o caminho da minuta anterior (**feedback-delta**, não "reescreva do zero"). A execução então **retoma para a frente** pelo pipeline a partir desse step — incluindo eventuais **checkpoints intermediários**: um checkpoint humano entre o writer e o reviewer é intencional quando a aprovação do usuário é necessária a cada ciclo (comum no jurídico).
+   - `await` → faltam vereditos deste ciclo; execute o(s) revisor(es) restante(s).
+   - `escalate` (sai com **exit code 3**) → **pare e leve ao usuário** com `reason` + `detail` + o histórico do ledger. Os motivos: `teto-atingido`, `nao-convergiu` (a mesma correção reapareceu — escala **antes** de gastar os ciclos restantes), `reject-sem-fixes` (REJECT sem correção acionável) e `veredito-ilegivel` (veredito ausente ou fora do contrato — **"não sei ler" nunca vira "aprovado"**).
+5. **Retomada durável.** Se a sessão caiu no meio do loop, **não recomece do ciclo 1**. Rode antes de qualquer coisa:
+   ```bash
+   node scripts/squad-state.mjs review-status squads/{name}
+   ```
+   Ele devolve a última decisão persistida (`resumedFrom`, `cycle`, `fixes`, `target`) a partir de `squads/{name}/review-state.json` — continue dali. `action: "none"` significa que não há loop aberto (e não que foi aprovado).
+
+O ledger fica em `squads/{name}/review-state.json`, ao lado do `state.json` (fora dele de propósito: o contrato do `state.json` é fechado e ele é apagado no cleanup pós-conclusão). Copie-o para a pasta do run junto com o `state.json` no cleanup, se quiser o rastro no histórico.
 
 ### Dashboard Handoff (between steps)
 

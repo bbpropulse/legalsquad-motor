@@ -225,6 +225,12 @@ O JSONL é **8% menor que o tar** — o tar gasta 512 B de header por arquivo, e
 pequenos são ~855 KB de padding. E `node:zlib` traz **zstd nativo** (`zstdCompressSync`, verificado
 no v26 local), assim como `node:crypto` traz Ed25519: **zero dependências, sem binário externo**.
 
+> **Formato normativo: [`SPEC §6`](../acervo-server/SPEC.md).** O que segue aqui é o esboço que
+> originou a decisão; a especificação completa — entidade-arquivo, namespace de `pack_id`,
+> contenção de `applies_to`, `removed_paths`, revogação e a normalização de identificadores da
+> fronteira — vive no SPEC. Onde os dois divergirem, vale o SPEC (notadamente `applies_to`, que ali
+> é **lista**, não string: um `area.*` materializa em três subárvores).
+
 ### 4.2 Manifesto
 
 Mantém o `manifest.json` do §6, com dois campos novos que o pacote de árvore exige:
@@ -282,6 +288,33 @@ Coberto por teste: empacotar duas vezes e comparar o hash.
   precisa ser fixada na implementação**, não chutada aqui). Se a mínima resultar alta demais para a
   base instalada, o fallback é `brotliCompressSync` — também nativo, disponível desde o Node 12, ao
   custo de um pacote um pouco maior.
+
+### 4.6 O que o F1 herda junto com o contrato
+
+O contrato de pacote não é neutro para o `build-area`: ele **cria uma decisão que o F1 tem de tomar
+antes da primeira linha de código**, e que a [`SPEC §6.8`](../acervo-server/SPEC.md) documenta por
+inteiro. Em resumo, para não descobrir na execução:
+
+1. **Normalizar identificadores é obrigatório para reconhecimento.** As 520 skills do
+   `criminalsquad` trazem `<!-- CRIMINALSQUAD:HP-CONTRACT:START -->` e evals `csq-v5-*`; o motor
+   checa `LEGALSQUAD:` (`src/skill-contract.js:23-24`) e gera `lsq-v5-`
+   (`src/skill-contract.js:402`). Sem tradução, `contract_marker` falha e o auditor dá hard fail
+   `contrato v5 ausente` em todas elas.
+2. **Mas reescrever o marcador muda os bytes do `SKILL.md`** — e `skill_binding.skill_sha256`
+   (`readSkillEvidenceBinding`, `src/skill-quality.js:188-205`) é o sha256 do arquivo inteiro. Sem
+   re-bindar, troca-se um hard fail por outro (`skill_binding.skill_sha256 divergente` →
+   `evidence_required_satisfied: false`). **Re-bindando, o binding vira tautológico:** quem muta o
+   texto e recalcula o hash converte a prova comportamental em carimbo automático — exatamente o
+   ataque contra o qual o binding foi desenhado.
+3. **E `skills/_evals/results/` é user-owned e não viaja no pacote** (`src/init.js:317-323`). Numa
+   instalação limpa não há evidência nenhuma, então toda skill que declare `verified`/`certified`
+   hard-falha no destino, com ou sem binding correto.
+
+Não há saída sem custo. As opções e seus preços estão na [`SPEC §6.8`](../acervo-server/SPEC.md); a
+recomendação registrada é **preservar os bytes originais e o motor tolerar o marcador legado apenas
+para RECONHECER — nunca para promover** (skill importada fica no máximo `contracted`), com a
+reemissão de evidência pelo curador como caminho de promoção. O que não pode acontecer é o pacote
+sair com 520 skills `verified` cuja prova ninguém pode conferir.
 
 **Fora de escopo:** o `build-area`. É F1, e passa a ter contrato fixo em vez de inventá-lo no
 caminho.

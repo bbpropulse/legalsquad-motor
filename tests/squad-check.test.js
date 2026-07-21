@@ -182,6 +182,103 @@ test('squad sem nenhum checkpoint humano gera aviso, não erro', async () => {
   }
 });
 
+// --- grafo de dependências: depends_on, ciclos, parallel_group, artefatos ---
+
+/** Reescreve o pipeline.yaml da cópia avariada. */
+async function editarPipeline(dir, transformar) {
+  const caminho = join(dir, 'pipeline', 'pipeline.yaml');
+  await writeFile(caminho, transformar(await readFile(caminho, 'utf8')));
+}
+
+test('depends_on apontando para step inexistente reprova', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    await editarPipeline(dir, (y) => y.replace('depends_on: step-01', 'depends_on: step-00'));
+  });
+  try {
+    assert.equal(resultado.ok, false);
+    const issue = resultado.issues.find((i) => i.code === 'depends-on-invalido');
+    assert.ok(issue, `esperava depends-on-invalido; veio ${codigos(resultado)}`);
+    assert.match(issue.detail, /step-00/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('ciclo em depends_on reprova — pipeline que nunca começa', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    // step-02 passa a depender de step-03, que já depende de step-02.
+    await editarPipeline(dir, (y) => y.replace('depends_on: step-01', 'depends_on: step-03'));
+  });
+  try {
+    assert.equal(resultado.ok, false);
+    const issue = resultado.issues.find((i) => i.code === 'depends-on-ciclico');
+    assert.ok(issue, `esperava depends-on-ciclico; veio ${codigos(resultado)}`);
+    assert.match(issue.detail, /step-02|step-03/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('parallel_group cujos membros não convergem num depends_on comum reprova', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    // step-09 passa a esperar só a Revisão A: a Revisão B fica sem junção.
+    await editarPipeline(dir, (y) => y.replace('depends_on: [step-07, step-08]', 'depends_on: step-07'));
+  });
+  try {
+    assert.equal(resultado.ok, false);
+    const issue = resultado.issues.find((i) => i.code === 'parallel-group-sem-convergencia');
+    assert.ok(issue, `esperava parallel-group-sem-convergencia; veio ${codigos(resultado)}`);
+    assert.match(issue.detail, /revisao-dupla-demo/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('parallel_group com um único membro é aviso — grupo de um não paraleliza nada', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    await editarPipeline(dir, (y) =>
+      y.replace(/^ {4}parallel_group: revisao-dupla-demo$/m, '    parallel_group: revisao-solo-demo')
+    );
+  });
+  try {
+    const issue = resultado.issues.find((i) => i.code === 'parallel-group-unitario');
+    assert.ok(issue, `esperava parallel-group-unitario; veio ${codigos(resultado)}`);
+    assert.equal(issue.severity, 'warn');
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('artefato prometido no output do pipeline sem step que o produza reprova', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    await editarPipeline(dir, (y) =>
+      y.replace(/^ {4}- output\/entrega-demo-final\.md$/m, '    - output/entrega-demo-final.md\n    - output/fantasma.md')
+    );
+  });
+  try {
+    assert.equal(resultado.ok, false);
+    const issue = resultado.issues.find((i) => i.code === 'artefato-sem-produtor');
+    assert.ok(issue, `esperava artefato-sem-produtor; veio ${codigos(resultado)}`);
+    assert.match(issue.detail, /fantasma\.md/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('dois steps declarando o mesmo artefato reprova — um sobrescreve o outro', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    await editarPipeline(dir, (y) => y.replace('        - output/analise.md', '        - output/triagem.md'));
+  });
+  try {
+    assert.equal(resultado.ok, false);
+    const issue = resultado.issues.find((i) => i.code === 'artefato-duplicado');
+    assert.ok(issue, `esperava artefato-duplicado; veio ${codigos(resultado)}`);
+    assert.match(issue.detail, /triagem\.md/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
 test('o CLI check-squad sai 0 no squad íntegro e != 0 no avariado', async () => {
   const ok = spawnSync(
     process.execPath,

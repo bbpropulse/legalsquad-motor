@@ -1,9 +1,75 @@
 import { createInterface } from 'node:readline';
-import { stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdtemp, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, relative } from 'node:path';
 import { loadLocale, t, getLocaleCode } from './i18n.js';
 import { loadSavedLocale } from './init.js';
+import { backupIfExists } from './update.js';
 import { logEvent } from './logger.js';
+
+// Entradas iniciadas por `_` no diretório de instalação são artefatos do
+// CATÁLOGO (`_evals/`, `_index.yaml`, `_<area>-integration.yaml`), gerados por
+// syncSkillCatalogArtifacts — não são recursos instaláveis. Listá-las como
+// recurso fazia o `update` chamar install('_evals'), que o validateId do
+// registry rejeita: uma exceção que abortava o loop INTEIRO e derrubava o
+// comando em toda instalação limpa, antes mesmo de atualizar a primeira skill.
+const ehArtefatoDeCatalogo = (id) => id.startsWith('_');
+
+/** Todos os arquivos de `raiz`, em caminhos relativos. */
+async function listarArquivos(raiz, prefixo = '') {
+  const entradas = await readdir(join(raiz, prefixo), { withFileTypes: true });
+  const arquivos = [];
+  for (const entrada of entradas) {
+    const rel = prefixo ? join(prefixo, entrada.name) : entrada.name;
+    if (entrada.isDirectory()) arquivos.push(...(await listarArquivos(raiz, rel)));
+    else if (entrada.isFile()) arquivos.push(rel);
+  }
+  return arquivos;
+}
+
+/**
+ * Guarda em `.bak` o que o usuário editou antes de o update sobrescrever.
+ *
+ * `install` confirmava a reinstalação; `update` sobrescrevia TUDO calado. Quem
+ * ajustou um SKILL.md ao jeito do escritório perdia a edição no primeiro
+ * update, sem aviso e sem recuperação.
+ *
+ * O recurso é instalado antes num diretório temporário para obter a cópia
+ * PRISTINA do pacote. É de propósito que a comparação passe por aí em vez de
+ * calcular caminhos: só `resource.install` sabe onde cada tipo de recurso mora
+ * (skills em `skills/<id>/`, agentes em `.claude/agents/<id>.md`), e replicar
+ * esse conhecimento aqui criaria uma segunda fonte de verdade que sai de
+ * sincronia em silêncio.
+ *
+ * Arquivos que só existem localmente não aparecem na cópia pristina e por isso
+ * não são tocados — nem sobrescritos, nem copiados para backup.
+ *
+ * Devolve os caminhos (relativos a `targetDir`) dos backups que contêm as
+ * edições, para o CLI dizer ao usuário onde elas foram parar. Mesma escada de
+ * slots do update do motor (`.bak`, `.bak.2`…): nada é perdido.
+ */
+async function preservarEdicoesLocais(resource, id, targetDir) {
+  const tmp = await mkdtemp(join(tmpdir(), 'legalsquad-update-'));
+  try {
+    await resource.install(id, tmp);
+    const backups = [];
+    for (const rel of await listarArquivos(tmp)) {
+      const instalado = join(targetDir, rel);
+      let atual;
+      try {
+        atual = await readFile(instalado);
+      } catch {
+        continue; // arquivo novo do pacote: não há edição local a preservar
+      }
+      if (atual.equals(await readFile(join(tmp, rel)))) continue;
+      const backup = await backupIfExists(instalado);
+      if (backup) backups.push(relative(targetDir, backup));
+    }
+    return backups;
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+}
 
 async function confirm(question) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -34,10 +100,13 @@ export function createResourceCli(config) {
 
   const tp = (suffix, vars) => t(`${i18nPrefix}${suffix}`, vars);
 
+  const listarInstalados = async (targetDir) =>
+    (await resource.listInstalled(targetDir)).filter((id) => !ehArtefatoDeCatalogo(id));
+
   async function runList(targetDir) {
     console.log(`\n  ${header}\n`);
 
-    const installed = await resource.listInstalled(targetDir);
+    const installed = await listarInstalados(targetDir);
 
     if (installed.length > 0) {
       console.log(`  ${tp('InstalledHeader')}`);
@@ -63,7 +132,7 @@ export function createResourceCli(config) {
       return false;
     }
 
-    const installed = await resource.listInstalled(targetDir);
+    const installed = await listarInstalados(targetDir);
     if (installed.includes(id)) {
       const answer = await confirm(`\n  ${tp('AlreadyInstalled', { id })}`);
       // Accept 'y' (English) or 's' (Portuguese "sim") as affirmative answers
@@ -89,7 +158,7 @@ export function createResourceCli(config) {
       return false;
     }
 
-    const installed = await resource.listInstalled(targetDir);
+    const installed = await listarInstalados(targetDir);
     if (!installed.includes(id)) {
       console.log(`\n  ${tp('NotInstalled', { id })}\n`);
       return;
@@ -101,8 +170,15 @@ export function createResourceCli(config) {
     console.log(`  ${tp('Removed', { id })}\n`);
   }
 
+  // O update anuncia o backup REAL, como faz o update do motor (src/update.js):
+  // dizer ".bak" quando o conteúdo foi para ".bak.2" manda o usuário procurar
+  // sua edição no arquivo errado.
+  function sufixoDeBackup(backups) {
+    return backups.length ? ` (backup: ${backups.join(', ')})` : '';
+  }
+
   async function runUpdate(targetDir) {
-    const installed = await resource.listInstalled(targetDir);
+    const installed = await listarInstalados(targetDir);
     if (installed.length === 0) {
       console.log(`\n  ${tp('UpdateNone')}\n`);
       return;
@@ -111,8 +187,9 @@ export function createResourceCli(config) {
     console.log(`\n  ${tp('Updating')}`);
     for (const id of installed) {
       console.log(`  ${tp('Installing', { id })}`);
+      const backups = await preservarEdicoesLocais(resource, id, targetDir);
       await resource.install(id, targetDir);
-      console.log(`  ${tp('Installed', { id })}`);
+      console.log(`  ${tp('Installed', { id })}${sufixoDeBackup(backups)}`);
     }
     await logEvent(`${logResource}:update`, { count: installed.length }, targetDir);
     console.log(`\n  ${tp('UpdateDone', { count: installed.length })}\n`);
@@ -124,16 +201,17 @@ export function createResourceCli(config) {
       return;
     }
 
-    const installed = await resource.listInstalled(targetDir);
+    const installed = await listarInstalados(targetDir);
     if (!installed.includes(id)) {
       console.log(`\n  ${tp('NotInstalled', { id })}\n`);
       return;
     }
 
     console.log(`\n  ${tp('Installing', { id })}`);
+    const backups = await preservarEdicoesLocais(resource, id, targetDir);
     await resource.install(id, targetDir);
     await logEvent(`${logResource}:update`, { name: id }, targetDir);
-    console.log(`  ${tp('Installed', { id })}\n`);
+    console.log(`  ${tp('Installed', { id })}${sufixoDeBackup(backups)}\n`);
   }
 
   return async function run(subcommand, args, targetDir) {

@@ -217,41 +217,245 @@ explícita) vs `DISCOVERY_ONLY` (padrão). **Encaixe direto:**
 
 ## 6. Formato do pacote
 
-Um pacote agrupa entidades de uma **matéria/tribunal** num tarball versionado, content-addressed e
-assinado.
+Existem **dois tipos de pacote** — acervo e área — e eles compartilham **um único container**,
+um único manifesto, uma única assinatura e um único cálculo de delta. Só o **aplicador** difere.
+É isso que torna literal a promessa "um pipeline carrega skills e acervo".
+
+| Tipo | `payload_kind` | Uma linha do payload é | Aplicador | Exemplos de `pack_id` |
+|---|---|---|---|---|
+| **Acervo** | `records` | um registro jurídico (norma, dispositivo, julgado, súmula, tese) | funde no `_index.yaml` e descarta o payload | `acervo.jurisprudencia.stj.penal` |
+| **Área** | `tree` | **um arquivo**: `{path, sha256, bytes, text}` (ou `b64` se binário) | materializa a subárvore no disco | `area.criminal`, `transversal` |
+
+Sem `payload_kind` o cliente não sabe o que fazer com o que baixou — o campo é **obrigatório** e a
+sua ausência recusa o pacote (fail-closed; ver §6.7).
+
+### 6.1 Container
 
 ```
-jurisprudencia.stj.penal@2026.07.2.tar.zst
+<pack_id>@<versão>/
 ├── manifest.json          (metadados + hashes + assinatura)
-├── decisoes.jsonl.zst     (uma entidade por linha)
-└── teses.jsonl.zst
+└── <payload>.jsonl.zst    (uma entidade por linha)   [1..N arquivos]
 ```
+
+`.jsonl.zst` para os dois tipos. Para árvore isso foi **medido** contra a alternativa óbvia
+(`tar.zst`) sobre conteúdo real — 520 skills, 1671 arquivos, 13,8 MB crus, 0 binários:
+
+| formato | tamanho | observação |
+|---|---:|---|
+| JSONL + zstd −19 | **1,93 MB** | 8% menor que o tar |
+| tar + zstd −19 | 2,10 MB | 512 B de header por arquivo ≈ 855 KB de padding |
+
+Além do tamanho, o JSONL evita a dependência externa: `node:zlib` traz zstd nativo e `node:crypto`
+traz Ed25519 — **zero dependências, sem binário externo**. O custo aceito é que `.jsonl.zst` não abre
+em ferramenta comum; por isso o CLI precisa de um `pack inspect` para leitura humana.
+
+### 6.2 A entidade-arquivo (`payload_kind: "tree"`)
 
 ```jsonc
-// manifest.json
+// uma linha de skills.jsonl — texto
+{ "path": "skills/habeas-corpus/SKILL.md",
+  "sha256": "3c9a…",          // do conteúdo decodificado, não da linha
+  "bytes": 8431,               // do conteúdo decodificado
+  "mode": "644",               // permissão POSIX; "755" só para executáveis declarados
+  "text": "---\nname: habeas-corpus\n…" }
+
+// uma linha binária
+{ "path": "squads/juri/assets/selo.png",
+  "sha256": "b71f…", "bytes": 20418, "mode": "644",
+  "b64": "iVBORw0KGgo…" }
+```
+
+- `text` e `b64` são **mutuamente exclusivos**; exatamente um deve estar presente.
+- `text` é sempre UTF-8 com quebras `\n`. O empacotador **não** converte fim de linha: o que entra é
+  o que sai, byte a byte — qualquer normalização de conteúdo quebraria o `sha256` da §6.6 e, pior, o
+  `skill_binding` da evidência de promoção (§6.8).
+- `bytes` e `sha256` referem-se ao **conteúdo decodificado**, para que a verificação seja a mesma
+  independentemente de o arquivo ter viajado como texto ou base64.
+- `path` é **relativo à raiz do projeto do usuário**, sempre com `/`.
+
+### 6.3 Namespace de `pack_id`
+
+O prefixo é o que decide o aplicador padrão, o alvo de extração e a política de licença. É
+**fechado** — um `pack_id` fora destes prefixos é recusado:
+
+| Prefixo | `payload_kind` | Conteúdo | Licença |
+|---|---|---|---|
+| `acervo.*` | `records` | corpus jurídico (o §4 inteiro) | por tier |
+| `area.<id>` | `tree` | skills, squads, best-practices e perfil de **uma** área | por licença de área |
+| `transversal` | `tree` | as ~19 skills que servem qualquer área (integrações, mídia, e-mail, OCR, publicação) | acompanha qualquer área |
+
+`transversal` é singular de propósito: existe **um** pacote transversal, não um por área — é
+exatamente a duplicação que a migração quer eliminar. Um `area.*` que contenha uma skill também
+presente em `transversal` é um erro de build, não uma coincidência a resolver no cliente.
+
+### 6.4 Manifesto
+
+Campos comuns aos dois tipos, com os do pacote de árvore marcados:
+
+```jsonc
+// manifest.json — exemplo real de pacote de área
 {
-  "pack_id": "jurisprudencia.stj.penal",   // namespace espelha os 21 domínios do _index.yaml
-  "materia": "penal", "tribunal": "STJ",
-  "format_version": "1.0",
-  "version": "2026.07.2",                   // calendário: AAAA.MM.SEQ
-  "created_at": "2026-07-14T03:00:00Z",
-  "requires_tier": "pro",                   // base | essencial | pro
-  "product_scope": ["legalsquad"],       // quais produtos podem instalar
-  "counts": { "decisoes": 48213, "teses": 640 },
-  "entities": [
-    { "file": "decisoes.jsonl.zst", "sha256": "9f2c…", "bytes": 91223344 },
-    { "file": "teses.jsonl.zst",    "sha256": "1abd…", "bytes": 220145 }
+  "pack_id": "area.criminal",
+  "format_version": "1.1",
+  "version": "2026.07.1",                    // calendário: AAAA.MM.SEQ
+  "created_at": "2026-07-14T03:00:00Z",      // só no manifesto — nunca no payload (§6.6)
+
+  "payload_kind": "tree",                    // "tree" | "records" — escolhe o aplicador
+  "applies_to": [                            // subárvores de destino (§6.5)
+    "skills/",
+    "squads/",
+    "core/best-practices/"
   ],
-  "content_hash": "sha256:7d10…",           // sobre a concat ordenada dos sha256
-  "signature": "ed25519:5a4e…",             // assinatura destacada sobre content_hash
-  "supersedes": "2026.07.1"                 // p/ cálculo de delta
+
+  "area": { "id": "criminal", "titulo": "Direito Criminal",
+            "curador": "…", "ramos": ["penal", "processual-penal", "execucao-penal"] },
+  "requires": ["transversal@>=2026.07.1"],   // dependência entre pacotes
+  "requires_tier": "essencial",              // base | essencial | pro
+  "product_scope": ["legalsquad"],
+
+  "normalization": {                         // §6.8 — o que o build traduziu na fronteira
+    "contract_marker": { "from": "CRIMINALSQUAD:", "to": "LEGALSQUAD:" },
+    "eval_id_prefix":  { "from": "csq-v5-",       "to": "lsq-v5-" },
+    "evidence_schema": { "from": "criminalsquad.skill-promotion-evidence/v1",
+                         "to":   "legalsquad.skill-promotion-evidence/v1" },
+    "rebound_evidence": false                // ver §6.8 — false = bytes originais preservados
+  },
+
+  "counts": { "files": 1671, "skills": 520, "squads": 9, "best_practices": 24 },
+  "entities": [
+    { "file": "skills.jsonl.zst",         "sha256": "4e11…", "bytes": 1802044 },
+    { "file": "squads.jsonl.zst",         "sha256": "9ab3…", "bytes":   96117 },
+    { "file": "best-practices.jsonl.zst", "sha256": "c027…", "bytes":   31880 }
+  ],
+  "removed_paths": [                         // §6.7 — só em delta; vazio no pacote completo
+    "skills/skill-aposentada/SKILL.md"
+  ],
+  "content_hash": "sha256:7d10…",            // sobre a concat ordenada dos sha256 (§6.6)
+  "signature": "ed25519:5a4e…",              // destacada, sobre content_hash
+  "signing_kid": "2026-a",                   // qual chave pública verifica (§7.2)
+  "supersedes": "2026.06.2"                  // p/ cálculo de delta
 }
 ```
 
+Para `payload_kind: "records"` o manifesto é o mesmo, sem `applies_to`/`area`/`normalization`, com
+`counts` por entidade (`{"decisoes": 48213, "teses": 640}`) — é o formato que a `1.0` já tinha.
+`format_version` sobe para `1.1` porque `payload_kind` é campo novo obrigatório: um cliente `1.0`
+lendo um pacote `1.1` deve recusar por versão, não adivinhar.
+
+**Por que `applies_to` é lista e não string.** Um `area.*` materializa em **três** subárvores
+(`skills/`, `squads/`, `core/best-practices/`); uma única string só descreveria a primeira. O rascunho
+da [`F0 §4.2`](../legalsquad/F0-SANEAMENTO.md) escreveu `"applies_to": "skills/"` quando só as skills
+estavam em vista — a forma normativa é a lista.
+
+### 6.5 Extração (`payload_kind: "tree"`)
+
+`applies_to` **não é decoração: é o contrato de contenção**, e o cliente o aplica como whitelist.
+Um pacote assinado ainda é conteúdo remoto materializando arquivos na máquina de um advogado; a
+assinatura prova origem, não boa-fé de quem tinha a chave.
+
+Recusa o **pacote inteiro** (não a linha) se qualquer `path`:
+
+1. for absoluto, ou contiver `..`, ou não normalizar para si mesmo;
+2. não começar por algum prefixo de `applies_to`;
+3. cair em área **user-owned** — `acervo/` (exceto `acervo/_packs/`), `casos/`, `output/`,
+   `skills/_evals/results/`, `.env`, `_legalsquad/_memory/`;
+4. repetir um `path` já visto no mesmo pacote.
+
+Uma linha hostil não é um item a pular — é prova de que o pacote não merece confiança. Pular em
+silêncio seria exatamente a degradação silenciosa que este motor já pagou caro para eliminar.
+
+**Aplicação atômica.** Materializa numa árvore temporária, verifica `sha256` de cada arquivo escrito
+e só então troca. Uma área meio-instalada é pior que nenhuma: o resolvedor a veria como instalada e
+responderia "essa skill não existe" no lugar de "essa área não terminou de instalar". Se a troca não
+puder ser atômica, a falha é ruidosa e o estado anterior permanece.
+
+**`skills/_evals/results/` é user-owned e nunca viaja no pacote** — é a evidência comportamental
+daquela instalação (`src/init.js` já a preserva no `init`/`update`). Isso tem consequência direta
+na §6.8: o pacote leva o *contrato* e os *casos* de eval, não a *prova*.
+
+### 6.6 Determinismo
+
+Mesmo input → mesmo byte de saída. Sem isso o `content_hash` não é verificável por terceiros e o
+delta não é calculável. Exige:
+
+- ordenação de caminhos por **byte-order** (`Buffer.compare`), nunca `localeCompare` — que é
+  sensível a locale e faria o mesmo input produzir hashes diferentes em máquinas diferentes;
+- ordenação das chaves de cada objeto JSON, e `JSON.stringify` sem espaço;
+- **nenhum timestamp no payload** — `created_at` vive só no manifesto;
+- nível de compressão fixo e declarado;
+- exclusão de artefatos de SO (`.DS_Store`, `Thumbs.db`) e de `node_modules/`, `.git/`;
+- `content_hash` = sha256 da concatenação dos `sha256` de `entities`, na ordem em que aparecem, que
+  por sua vez é a ordem byte-order dos nomes de arquivo.
+
+Coberto por teste: empacotar duas vezes e comparar o hash; e adulterar um byte e conferir que a
+verificação recusa.
+
+### 6.7 Delta, remoção e verificação
+
 - **Delta:** `supersedes` + hashes por arquivo → baixa só o que mudou entre versões.
-- **Assinatura:** Ed25519. A **chave pública vem embarcada no core** (com rotação versionada). Sem
-  assinatura válida, o pacote é recusado.
-- **Formato pesquisável:** `.jsonl.zst` — descomprime, funde no índice, joga fora; barato linha a linha.
+- **Remoção:** um delta precisa saber dizer o que **deixou de existir**. `removed_paths` é essa
+  lista; sem ela, uma skill retirada pelo curador sobreviveria para sempre na instalação do aluno —
+  e uma skill retirada costuma ter sido retirada por estar errada. Vazio em pacote completo.
+- **Assinatura:** Ed25519 sobre `content_hash`, destacada. A **chave pública vem embarcada no core**
+  (rotação por `kid`, §7.2). Verificação nunca depende de rede.
+- **Revogação ≠ remoção.** `revoked` (§7.1) apaga um pacote de acervo do cache gerenciado. Para um
+  pacote de **árvore** isso significaria apagar arquivos que o usuário pode ter editado — então
+  revogação de `area.*` **não apaga**: marca a área como revogada, avisa em toda execução e bloqueia
+  atualização. Apagar trabalho do usuário por decisão remota é o oposto de degradação graciosa.
+- **Fail-closed:** sem assinatura válida, com `format_version` desconhecida, sem `payload_kind`, ou
+  com qualquer violação da §6.5, o pacote é **recusado e não gravado**. O sync segue com os demais e
+  reporta o recusado com o motivo — recusar em silêncio seria indistinguível de não haver pacote.
+
+### 6.8 Normalização de identificadores na fronteira (requisito do F1)
+
+O `build-area` lê repositórios de conteúdo que nasceram antes deste motor. As skills do
+`criminalsquad` (520) e do `dtsquad` (405) trazem gravados identificadores do fork de origem, e o
+motor de hoje só reconhece os seus:
+
+| O que | No repo de conteúdo | No motor | Onde o motor checa |
+|---|---|---|---|
+| Marcador de contrato | `<!-- CRIMINALSQUAD:HP-CONTRACT:START -->` | `LEGALSQUAD:` | `src/skill-contract.js:23-24`, `src/skill-quality.js` (`contract_marker`) |
+| Prefixo de eval gerado | `csq-v5-<id>` | `lsq-v5-<id>` | `src/skill-contract.js:402-403` |
+| Schema da evidência | `criminalsquad.skill-promotion-evidence/v1` | `legalsquad.…/v1` | `src/skill-quality.js:24` |
+
+É **normalização de empacotamento**, não migração: os repos de conteúdo continuam intocados, como
+manda a regra dura do `CLAUDE.md`. Sem ela, `contract_marker` falha e o auditor dá hard fail
+`contrato v5 ausente` em todas as 520 skills — a paridade do F2 não fecha.
+
+#### A armadilha: normalizar muda os bytes que a evidência de promoção amarra
+
+`skill_binding.skill_sha256` é o sha256 do **arquivo `SKILL.md` inteiro**
+(`readSkillEvidenceBinding`, `src/skill-quality.js:188-205`). Reescrever `CRIMINALSQUAD:` para
+`LEGALSQUAD:` **muda esses bytes**. Então:
+
+- **Traduzir o marcador e não re-bindar** → `skill_binding.skill_sha256 divergente` →
+  `qualifiesForPromotion: false` → `evidence_required_satisfied: false` → hard fail
+  `verified sem evidência comportamental persistida compatível`. Trocamos uma falha por outra.
+- **Traduzir e re-bindar** (recalcular o hash e regravar na evidência) → tudo verde. E o binding
+  vira **tautológico**: quem muta o texto e recalcula o hash transformou a prova comportamental num
+  carimbo automático. O binding existe precisamente para impedir que uma skill seja reescrita
+  mantendo o selo de "verified"; um empacotador que re-binda por conveniência é o primeiro
+  atacante contra o qual o mecanismo foi desenhado.
+- **E há um terceiro fato que agrava os dois:** a evidência mora em `skills/_evals/results/`, que é
+  user-owned e **não viaja no pacote** (§6.5). Mesmo com binding perfeito, numa instalação limpa não
+  existe evidência nenhuma — e toda skill que declare `verified`/`certified` hard-falha no destino.
+
+Não há saída sem custo. As três opções, com o preço de cada uma:
+
+| Opção | Como | Custo |
+|---|---|---|
+| **A — preservar bytes, reconhecer o legado** | O pacote leva o `SKILL.md` **original**, byte a byte. O motor passa a **reconhecer** `CRIMINALSQUAD:`/`csq-v5-` apenas para *identificar* o contrato — nunca para promover: skill com marcador legado é no máximo `contracted`, e o auditor diz por quê. `normalization.rebound_evidence: false`. | O motor carrega, no núcleo, conhecimento do nome de um fork antigo. Nenhuma skill importada promove até o curador agir. |
+| **B — curador reemite a evidência** | Normaliza os bytes **e** roda de novo o forward-run + baseline + revisores sobre a skill normalizada, emitindo evidência nova. `rebound_evidence` não se aplica — é evidência nova, não re-binding. | Caro: é reexecutar a promoção de 520 skills. Mas é a única em que "verified" continua significando o que diz. |
+| **C — re-bindar** | Normaliza e recalcula o hash na evidência existente. | **Rejeitada.** Converte a prova em carimbo. Se alguma vez for feita, o manifesto **tem** de declarar `rebound_evidence: true`, e o cliente **tem** de rebaixar essas skills para `contracted` na instalação — uma flag que o consumidor pode ver e desconfiar vale mais que um segredo bem-intencionado. |
+
+**Recomendação para o F1: A como padrão de importação, B como caminho de promoção.** Importa-se a
+área inteira preservando bytes e o valor de uso imediato (as skills funcionam, o Arquiteto as
+resolve); o selo `verified` fica reservado a quem pagou o preço de reprová-lo. O que **não** pode
+acontecer é o pacote sair com 520 skills marcadas `verified` cuja prova ninguém pode conferir —
+isso é o motor voltando a mentir, na única dimensão em que ele acabou de parar de mentir.
+
+O campo `normalization` do manifesto existe para que essa decisão seja **auditável no artefato**, e
+não uma nota de rodapé no build.
 
 ---
 
@@ -263,16 +467,21 @@ Como a busca é local, o servidor expõe **dois** contratos apenas.
 
 ```
 GET /v1/catalog?license=CS-XXXX-XXXX&product=legalsquad
-    &have=jurisprudencia.stj.penal@2026.07.1,legislacao.penal@2026.06.1
+    &have=acervo.jurisprudencia.stj.penal@2026.07.1,area.criminal@2026.06.2
 
 200 →
 {
   "tier": "pro",
   "expires": "2026-08-01",
   "packs": [
-    { "pack_id": "jurisprudencia.stj.penal", "latest": "2026.07.2",
+    { "pack_id": "acervo.jurisprudencia.stj.penal", "payload_kind": "records",
+      "latest": "2026.07.2",
       "url": "https://cdn…/…?exp=…&sig=…",   // URL assinada e expirável
-      "sha256": "9f2c…", "bytes": 91223344, "delta_from": "2026.07.1" }
+      "sha256": "9f2c…", "bytes": 91223344, "delta_from": "2026.07.1" },
+    { "pack_id": "area.criminal", "payload_kind": "tree", "latest": "2026.07.1",
+      "url": "https://cdn…/…?exp=…&sig=…",
+      "sha256": "4e11…", "bytes": 1930244, "delta_from": "2026.06.2",
+      "requires": ["transversal@>=2026.07.1"] }
   ],
   "revoked": []                               // packs que devem ser apagados do cache
 }
@@ -280,6 +489,9 @@ GET /v1/catalog?license=CS-XXXX-XXXX&product=legalsquad
 ```
 
 - `have` permite ao servidor devolver **só o que mudou** e URLs de delta quando existirem.
+- O `payload_kind` da resposta é **dica de planejamento, não autoridade**: a resposta do catálogo não
+  é assinada. Quem escolhe o aplicador é o `payload_kind` do `manifest.json` verificado (§6.4).
+  Divergência entre os dois recusa o pacote — é sinal de catálogo comprometido, não de erro de digitação.
 - Sem `license` (ou tier `base`): devolve só os packs livres. O free tier funciona sem conta.
 
 ### 7.2 Chave pública (rotação)
@@ -346,9 +558,11 @@ espelhando o padrão de `search-acervo`/`contract-skills`.
 2. `GET /v1/catalog?license&product&have=…` → lista de packs/URLs (ou, sem licença, só os livres).
 3. Para cada pack novo/atualizado: baixa (delta quando houver) → **verifica sha256 + assinatura
    Ed25519** com a chave embarcada → **só então** grava.
-4. Extrai o payload para o destino declarado no manifesto (`applies_to`): pacote de **acervo** vai
-   para `acervo/_packs/<pack_id>/` (área **gerenciada**); pacote de **área** (`area.*`,
-   `transversal`) materializa `skills/`, `squads/` e best-practices.
+4. Extrai o payload conforme o `payload_kind` do manifesto (§6): pacote de **acervo**
+   (`payload_kind: "records"`) vai para `acervo/_packs/<pack_id>/` (área **gerenciada**); pacote de
+   **área** (`area.*`, `transversal`, `payload_kind: "tree"`) materializa as subárvores declaradas em
+   `applies_to` — `skills/`, `squads/`, `core/best-practices/` — sob as regras de contenção e
+   atomicidade da §6.5, e aplicando `removed_paths` quando for delta.
 5. **Reindexa o que foi tocado** — e só o que foi tocado:
    - pacote de acervo → `indexar-acervo` (as entidades entram como `VERIFIED_OFFICIAL` +
      proveniência);
@@ -432,7 +646,16 @@ omitido do índice.
 
 ## 13. Glossário
 
-- **Pack:** unidade de distribuição (matéria/tribunal), versionada, assinada.
+- **Pack:** unidade de distribuição, versionada e assinada. Dois tipos, um container (§6):
+  **acervo** (`acervo.*`, `payload_kind: records`) e **área** (`area.*` / `transversal`,
+  `payload_kind: tree`).
+- **`payload_kind`:** o que é uma linha do payload — `records` (registro jurídico) ou `tree`
+  (um arquivo). Escolhe o aplicador.
+- **`applies_to`:** lista de subárvores em que um pacote de árvore pode escrever. Contrato de
+  contenção, verificado como whitelist pelo cliente.
+- **Normalização de fronteira:** tradução de identificadores do fork de origem
+  (`CRIMINALSQUAD:`/`csq-v5-`) para os do motor, feita no empacotamento e declarada em
+  `manifest.normalization` (§6.8).
 - **URN LexML:** identificador canônico de norma/dispositivo/julgado brasileiro.
 - **Dispositivo × Versão:** a casca estável (Art. X) vs o texto por intervalo de vigência.
 - **Situação:** estado temporal (vigente/revogado; vigente/superado).
