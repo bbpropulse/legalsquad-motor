@@ -80,7 +80,10 @@ test('listRuns handles malformed state.json', async () => {
 
     const runs = await listRuns(null, dir);
     assert.equal(runs.length, 1);
-    assert.equal(runs[0].status, 'unknown');
+    // Antes esperava `unknown` — o mesmo valor de um run que nunca escreveu
+    // estado. Essa asserção documentava o defeito: state ilegível quase sempre
+    // é um run que MORREU no meio da escrita, que é o caso a investigar.
+    assert.equal(runs[0].status, 'corrupted');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -163,4 +166,54 @@ test('listRuns ignores non-directory entries in output', async () => {
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
+});
+
+test('listRuns distingue state ausente de state corrompido', async (t) => {
+  const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const raiz = await mkdtemp(join(tmpdir(), 'runs-corrompido-'));
+  t.after(() => rm(raiz, { recursive: true, force: true }));
+
+  const base = join(raiz, 'squads', 'demo', 'output');
+  await mkdir(join(base, '2026-07-20-100000'), { recursive: true });
+  await mkdir(join(base, '2026-07-20-110000'), { recursive: true });
+  // Um run sem state (ainda não escreveu) e outro com state TRUNCADO —
+  // exatamente o cenário de crash no meio da escrita, que é quando mais
+  // importa saber o que houve.
+  await writeFile(join(base, '2026-07-20-110000', 'state.json'), '{"status":"run');
+
+  const runs = await listRuns(null, raiz);
+  const semState = runs.find((r) => r.runId === '2026-07-20-100000');
+  const corrompido = runs.find((r) => r.runId === '2026-07-20-110000');
+
+  assert.equal(semState.status, 'unknown', 'run sem state permanece unknown');
+  assert.equal(
+    corrompido.status,
+    'corrupted',
+    'run cujo state está ilegível precisa ser distinguível de um que nunca escreveu — ' +
+    'o primeiro provavelmente FALHOU, o segundo talvez nem tenha começado'
+  );
+});
+
+test('listRuns avisa quando corta a listagem em vez de sumir com runs', async (t) => {
+  const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const raiz = await mkdtemp(join(tmpdir(), 'runs-corte-'));
+  t.after(() => rm(raiz, { recursive: true, force: true }));
+
+  // Dois squads; o segundo tem runs mais ANTIGOS. Com corte global por data,
+  // um squad inteiro pode sumir da listagem sem qualquer aviso — e o advogado
+  // conclui que a execução não existiu.
+  for (const [squad, ano] of [['squad-novo', '2026'], ['squad-antigo', '2020']]) {
+    for (let i = 0; i < 15; i++) {
+      const runId = `${ano}-01-${String(i + 1).padStart(2, '0')}-120000`;
+      await mkdir(join(raiz, 'squads', squad, 'output', runId), { recursive: true });
+      await writeFile(join(raiz, 'squads', squad, 'output', runId, 'state.json'), '{"status":"completed"}');
+    }
+  }
+
+  const runs = await listRuns(null, raiz);
+  assert.ok(Array.isArray(runs));
+  assert.ok(runs.truncated, 'a listagem cortada precisa se declarar cortada');
+  assert.ok(runs.total > runs.length, `total (${runs.total}) deve exceder o exibido (${runs.length})`);
 });

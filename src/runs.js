@@ -43,8 +43,12 @@ export async function listRuns(squadName, targetDir = process.cwd()) {
           const end = new Date(state.completedAt || state.failedAt).getTime();
           run.duration = formatDuration(end - start);
         }
-      } catch {
-        // No state.json or malformed — keep defaults
+      } catch (erro) {
+        // "Nunca escreveu estado" e "estado ilegível" são situações diferentes:
+        // a segunda quase sempre é um run que MORREU no meio da escrita — a
+        // informação mais útil da listagem. Empacotar as duas como `unknown`
+        // escondia justamente o caso que o usuário precisa investigar.
+        run.status = erro.code === 'ENOENT' ? 'unknown' : 'corrupted';
       }
 
       runs.push(run);
@@ -52,7 +56,16 @@ export async function listRuns(squadName, targetDir = process.cwd()) {
   }
 
   runs.sort((a, b) => b.runId.localeCompare(a.runId));
-  return runs.slice(0, MAX_RUNS);
+
+  // O corte é global e por data: com vários squads, um deles pode sumir INTEIRO
+  // da listagem. O advogado não vê o run em que trabalhou e conclui que ele não
+  // existiu. O array segue sendo array (nenhum chamador quebra), mas passa a
+  // carregar o que foi omitido — quem exibe tem como dizer "mostrando N de M".
+  const total = runs.length;
+  const exibidos = runs.slice(0, MAX_RUNS);
+  exibidos.total = total;
+  exibidos.truncated = total > MAX_RUNS;
+  return exibidos;
 }
 
 export function formatDuration(ms) {
@@ -92,6 +105,11 @@ export function printRuns(runs) {
       if (run.duration) parts.push(run.duration);
       console.log(parts.join('  '));
     }
+  }
+  // Sem esta linha, o corte é invisível: um squad inteiro pode não aparecer e o
+  // usuário conclui que a execução nunca existiu.
+  if (runs.truncated) {
+    console.log(`\n  mostrando ${runs.length} de ${runs.total} execuções (mais antigas omitidas)`);
   }
   console.log();
 }
