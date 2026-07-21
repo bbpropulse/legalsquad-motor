@@ -346,11 +346,31 @@ espelhando o padrão de `search-acervo`/`contract-skills`.
 2. `GET /v1/catalog?license&product&have=…` → lista de packs/URLs (ou, sem licença, só os livres).
 3. Para cada pack novo/atualizado: baixa (delta quando houver) → **verifica sha256 + assinatura
    Ed25519** com a chave embarcada → **só então** grava.
-4. Extrai `.jsonl.zst` para `acervo/_packs/<pack_id>/` (área **gerenciada** dentro de `acervo/`).
-5. Atualiza `acervo/_packs/_manifest.json` e roda `indexar-acervo` (as entidades entram no índice
-   como `VERIFIED_OFFICIAL` + proveniência).
-6. Aplica `revoked`: apaga do cache packs revogados.
+4. Extrai o payload para o destino declarado no manifesto (`applies_to`): pacote de **acervo** vai
+   para `acervo/_packs/<pack_id>/` (área **gerenciada**); pacote de **área** (`area.*`,
+   `transversal`) materializa `skills/`, `squads/` e best-practices.
+5. **Reindexa o que foi tocado** — e só o que foi tocado:
+   - pacote de acervo → `indexar-acervo` (as entidades entram como `VERIFIED_OFFICIAL` +
+     proveniência);
+   - pacote de área → `indexar-skills`.
+6. Aplica `revoked`: apaga do cache packs revogados — **e reindexa de novo**, senão o índice passa a
+   listar o que foi apagado.
 7. Relata: baixados, tamanho, frescor, e avisa packs vencidos.
+
+> **Por que o passo 5 distingue os dois índices.** Eles têm criticidade oposta, e confundi-los custa
+> caro:
+>
+> - **`acervo/_index.yaml` é consumido pela busca** (`src/acervo-search.js`). Desatualizado, a
+>   pesquisa devolve resultado incompleto — e num acervo jurídico "nenhum resultado" é
+>   indistinguível de "não há precedente sobre isso". Por isso reindexar aqui é **obrigatório**, e
+>   por isso `search-acervo` também detecta a defasagem por conta própria
+>   (`detectarIndiceDefasado`): o sync é a primeira linha de defesa, não a única — o usuário também
+>   adiciona material à mão.
+> - **`skills/_index.yaml` NÃO é consumido pela busca.** `search-skills` e `resolve-skills` chamam
+>   `discoverSkillCatalog`, que varre o disco: o catálogo real é sempre o que está instalado. O
+>   índice de skills é artefato de inspeção e distribuição — reindexar mantém a honestidade do
+>   arquivo (e o `check-skills` verde), mas um índice stale **não** cega o Arquiteto. Não confunda
+>   as duas coisas ao implementar: proteger o índice errado dá falsa sensação de segurança.
 
 ### 9.3 Convivência com `acervo/` (PROTECTED)
 
