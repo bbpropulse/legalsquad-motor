@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contractSkillsProject } from '../src/skill-catalog-cli.js';
+import { contractSkillCatalog } from '../src/skill-contract.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -136,5 +137,71 @@ test('quarantined tem precedência sobre promoção (trava de segurança)', asyn
     assert.match(skill, /quality_status: "quarantined"/, 'quarentena vence promoção');
   } finally {
     await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('contract-skills preserva casos de eval que não gerou (pacote de área importado)', async () => {
+  const { mkdtemp, mkdir, writeFile, readFile, rm, cp } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join: pjoin } = await import('node:path');
+  const { AREA_DEMO } = await import('./fixtures/caminhos.js');
+
+  const raiz = await mkdtemp(pjoin(tmpdir(), 'contract-preserva-'));
+  try {
+    await cp(AREA_DEMO, raiz, { recursive: true });
+    const evalsDir = pjoin(raiz, 'skills', '_evals');
+    const catalogPath = pjoin(evalsDir, 'catalog-v5.json');
+
+    // Simula um pacote de área importado: um caso de eval com id de OUTRA
+    // origem (prefixo diferente do que este motor gera), como os `csq-v5-*`
+    // que vêm do criminalsquad.
+    const original = JSON.parse(await readFile(catalogPath, 'utf8'));
+    original.cases.push({
+      id: 'ext-v5-skill-de-pacote',
+      skill: 'skill-de-pacote',
+      evaluation_type: 'contract',
+      scenarios: [
+        { kind: 'normal', prompt: 'cenário normal do pacote', expected: 'atende' },
+        { kind: 'adversarial', prompt: 'cenário adversarial do pacote', expected: 'recusa' },
+      ],
+    });
+    await writeFile(catalogPath, `${JSON.stringify(original, null, 2)}\n`);
+
+    // E a skill correspondente, declarando o id externo — é o que o pacote traz.
+    const skillDir = pjoin(raiz, 'skills', 'skill-de-pacote');
+    await mkdir(pjoin(skillDir, 'references'), { recursive: true });
+    await mkdir(pjoin(skillDir, 'agents'), { recursive: true });
+    const modelo = await readFile(pjoin(raiz, 'skills', 'demo-peca-alpha', 'SKILL.md'), 'utf8');
+    await writeFile(
+      pjoin(skillDir, 'SKILL.md'),
+      modelo
+        .replace(/^name: .*$/m, 'name: skill-de-pacote')
+        .replace(/eval_case_ids: \[[^\]]*\]/, 'eval_case_ids: ["ext-v5-skill-de-pacote"]')
+    );
+    await writeFile(pjoin(skillDir, 'references', 'high-performance-contract.md'), '# contrato\n');
+    await writeFile(
+      pjoin(skillDir, 'agents', 'openai.yaml'),
+      'default_prompt: "Execute o fluxo $skill-de-pacote"\nshort_description: "Fixture de pacote importado"\nallow_implicit_invocation: false\n'
+    );
+
+    contractSkillCatalog({ root: raiz });
+
+    const depois = JSON.parse(await readFile(catalogPath, 'utf8'));
+    const ids = depois.cases.map((c) => c.id);
+
+    assert.ok(
+      ids.includes('ext-v5-skill-de-pacote'),
+      `o caso de origem externa foi APAGADO — contract-skills destruiria os evals de um pacote importado. ids: ${JSON.stringify(ids)}`
+    );
+    // Os casos que a fixture já trazia (prefixo próprio, `demo-v5-*`) também
+    // sobrevivem: quem declara os próprios eval_case_ids é dono deles, e o
+    // normalizador não gera caso para essas skills — só preserva.
+    assert.ok(
+      ids.some((id) => id.startsWith('demo-v5-')),
+      `os casos pré-existentes da fixture foram apagados. ids: ${JSON.stringify(ids)}`
+    );
+    assert.ok(ids.length >= original.cases.length, 'o catálogo não pode encolher numa normalização');
+  } finally {
+    await rm(raiz, { recursive: true, force: true });
   }
 });

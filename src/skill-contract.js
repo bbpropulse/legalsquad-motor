@@ -1,6 +1,7 @@
 import {
   existsSync,
   mkdirSync,
+  readFileSync,
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -331,11 +332,56 @@ function generatedEval(entry, id, profileId, profile) {
   };
 }
 
+/**
+ * Funde os casos gerados nesta rodada com os que já estavam no catálogo.
+ *
+ * Este passo é um normalizador ESTRUTURAL, não o dono do catálogo de evals. Ele
+ * só sabe gerar caso de contrato para as skills cujo `eval_case_ids` ele mesmo
+ * emitiria (`lsq-v5-*`); tudo o mais — casos autorados à mão, e sobretudo os que
+ * chegam dentro de um pacote de área, com prefixo de outra origem — pertence a
+ * quem os escreveu.
+ *
+ * Antes, o catálogo era sobrescrito com `cases: generatedCases`, o que apagava
+ * silenciosamente todo caso de origem externa. O efeito era destrutivo em
+ * cascata: sem o caso, `eval_linked` reprova, e a skill inteira cai em hard fail
+ * "eval normal/adversarial não vinculada" — um comando de normalização
+ * derrubando a suíte de qualidade de um pacote legítimo.
+ */
+export function mesclarCasosDeEval(catalogPath, generatedCases) {
+  const gerados = new Map(generatedCases.map((c) => [c.id, c]));
+  const preservados = [];
+
+  if (existsSync(catalogPath)) {
+    const bruto = readFileSync(catalogPath, 'utf8');
+    let atual;
+    try {
+      atual = JSON.parse(bruto);
+    } catch (erro) {
+      // Só o JSON inválido é tolerável aqui — e mesmo assim, alto: preservar
+      // nada é uma perda de dados, então quem roda precisa saber. Um catch
+      // largo esconderia erro de programação (foi o que aconteceu ao escrever
+      // esta função: um import faltando virou "catálogo vazio" em silêncio).
+      throw new Error(
+        `${catalogPath}: JSON inválido (${erro.message}). Corrija ou remova o arquivo antes de rodar contract-skills — ` +
+        'seguir sobrescreveria os casos de eval existentes.'
+      );
+    }
+    for (const caso of Array.isArray(atual?.cases) ? atual.cases : []) {
+      // Um caso regenerado nesta rodada é substituído pela versão nova;
+      // os demais sobrevivem intactos.
+      if (caso?.id && !gerados.has(caso.id)) preservados.push(caso);
+    }
+  }
+
+  return [...preservados, ...generatedCases];
+}
+
 // Applies the v5 operational contract to every skill under `root/skills`:
 // normalizes frontmatter, injects the HP-CONTRACT body block, writes each skill's
-// references/high-performance-contract.md, and regenerates the eval catalog
-// (skills/_evals/catalog-v5.json) with one contract case per skill. Idempotent —
-// a skill already in contract form is skipped. Returns a summary object.
+// references/high-performance-contract.md, and merges the eval catalog
+// (skills/_evals/catalog-v5.json) — regenerando os casos deste motor e
+// PRESERVANDO os de outras origens. Idempotent — a skill already in contract
+// form is skipped. Returns a summary object.
 export function contractSkillCatalog({ root, force = false, dryRun = false, profilesPath } = {}) {
   if (!root) throw new Error('contractSkillCatalog: root é obrigatório');
   const skillsDir = join(root, 'skills');
@@ -406,7 +452,7 @@ export function contractSkillCatalog({ root, force = false, dryRun = false, prof
         'Casos de contrato não equivalem a execução comportamental do modelo.',
         'Promoção requer forward-run persistido, baseline e revisão independente.',
       ],
-      cases: generatedCases,
+      cases: mesclarCasosDeEval(join(evalsDir, 'catalog-v5.json'), generatedCases),
     }, null, 2)}\n`, 'utf8');
   }
 
