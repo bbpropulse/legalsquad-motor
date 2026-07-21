@@ -11,27 +11,27 @@ const IDE = 'templates/ide-templates';
 // Single source of truth: each shared body lives once in templates/ide-assets/.
 // The files below carry that body, each wrapped in its own per-IDE frontmatter
 // (which is legitimately IDE-specific and stays in the file). Paths are relative
-// to the repo root, so this also covers the repo's OWN copies (the CriminalSquad
+// to the repo root, so this also covers the repo's OWN copies (the LegalSquad
 // repo functioning as a project). Editing a body asset + `npm run build:ide`
 // propagates the change everywhere — replacing the old hand-maintained mirroring.
 const MANIFEST = {
   'command-body.md': [
-    `${IDE}/claude-code/.claude/skills/criminalsquad/SKILL.md`,
-    `${IDE}/gemini-cli/.gemini/skills/criminalsquad/SKILL.md`,
-    `${IDE}/qwen-code/.qwen/skills/criminalsquad/SKILL.md`,
-    `${IDE}/vscode-copilot/.github/prompts/criminalsquad.prompt.md`,
-    `${IDE}/antigravity/.agent/workflows/criminalsquad.md`,
+    `${IDE}/claude-code/.claude/skills/legalsquad/SKILL.md`,
+    `${IDE}/gemini-cli/.gemini/skills/legalsquad/SKILL.md`,
+    `${IDE}/qwen-code/.qwen/skills/legalsquad/SKILL.md`,
+    `${IDE}/vscode-copilot/.github/prompts/legalsquad.prompt.md`,
+    `${IDE}/antigravity/.agent/workflows/legalsquad.md`,
     `${IDE}/codex/AGENTS.md`,
     `${IDE}/opencode/AGENTS.md`,
-    '.claude/skills/criminalsquad/SKILL.md', // cópia do próprio repo
+    '.claude/skills/legalsquad/SKILL.md', // cópia do próprio repo
   ],
   'instructions-body.md': [
     `${IDE}/claude-code/CLAUDE.md`,
     `${IDE}/gemini-cli/GEMINI.md`,
     `${IDE}/qwen-code/QWEN.md`,
-    `${IDE}/antigravity/.agent/rules/criminalsquad.md`,
-    `${IDE}/cursor/.cursor/rules/criminalsquad.mdc`,
-    `${IDE}/trae/.trae/rules/criminalsquad.md`,
+    `${IDE}/antigravity/.agent/rules/legalsquad.md`,
+    `${IDE}/cursor/.cursor/rules/legalsquad.mdc`,
+    `${IDE}/trae/.trae/rules/legalsquad.md`,
     // O CLAUDE.md da raiz NÃO é gerado: é a instrução do projeto LegalSquad
     // (fronteira núcleo × pacote, regras do build-area), não o corpo distribuído
     // às IDEs. Gerá-lo aqui sobrescrevia a documentação do repositório.

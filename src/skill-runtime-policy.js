@@ -193,9 +193,9 @@ export function loadSkillRuntimeRecords(rootDir) {
   const catalog = discoverSkillCatalog(skillsDir);
   // Mesma tolerância de src/skill-search.js: os perfis de qualidade são um
   // vocabulário do motor (não por área), então uma raiz que não replica
-  // _criminalsquad/core/ (uma área instalada, não um projeto inteiro) cai no
+  // _legalsquad/core/ (uma área instalada, não um projeto inteiro) cai no
   // arquivo real do motor em vez de falhar.
-  const profilesPath = join(rootDir, '_criminalsquad', 'core', 'skill-quality-profiles.json');
+  const profilesPath = join(rootDir, '_legalsquad', 'core', 'skill-quality-profiles.json');
   const audit = auditSkillCatalogQuality(catalog, {
     profilesPath: existsSync(profilesPath) ? profilesPath : undefined,
   });

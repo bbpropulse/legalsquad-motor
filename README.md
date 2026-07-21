@@ -10,10 +10,10 @@ Motor de orquestração multi-agente para o Direito.
 | Repositório | Papel | Muda? |
 |---|---|---|
 | **`legalsquad`** (este) | Motor + plataforma: roteador, Arquiteto, gates, CLI, `sync`, licença, empacotamento | é onde o motor evolui |
-| `criminalsquad` | Fonte do conteúdo criminal **e** o produto que vende hoje | **intocado** |
+| `legalsquad` | Fonte do conteúdo criminal **e** o produto que vende hoje | **intocado** |
 | `dtsquad` | Fonte do conteúdo trabalhista | **intocado** |
 
-> `ejsquad` (fonte do conteúdo extrajudicial) **não existe no disco**. Hoje só `criminalsquad`
+> `ejsquad` (fonte do conteúdo extrajudicial) **não existe no disco**. Hoje só `legalsquad`
 > (520 skills) e `dtsquad` (405) estão presentes — ver
 > [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
 
@@ -44,15 +44,15 @@ calculadoras específicas de área.
 
 ## Estado: F0 (scaffold)
 
-O motor foi copiado do CriminalSquad — **a última cópia que será feita** — e todo o conteúdo
+O motor foi copiado do LegalSquad — **a última cópia que será feita** — e todo o conteúdo
 jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqui**.
 
 ### Pendências conhecidas do F0
 
-- **Identidade interna ainda é `criminalsquad`** (comando, `_criminalsquad/`, textos). O rename é
+- **Identidade interna ainda é `legalsquad`** (comando, `_legalsquad/`, textos). O rename é
   mecânico e está pendente de decisão — ver `ARQUITETURA.md §6`.
 - **Pacote `transversal` ainda não extraído** (as ~20 skills que servem qualquer área). O conjunto já
-  é derivável hoje: a interseção de nomes entre `criminalsquad` e `dtsquad` dá exatamente 20 entradas
+  é derivável hoje: a interseção de nomes entre `legalsquad` e `dtsquad` dá exatamente 20 entradas
   (19 skills + `_evals`), sem depender do `ejsquad` — ver
   [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
 - **A suíte tem 7 falhas conhecidas, não está 100% verde:** `npm test` → 314 passam, 7 falham, 321 no
@@ -65,12 +65,12 @@ jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqu
   [`F0-SANEAMENTO.md §5-bis`](docs/specs/legalsquad/F0-SANEAMENTO.md). A não-regressão dessa dívida é
   guardada por `tests/fronteira.test.js`.
 - **`npm run verify` continua vermelho** (não é regressão desta branch): `scripts/verify.mjs` exige
-  487 `SKILL.md`, os motores de `legal-calculators/` e `_criminalsquad/core/authorities/
+  487 `SKILL.md`, os motores de `legal-calculators/` e `_legalsquad/core/authorities/
   execucao-penal-art-112.json` — tudo conteúdo de área que este repo não tem mais. Só volta a passar
   quando o `build-area` (F1) alimentar o tarball com um pacote de área real.
 
 ## Regras do projeto
 
 1. **Nenhum passo escreve nos repos de conteúdo.** O `build-area` é somente leitura.
-2. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
+2. **Motor novo só aqui.** O LegalSquad está em manutenção (correção crítica apenas).
 3. **Uma área só vira pacote com curador responsável.**

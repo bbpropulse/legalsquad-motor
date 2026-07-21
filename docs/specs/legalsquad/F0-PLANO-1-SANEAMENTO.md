@@ -20,8 +20,8 @@ limpo. Nenhum passo escreve nos repositórios de conteúdo.
 
 ## Restrições globais
 
-- **`~/Documents/Projetos/Devlop/criminalsquad/app` é READ-ONLY.** É a fonte de leitura da Classe A.
-  Ao final, `git -C <criminalsquad> status --short` deve ser **idêntico** ao do início (`?? output/`
+- **`~/Documents/Projetos/Devlop/legalsquad/app` é READ-ONLY.** É a fonte de leitura da Classe A.
+  Ao final, `git -C <legalsquad> status --short` deve ser **idêntico** ao do início (`?? output/`
   e `?? tmp/`, que já existiam). Qualquer linha nova é falha do plano.
 - **Nenhum `skip`, `todo` ou teste comentado.** Se um teste não pode passar, ele é removido com
   justificativa no commit — não silenciado.
@@ -40,10 +40,10 @@ limpo. Nenhum passo escreve nos repositórios de conteúdo.
 
 ## Estrutura de arquivos
 
-**Restaurados** (Classe A, lidos do criminalsquad):
-- `templates/ide-templates/{claude-code/.claude,gemini-cli/.gemini,qwen-code/.qwen}/skills/criminalsquad/SKILL.md`
-- `templates/ide-templates/codex/.agents/skills/criminalsquad/SKILL.md`
-- `.claude/skills/criminalsquad/SKILL.md`
+**Restaurados** (Classe A, lidos do legalsquad):
+- `templates/ide-templates/{claude-code/.claude,gemini-cli/.gemini,qwen-code/.qwen}/skills/legalsquad/SKILL.md`
+- `templates/ide-templates/codex/.agents/skills/legalsquad/SKILL.md`
+- `.claude/skills/legalsquad/SKILL.md`
 - `.claude/agents/catalog-scout.md` · `templates/ide-templates/claude-code/.claude/agents/catalog-scout.md`
   · `templates/ide-templates/codex/.Codex/agents/catalog-scout.toml`
 
@@ -67,7 +67,7 @@ limpo. Nenhum passo escreve nos repositórios de conteúdo.
 
 ## Task 1: Restaurar os wrappers de IDE e desarmar o `build:ide`
 
-O F0 apagou tudo que casava com `skills/` e levou junto os wrappers do comando `/criminalsquad` —
+O F0 apagou tudo que casava com `skills/` e levou junto os wrappers do comando `/legalsquad` —
 que são **motor**. O gerador `build:ide` **lê** o destino para preservar o frontmatter por IDE, então
 apagados ele quebra com `ENOENT`. E o `MANIFEST` lista `'CLAUDE.md'` da raiz: corrigir a restauração
 sem tirar essa linha faz o próximo `build:ide` **sobrescrever o `CLAUDE.md` do projeto**.
@@ -85,7 +85,7 @@ sem tirar essa linha faz o próximo `build:ide` **sobrescrever o `CLAUDE.md` do 
 - [ ] **Passo 1: Registrar o estado do repo fonte (prova de read-only)**
 
 ```bash
-git -C ~/Documents/Projetos/Devlop/criminalsquad/app status --short > /tmp/cs-antes.txt
+git -C ~/Documents/Projetos/Devlop/legalsquad/app status --short > /tmp/cs-antes.txt
 cat /tmp/cs-antes.txt
 ```
 
@@ -103,13 +103,13 @@ Esperado: `pass 0`, `fail 13`. A causa é uma só: `cp` de um diretório inexist
 - [ ] **Passo 3: Copiar os 5 wrappers do repo fonte**
 
 ```bash
-CS=~/Documents/Projetos/Devlop/criminalsquad/app
+CS=~/Documents/Projetos/Devlop/legalsquad/app
 for f in \
-  "templates/ide-templates/claude-code/.claude/skills/criminalsquad/SKILL.md" \
-  "templates/ide-templates/gemini-cli/.gemini/skills/criminalsquad/SKILL.md" \
-  "templates/ide-templates/qwen-code/.qwen/skills/criminalsquad/SKILL.md" \
-  "templates/ide-templates/codex/.agents/skills/criminalsquad/SKILL.md" \
-  ".claude/skills/criminalsquad/SKILL.md" ; do
+  "templates/ide-templates/claude-code/.claude/skills/legalsquad/SKILL.md" \
+  "templates/ide-templates/gemini-cli/.gemini/skills/legalsquad/SKILL.md" \
+  "templates/ide-templates/qwen-code/.qwen/skills/legalsquad/SKILL.md" \
+  "templates/ide-templates/codex/.agents/skills/legalsquad/SKILL.md" \
+  ".claude/skills/legalsquad/SKILL.md" ; do
   mkdir -p "$(dirname "$f")" && cp "$CS/$f" "$f" && echo "ok $f"
 done
 ```
@@ -126,9 +126,9 @@ Em `src/build-ide-templates.js`, no array `'instructions-body.md'`, remova a úl
     `${IDE}/claude-code/CLAUDE.md`,
     `${IDE}/gemini-cli/GEMINI.md`,
     `${IDE}/qwen-code/QWEN.md`,
-    `${IDE}/antigravity/.agent/rules/criminalsquad.md`,
-    `${IDE}/cursor/.cursor/rules/criminalsquad.mdc`,
-    `${IDE}/trae/.trae/rules/criminalsquad.md`,
+    `${IDE}/antigravity/.agent/rules/legalsquad.md`,
+    `${IDE}/cursor/.cursor/rules/legalsquad.mdc`,
+    `${IDE}/trae/.trae/rules/legalsquad.md`,
     // O CLAUDE.md da raiz NÃO é gerado: é a instrução do projeto LegalSquad
     // (fronteira núcleo × pacote, regras do build-area), não o corpo distribuído
     // às IDEs. Gerá-lo aqui sobrescrevia a documentação do repositório.
@@ -176,7 +176,7 @@ Esperado: sem erros.
 - [ ] **Passo 9: Confirmar que o repo fonte não foi tocado**
 
 ```bash
-git -C ~/Documents/Projetos/Devlop/criminalsquad/app status --short > /tmp/cs-depois.txt
+git -C ~/Documents/Projetos/Devlop/legalsquad/app status --short > /tmp/cs-depois.txt
 diff /tmp/cs-antes.txt /tmp/cs-depois.txt && echo "READ-ONLY OK"
 ```
 
@@ -189,7 +189,7 @@ git add -A
 git commit -m "fix: restaurar os wrappers de IDE do comando e tirar CLAUDE.md do build:ide
 
 O F0 removeu tudo que casava com skills/ e levou junto os wrappers do comando
-/criminalsquad — que são motor, não matéria. Como o gerador lê o destino para
+/legalsquad — que são motor, não matéria. Como o gerador lê o destino para
 preservar o frontmatter por IDE, apagados ele quebrava com ENOENT, derrubando
 install-global (13 falhas) e ide-build (1).
 
@@ -221,7 +221,7 @@ dentro de um artefato de motor.
 - [ ] **Passo 1: Copiar os três arquivos**
 
 ```bash
-CS=~/Documents/Projetos/Devlop/criminalsquad/app
+CS=~/Documents/Projetos/Devlop/legalsquad/app
 for f in \
   ".claude/agents/catalog-scout.md" \
   "templates/ide-templates/claude-code/.claude/agents/catalog-scout.md" \
@@ -236,14 +236,14 @@ Nos **três** arquivos, substitua (o `.toml` tem o mesmo corpo em bloco de strin
 
 | # | Onde | De | Para |
 |---|---|---|---|
-| 1 | `description` do frontmatter | "catálogo de reuso do CriminalSquad" | "catálogo de reuso do LegalSquad" |
+| 1 | `description` do frontmatter | "catálogo de reuso do LegalSquad" | "catálogo de reuso do LegalSquad" |
 | 2 | seção 1, evolução arquitetural | "o manifesto `skills/_execucao-penal-v3-integration.yaml`" | "o manifesto de canonicalização da área (`skills/_*-integration.yaml`)" |
 | 3 | seção 2, exemplos | ``jurisprudencia-stj-stf`, `defesa-criminal-resposta-acusacao`, `triagem-novo-caso`, `monitor-dje-djen`, `resumo-processo`, `verificador-citacoes`, `secretaria-juridica`, `acervo-busca`` | "os nomes exatos vêm de `.claude/agents/` da área instalada — não presuma um catálogo fixo" |
 | 4 | seção 3, best-practices | "(incl. `verificacao-citacoes`, `etica-oab-sigilo` e os nichos `defesa-*`)" | "(incluindo os gates de verificação e ética que a área declarar)" |
-| 5 | seção 3, frase final | "Para qualquer propósito de execução penal, selecione e leia também `_criminalsquad/core/best-practices/execucao-penal-alta-performance.md` antes de recomendar capacidade ou pesquisa." | "Quando o `_catalog.yaml` da área marcar uma best-practice como obrigatória para o propósito em questão, leia-a antes de recomendar capacidade ou pesquisa." |
+| 5 | seção 3, frase final | "Para qualquer propósito de execução penal, selecione e leia também `_legalsquad/core/best-practices/execucao-penal-alta-performance.md` antes de recomendar capacidade ou pesquisa." | "Quando o `_catalog.yaml` da área marcar uma best-practice como obrigatória para o propósito em questão, leia-a antes de recomendar capacidade ou pesquisa." |
 | 6 | Autoavaliação, 3º item | "Em execução penal, apliquei `execucao-penal-alta-performance` e resolvi as `ep-*` para alvos canônicos?" | "Apliquei as best-practices obrigatórias da área e resolvi os aliases para alvos canônicos?" |
 
-Também troque `_criminalsquad/core/best-practices/_catalog.yaml` por
+Também troque `_legalsquad/core/best-practices/_catalog.yaml` por
 `<core>/best-practices/_catalog.yaml` no item 3 da lista "O que você varre", já que o diretório
 depende da área instalada.
 
@@ -258,10 +258,10 @@ grep -rniE 'execucao-penal|ep-\*|stj|stf|criminal|penal|defesa-|oab' \
 
 Esperado: **nenhuma linha**. Se algo aparecer, generalize também.
 
-> Exceção consciente: a string `criminalsquad` sobrevive em nome de comando e caminho de pacote — a
+> Exceção consciente: a string `legalsquad` sobrevive em nome de comando e caminho de pacote — a
 > decisão de não renomear está em [`ARQUITETURA.md §6`](ARQUITETURA.md). O grep acima não casa
-> `criminalsquad` isolado; casa `criminal` como palavra dentro de texto. Se ele acusar apenas
-> ocorrências do identificador `criminalsquad`, está correto seguir.
+> `legalsquad` isolado; casa `criminal` como palavra dentro de texto. Se ele acusar apenas
+> ocorrências do identificador `legalsquad`, está correto seguir.
 
 - [ ] **Passo 4: Rodar as suítes**
 
@@ -309,8 +309,8 @@ Em `src/init.js`, remova a 4ª entrada:
 
 ```js
 const CANONICAL_SOURCES = [
-  { src: join(PACKAGE_ROOT, '_criminalsquad', 'core'), dest: join('_criminalsquad', 'core') },
-  { src: join(PACKAGE_ROOT, '_criminalsquad', 'config'), dest: join('_criminalsquad', 'config') },
+  { src: join(PACKAGE_ROOT, '_legalsquad', 'core'), dest: join('_legalsquad', 'core') },
+  { src: join(PACKAGE_ROOT, '_legalsquad', 'config'), dest: join('_legalsquad', 'config') },
   { src: join(PACKAGE_ROOT, 'dashboard'), dest: 'dashboard' },
   // scripts/legal-calculators saiu: calculadoras de matéria são pacote de área,
   // não motor. Chegam pelo sync, não pelo init.
@@ -430,14 +430,14 @@ com `scripts/`. Área fictícia — sem direito real.
 - Teste: nenhum ainda (a fixture é consumida na Task 7)
 
 **Interfaces:**
-- Consome: `_criminalsquad/core/skill-quality-profiles.json` (perfis válidos)
+- Consome: `_legalsquad/core/skill-quality-profiles.json` (perfis válidos)
 - Produz: `tests/fixtures/area-demo/skills/` com 11 skills válidas para
   `validateSkillCatalog({skillsDir})` e `discoverSkillCatalog(dir)`
 
 - [ ] **Passo 1: Confirmar os vocabulários antes de gerar**
 
 ```bash
-node -e "const p=require('./_criminalsquad/core/skill-quality-profiles.json'); console.log('perfis:', Object.keys(p.profiles).join(' | '))"
+node -e "const p=require('./_legalsquad/core/skill-quality-profiles.json'); console.log('perfis:', Object.keys(p.profiles).join(' | '))"
 node -e "import('./src/skill-quality.js').then(m=>console.log('status:', m.SKILL_QUALITY_STATUSES.join(' | ')))"
 ```
 
@@ -658,7 +658,7 @@ deve ficar **<8000 bytes** — mantenha os três arquivos curtos.
 - [ ] **Passo 3: autoridade com expiração datada**
 
 `tests/fixtures/area-demo/core/authorities/demo-autoridade.json`, validado contra
-`_criminalsquad/core/authority-record.schema.json`. Dois testes cruzam a validade:
+`_legalsquad/core/authority-record.schema.json`. Dois testes cruzam a validade:
 `today:'2026-07-09'` → `ok:true`; `today:'2026-07-10'` → `ok:true` **com warning contendo
 "expirada"**. Isso exige exatamente:
 
@@ -966,7 +966,7 @@ se fez com o `catalog-scout` na Task 2.
 - [ ] **Passo 4: Repo fonte intocado**
 
 ```bash
-git -C ~/Documents/Projetos/Devlop/criminalsquad/app status --short > /tmp/cs-final.txt
+git -C ~/Documents/Projetos/Devlop/legalsquad/app status --short > /tmp/cs-final.txt
 diff /tmp/cs-antes.txt /tmp/cs-final.txt && echo "READ-ONLY OK"
 ```
 
@@ -979,10 +979,10 @@ No `CLAUDE.md`, seção "Pendências abertas":
    catalog-scout apagados por engano), ~21 eram matéria removida e ~57 eram motor testado com fixture
    criminal, hoje sobre `tests/fixtures/area-demo/`.
 2. **Corrigir a fonte extrajudicial:** `~/Devlop/ejsquad/app` **não existe** no disco. Ajustar a
-   tabela de repositórios no `CLAUDE.md` e no `README.md` para refletir que só `criminalsquad` e
+   tabela de repositórios no `CLAUDE.md` e no `README.md` para refletir que só `legalsquad` e
    `dtsquad` estão presentes.
 3. **Registrar o conjunto transversal** como derivável hoje: a interseção de nomes entre
-   `criminalsquad` e `dtsquad` dá exatamente 20 entradas (19 skills + `_evals`), confirmando o número
+   `legalsquad` e `dtsquad` dá exatamente 20 entradas (19 skills + `_evals`), confirmando o número
    da `ARQUITETURA §3` sem depender do ejsquad. Anotar que `incidente-falsidade-documental` é a única
    com cara de matéria — **o F1 decide se é transversal de verdade ou por acidente de fork**.
 
@@ -1008,7 +1008,7 @@ trabalhista, sem depender dele."
 | 1 | `npm test` sem falha e sem skip | Task 8, Passo 1 |
 | 2 | `build:ide` roda e não altera o `CLAUDE.md` | Task 8, Passo 2 |
 | 3 | A dívida de fronteira não cresce (teste guarda) | Task 8, Passo 3 |
-| 4 | `criminalsquad` intocado | Task 8, Passo 4 |
+| 4 | `legalsquad` intocado | Task 8, Passo 4 |
 | 5 | Documentação alinhada ao real | Task 8, Passo 5 |
 
 Critérios 4 e 5 da §5 do spec — determinismo de empacotamento e recusa de pacote adulterado —

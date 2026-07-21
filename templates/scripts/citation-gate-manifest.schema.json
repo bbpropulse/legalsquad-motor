@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://criminalsquad.local/schemas/citation-gate-manifest-v1.json",
-  "title": "CriminalSquad Citation Gate Attestation v1",
+  "$id": "https://legalsquad.local/schemas/citation-gate-manifest-v1.json",
+  "title": "LegalSquad Citation Gate Attestation v1",
   "description": "Atestação local da verificação material de citações. O hook valida estrutura e integridade; não confirma fontes externas.",
   "type": "object",
   "additionalProperties": false,
@@ -19,7 +19,7 @@
   ],
   "properties": {
     "schema_version": { "const": "1" },
-    "kind": { "const": "criminalsquad.citation-gate-attestation" },
+    "kind": { "const": "legalsquad.citation-gate-attestation" },
     "artifact": { "type": "string", "minLength": 1, "pattern": "^[^/\\\\]+$" },
     "artifact_sha256": { "type": "string", "pattern": "^(?:sha256:)?[a-fA-F0-9]{64}$" },
     "gate_status": { "const": "aprovado" },

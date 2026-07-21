@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Builds the public distribution tree: exactly the npm-packable set (package.json
 // `files[]`) plus package.json and the mentee-facing docs. This is what goes into
-// the PUBLIC bbpropulse/criminalsquad-dist repo — no dev history, no tests, no
+// the PUBLIC bbpropulse/legalsquad-dist repo — no dev history, no tests, no
 // dev-only dirs, no commercial staging, and nothing gitignored (real cases,
 // _memory, .env are never referenced here). Re-run on each release, then commit
 // and push the output dir to the dist repo.
@@ -44,9 +44,9 @@ for (const entry of entries) {
 // A minimal .gitignore for the dist repo (only matters if someone works inside it).
 writeFileSync(join(OUT, '.gitignore'), [
   'node_modules/',
-  '_criminalsquad/_memory/',
-  '_criminalsquad/_browser_profile/',
-  '_criminalsquad/logs/',
+  '_legalsquad/_memory/',
+  '_legalsquad/_browser_profile/',
+  '_legalsquad/logs/',
   'acervo/casos/',
   'squads/*/_memory/',
   '.env',

@@ -102,7 +102,7 @@ function validateManifest(manifest, artifactPath, artifactBuffer, artifactText) 
   const errors = [];
   if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) return ['manifesto deve ser objeto JSON'];
   if (manifest.schema_version !== '1') errors.push('schema_version deve ser "1"');
-  if (manifest.kind !== 'criminalsquad.citation-gate-attestation') errors.push('kind inválido');
+  if (manifest.kind !== 'legalsquad.citation-gate-attestation') errors.push('kind inválido');
   if (manifest.artifact !== basename(artifactPath)) errors.push(`artifact deve ser "${basename(artifactPath)}"`);
   if (!/^[a-f0-9]{64}$/.test(cleanHash(manifest.artifact_sha256))) errors.push('artifact_sha256 deve ser SHA-256 hexadecimal');
   if (cleanHash(manifest.artifact_sha256) !== sha256(artifactBuffer)) errors.push('artifact_sha256 não corresponde ao artefato atual');

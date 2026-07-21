@@ -10,11 +10,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Mesma fonte que src/install-global.js usa (o tarball só ships templates/,
 // não o .claude/ do próprio repo) — deriva a contagem esperada dela em vez
 // de fixar um número calibrado em quantos agentes especialistas o
-// CriminalSquad tinha antes do F0.
+// LegalSquad tinha antes do F0.
 const AGENTS_TEMPLATE_DIR = join(ROOT, 'templates', 'ide-templates', 'claude-code', '.claude', 'agents');
 
 async function withTempHome(fn) {
-  const home = await mkdtemp(join(tmpdir(), 'criminalsquad-global-'));
+  const home = await mkdtemp(join(tmpdir(), 'legalsquad-global-'));
   try {
     return await fn(home);
   } finally {
@@ -25,9 +25,9 @@ async function withTempHome(fn) {
 test('install-global does NOT create a global data home (project data stays per-folder)', async () => {
   await withTempHome(async (home) => {
     await installGlobal({ homeDir: home });
-    // No casa padrão: the global install ships only the command; the /criminalsquad
+    // No casa padrão: the global install ships only the command; the /legalsquad
     // skill auto-initializes the current project folder on first use.
-    await assert.rejects(stat(join(home, 'CriminalSquad', '_criminalsquad')));
+    await assert.rejects(stat(join(home, 'LegalSquad', '_legalsquad')));
   });
 });
 
@@ -35,10 +35,10 @@ test('install-global installs the skill into ~/.claude/skills', async () => {
   await withTempHome(async (home) => {
     await installGlobal({ homeDir: home });
     const skill = await readFile(
-      join(home, '.claude', 'skills', 'criminalsquad', 'SKILL.md'),
+      join(home, '.claude', 'skills', 'legalsquad', 'SKILL.md'),
       'utf-8'
     );
-    assert.ok(skill.includes('name: criminalsquad'));
+    assert.ok(skill.includes('name: legalsquad'));
     assert.ok(skill.includes('Chefe-roteador'));
   });
 });
@@ -63,7 +63,7 @@ test('install-global activates the chefe-roteador in ~/.claude/CLAUDE.md', async
     const claudeMd = await readFile(join(home, '.claude', 'CLAUDE.md'), 'utf-8');
     assert.ok(claudeMd.includes('chefe-roteador'));
     assert.ok(claudeMd.includes('ignore este bloco e responda normalmente'), 'must include the non-legal exit clause');
-    assert.ok(claudeMd.includes('BEGIN CriminalSquad'));
+    assert.ok(claudeMd.includes('BEGIN LegalSquad'));
   });
 });
 
@@ -78,8 +78,8 @@ test('install-global preserves an existing global CLAUDE.md and is idempotent', 
 
     const claudeMd = await readFile(join(claudeDir, 'CLAUDE.md'), 'utf-8');
     assert.ok(claudeMd.includes('Minhas regras globais'), 'user content must be preserved');
-    const occurrences = claudeMd.split('BEGIN CriminalSquad').length - 1;
-    assert.equal(occurrences, 1, 'the CriminalSquad block must appear exactly once');
+    const occurrences = claudeMd.split('BEGIN LegalSquad').length - 1;
+    assert.equal(occurrences, 1, 'the LegalSquad block must appear exactly once');
   });
 });
 
@@ -97,13 +97,13 @@ test('install-global never overwrites a user agent of the same name', async () =
   });
 });
 
-test('install-global collapses duplicate/corrupted CriminalSquad blocks into one', async () => {
+test('install-global collapses duplicate/corrupted LegalSquad blocks into one', async () => {
   await withTempHome(async (home) => {
     const claudeDir = join(home, '.claude');
     await mkdir(claudeDir, { recursive: true });
     // Simulate a file already corrupted by an older buggy run: two full blocks.
-    const begin = '<!-- BEGIN CriminalSquad (install-global) -->';
-    const end = '<!-- END CriminalSquad (install-global) -->';
+    const begin = '<!-- BEGIN LegalSquad (install-global) -->';
+    const end = '<!-- END LegalSquad (install-global) -->';
     const corrupted =
       `# Regras do usuário\nManter isto.\n\n${begin}\nbloco antigo 1\n${end}\n\n${begin}\nbloco antigo 2\n${end}\n`;
     await writeFile(join(claudeDir, 'CLAUDE.md'), corrupted, 'utf-8');
@@ -125,7 +125,7 @@ test('install-global backs up CLAUDE.md before modifying an existing file', asyn
     // Worst case: user wrapped their OWN rule in our reserved markers. We cannot
     // tell it apart from our block, so it is replaced — but must be recoverable.
     const original =
-      '# Minhas regras\n<!-- BEGIN CriminalSquad (install-global) -->\nREGRA QUE NAO PODE SUMIR\n<!-- END CriminalSquad (install-global) -->\n';
+      '# Minhas regras\n<!-- BEGIN LegalSquad (install-global) -->\nREGRA QUE NAO PODE SUMIR\n<!-- END LegalSquad (install-global) -->\n';
     await writeFile(join(claudeDir, 'CLAUDE.md'), original, 'utf-8');
 
     const result = await installGlobal({ homeDir: home });
@@ -145,7 +145,7 @@ test('install-global keeps CRLF line endings on a Windows-style CLAUDE.md', asyn
     await installGlobal({ homeDir: home });
 
     const md = await readFile(join(claudeDir, 'CLAUDE.md'), 'utf-8');
-    assert.ok(md.includes('BEGIN CriminalSquad'), 'block was inserted');
+    assert.ok(md.includes('BEGIN LegalSquad'), 'block was inserted');
     // No lone LF inside the appended block (everything should be CRLF).
     const loneLf = /[^\r]\n/.test(md);
     assert.ok(!loneLf, 'must not introduce lone LF into a CRLF file');

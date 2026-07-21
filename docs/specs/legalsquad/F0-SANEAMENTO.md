@@ -34,11 +34,11 @@ frontmatter — então, apagados, ele quebra com `ENOENT`.
 
 Do `MANIFEST` em [`src/build-ide-templates.js`](../../../src/build-ide-templates.js):
 
-- `templates/ide-templates/claude-code/.claude/skills/criminalsquad/SKILL.md`
-- `templates/ide-templates/gemini-cli/.gemini/skills/criminalsquad/SKILL.md`
-- `templates/ide-templates/qwen-code/.qwen/skills/criminalsquad/SKILL.md`
-- `.claude/skills/criminalsquad/SKILL.md` — a cópia do próprio repo
-- `templates/ide-templates/codex/.agents/skills/criminalsquad/SKILL.md` — fora do MANIFEST, exigido
+- `templates/ide-templates/claude-code/.claude/skills/legalsquad/SKILL.md`
+- `templates/ide-templates/gemini-cli/.gemini/skills/legalsquad/SKILL.md`
+- `templates/ide-templates/qwen-code/.qwen/skills/legalsquad/SKILL.md`
+- `.claude/skills/legalsquad/SKILL.md` — a cópia do próprio repo
+- `templates/ide-templates/codex/.agents/skills/legalsquad/SKILL.md` — fora do MANIFEST, exigido
   por `init.test.js:424`
 
 E o **catalog-scout** — o batedor read-only do catálogo, mecanismo de descoberta:
@@ -47,7 +47,7 @@ E o **catalog-scout** — o batedor read-only do catálogo, mecanismo de descobe
 - `templates/ide-templates/claude-code/.claude/agents/catalog-scout.md`
 - `templates/ide-templates/codex/.Codex/agents/catalog-scout.toml`
 
-Fonte: leitura de `~/Documents/Projetos/Devlop/criminalsquad/app` (read-only), seguida de
+Fonte: leitura de `~/Documents/Projetos/Devlop/legalsquad/app` (read-only), seguida de
 `npm run build:ide`. O `command-body.md` local é **idêntico** ao do repo fonte — só o frontmatter
 por IDE é próprio de cada arquivo.
 
@@ -135,7 +135,7 @@ tests/fixtures/area-demo/
 │   ├── conector-mcp/                   # type: mcp · env: [DEMO_TOKEN]
 │   ├── gerador-imagem/                 # env: []
 │   ├── gerador-imagem-env/             # env: [DEMO_API_KEY]
-│   └── criminalsquad-skill-creator/    # + scripts/ não-vazio; nome real hardcoded no motor
+│   └── legalsquad-skill-creator/    # + scripts/ não-vazio; nome real hardcoded no motor
 ├── acervo/
 │   ├── _index.yaml                     # GERADO por indexar-acervo
 │   ├── jurisprudencia/tribunal-demo/DEMO_2024.md   # VERIFIED_OFFICIAL
@@ -299,7 +299,7 @@ Ordem de execução: **A → B → C → pacote**.
 
    As 7 são consequência direta da dívida congelada, não trabalho por fazer — mas por **duas causas
    distintas**, não uma só. **6 delas** — `init.test.js` (4: `apify`/`blotato`/`canva` não instaladas,
-   `criminalsquad-skill-creator/scripts`, `_evals/README.md`,
+   `legalsquad-skill-creator/scripts`, `_evals/README.md`,
    `habeas-corpus/references/high-performance-contract.md`), `update.test.js` (1:
    `image-ai-generator/SKILL.md`) e `cli.test.js` (1: `skillsCli install` de `image-creator`) — são
    **ENOENT puro**: `installAllSkills` e o `resource-cli.js` (via `skills.js`) tentam copiar skills de
@@ -321,18 +321,18 @@ Ordem de execução: **A → B → C → pacote**.
    calibrada em conteúdo criminal.
 4. Empacotar a fixture duas vezes produz **hashes idênticos**.
 5. Um pacote com **um byte adulterado** é recusado na verificação, com erro claro.
-6. **Nada foi escrito em `~/Documents/Projetos/Devlop/criminalsquad/app` por este trabalho.**
+6. **Nada foi escrito em `~/Documents/Projetos/Devlop/legalsquad/app` por este trabalho.**
 
    O critério **não** é "`git status` limpo" — isso não é mais verificável. Durante a execução deste
    ciclo, uma sessão paralela passou a implementar `sync` e overlay de pacotes *dentro* do
-   CriminalSquad (12 arquivos modificados, `src/packs-overlay.js` e `tests/packs-overlay.test.js`
+   LegalSquad (12 arquivos modificados, `src/packs-overlay.js` e `tests/packs-overlay.test.js`
    novos). É trabalho deliberado do autor, não interferência deste ciclo.
 
-   O critério passa a ser **diferencial**: registrar `git -C <criminalsquad> status --short` antes de
+   O critério passa a ser **diferencial**: registrar `git -C <legalsquad> status --short` antes de
    cada tarefa e comparar depois. Só as mudanças introduzidas pela tarefa contam.
 
    > **Nota para o F1/Plano 2.** Essa implementação paralela cria um `sync` e um formato de cache de
-   > pacotes no CriminalSquad, enquanto a §4 deste spec define o formato de pacote para o LegalSquad.
+   > pacotes no LegalSquad, enquanto a §4 deste spec define o formato de pacote para o LegalSquad.
    > São o mesmo conceito em dois repositórios — exatamente a duplicação que a
    > [`MIGRACAO.md`](MIGRACAO.md) chama de "sangria de portar correção à mão entre forks". Antes de
    > executar o Plano 2, vale decidir se o formato do LegalSquad **adota** o que foi construído lá,
@@ -357,8 +357,8 @@ código do motor**. A fronteira núcleo × pacote do `CLAUDE.md` está violada n
 | `templates/package.json:14` | script `calculo:remicao` | baixa — órfão |
 | `templates/ide-assets/command-body.md:12,150` | lista os 9 squads criminais e cita `habeas-corpus`, `triagem-novo-caso`, `execução penal`… | **alta** — fonte (`npm run build:ide`) de 7 cópias em `templates/` (linha abaixo) mais a cópia do próprio repo em `.claude/skills/`, fora do escopo deste teste |
 | `templates/ide-assets/instructions-body.md:20` | descreve a biblioteca de skills por matéria: "execução penal, tribunal do júri…" | **alta** — fonte (`npm run build:ide`) das outras 6 cópias em `templates/` (linha abaixo) |
-| 13 cópias geradas dos dois arquivos acima, uma por IDE — mesmo corpo, frontmatter próprio: `templates/ide-templates/claude-code/CLAUDE.md`, `templates/ide-templates/claude-code/.claude/skills/criminalsquad/SKILL.md`, `templates/ide-templates/cursor/.cursor/rules/criminalsquad.mdc`, `templates/ide-templates/qwen-code/QWEN.md`, `templates/ide-templates/qwen-code/.qwen/skills/criminalsquad/SKILL.md`, `templates/ide-templates/codex/AGENTS.md`, `templates/ide-templates/gemini-cli/GEMINI.md`, `templates/ide-templates/gemini-cli/.gemini/skills/criminalsquad/SKILL.md`, `templates/ide-templates/vscode-copilot/.github/prompts/criminalsquad.prompt.md`, `templates/ide-templates/trae/.trae/rules/criminalsquad.md`, `templates/ide-templates/antigravity/.agent/rules/criminalsquad.md`, `templates/ide-templates/antigravity/.agent/workflows/criminalsquad.md`, `templates/ide-templates/opencode/AGENTS.md` | herdam a matéria da linha acima; `npm run build:ide` reintroduz se alguém limpar só a cópia | **alta** — mesma causa raiz, 13 sintomas |
-| `_criminalsquad/core/architect.agent.yaml`, `_criminalsquad/core/runner.pipeline.md`, `_criminalsquad/core/seeds/company.md`, `_criminalsquad/core/prompts/discovery.prompt.md`, `_criminalsquad/core/prompts/design.prompt.md`, `_criminalsquad/core/prompts/build.prompt.md`, `_criminalsquad/core/prompts/sherlock-shared.md`, `_criminalsquad/core/prompts/sherlock-instagram.md`, `_criminalsquad/core/prompts/sherlock-youtube.md`, `_criminalsquad/core/prompts/sherlock-twitter.md`, `_criminalsquad/core/prompts/sherlock-linkedin.md` (11 arquivos) e `.claude/skills/criminalsquad/SKILL.md` (1 arquivo) — **12 ao todo** | instruem o Architect e o Sherlock a ler `execucao-penal-alta-performance.md` e a consultar `skills/_execucao-penal-v3-integration.yaml`; `company.md` lista "execução penal" como nicho de exemplo; `SKILL.md` descreve a biblioteca de 520 skills e os 9 squads criminais | **alta** — `_criminalsquad/core/` está em `CANONICAL_SOURCES` de `src/init.js`: é o caminho pelo qual matéria criminal chega a **todo usuário novo** via `init` |
+| 13 cópias geradas dos dois arquivos acima, uma por IDE — mesmo corpo, frontmatter próprio: `templates/ide-templates/claude-code/CLAUDE.md`, `templates/ide-templates/claude-code/.claude/skills/legalsquad/SKILL.md`, `templates/ide-templates/cursor/.cursor/rules/legalsquad.mdc`, `templates/ide-templates/qwen-code/QWEN.md`, `templates/ide-templates/qwen-code/.qwen/skills/legalsquad/SKILL.md`, `templates/ide-templates/codex/AGENTS.md`, `templates/ide-templates/gemini-cli/GEMINI.md`, `templates/ide-templates/gemini-cli/.gemini/skills/legalsquad/SKILL.md`, `templates/ide-templates/vscode-copilot/.github/prompts/legalsquad.prompt.md`, `templates/ide-templates/trae/.trae/rules/legalsquad.md`, `templates/ide-templates/antigravity/.agent/rules/legalsquad.md`, `templates/ide-templates/antigravity/.agent/workflows/legalsquad.md`, `templates/ide-templates/opencode/AGENTS.md` | herdam a matéria da linha acima; `npm run build:ide` reintroduz se alguém limpar só a cópia | **alta** — mesma causa raiz, 13 sintomas |
+| `_legalsquad/core/architect.agent.yaml`, `_legalsquad/core/runner.pipeline.md`, `_legalsquad/core/seeds/company.md`, `_legalsquad/core/prompts/discovery.prompt.md`, `_legalsquad/core/prompts/design.prompt.md`, `_legalsquad/core/prompts/build.prompt.md`, `_legalsquad/core/prompts/sherlock-shared.md`, `_legalsquad/core/prompts/sherlock-instagram.md`, `_legalsquad/core/prompts/sherlock-youtube.md`, `_legalsquad/core/prompts/sherlock-twitter.md`, `_legalsquad/core/prompts/sherlock-linkedin.md` (11 arquivos) e `.claude/skills/legalsquad/SKILL.md` (1 arquivo) — **12 ao todo** | instruem o Architect e o Sherlock a ler `execucao-penal-alta-performance.md` e a consultar `skills/_execucao-penal-v3-integration.yaml`; `company.md` lista "execução penal" como nicho de exemplo; `SKILL.md` descreve a biblioteca de 520 skills e os 9 squads criminais | **alta** — `_legalsquad/core/` está em `CANONICAL_SOURCES` de `src/init.js`: é o caminho pelo qual matéria criminal chega a **todo usuário novo** via `init` |
 
 **Classificado como mecanismo, não matéria:** a regex de
 `templates/ide-templates/*/hooks/verifica-citacoes.mjs:32` (`REsp|HC|Súmula|LEP|CPP|art.`). É o
@@ -372,12 +372,12 @@ citam `LEP` só como token da regex de citação) apareceriam como falso positiv
 que `npm run build:ide` gera a partir delas — 15 arquivos ao todo, todos hoje na `DIVIDA_CONHECIDA`
 de `tests/fronteira.test.js`, que guarda esse inventário contra crescimento.
 
-**Chega a todo usuário novo via `init`:** os 12 arquivos de `_criminalsquad/core/` e
-`.claude/skills/criminalsquad/SKILL.md` acima também estão na `DIVIDA_CONHECIDA` de
-`tests/fronteira.test.js`, que agora varre `_criminalsquad/` e `.claude/` além de
+**Chega a todo usuário novo via `init`:** os 12 arquivos de `_legalsquad/core/` e
+`.claude/skills/legalsquad/SKILL.md` acima também estão na `DIVIDA_CONHECIDA` de
+`tests/fronteira.test.js`, que agora varre `_legalsquad/` e `.claude/` além de
 `src/ bin/ scripts/ templates/`. Diferem em gravidade dos demais: não são só código do motor, são
 **prompt e best-practice do Architect/Sherlock** — o texto que o agente lê para decidir o que fazer
-— e `_criminalsquad/core/` está em `CANONICAL_SOURCES` de `src/init.js`, copiado por todo `init`
+— e `_legalsquad/core/` está em `CANONICAL_SOURCES` de `src/init.js`, copiado por todo `init`
 novo. É a rota mais direta de vazamento de matéria para o usuário final.
 
 ### Decisão
@@ -403,7 +403,7 @@ fronteira, falhando se aparecer matéria em arquivo que hoje está limpo.
 | **Des-criminalizar o `src/`** | Dívida da §5-bis. A correção é parametrizar por pacote de área, e o parâmetro só existe com o `build-area`. |
 | `build-area` | É o F1. Este ciclo entrega o contrato que ele vai cumprir. |
 | Extrair o pacote `transversal` | Extrair as 19 skills transversais *é* trabalho do `build-area`; fazer à mão seria uma 2ª cópia manual, contra a regra "a última cópia". |
-| Rename `criminalsquad` → `legalsquad` | [`ARQUITETURA.md §6`](ARQUITETURA.md) recomenda adiar até a 2ª área ser comercializada. |
+| Rename `legalsquad` → `legalsquad` | [`ARQUITETURA.md §6`](ARQUITETURA.md) recomenda adiar até a 2ª área ser comercializada. |
 | `sync`, licença, entitlement | F3. |
 
 ## 7. Correção de documentação
@@ -412,9 +412,9 @@ Duas coisas que a doc afirma e não se sustentam:
 
 1. **`ejsquad` não existe no disco.** `CLAUDE.md`, `README.md` e `MIGRACAO.md` listam
    `~/Devlop/ejsquad/app` como fonte do conteúdo extrajudicial; o caminho não existe (nem
-   `~/Devlop/ejsquad`). Só `criminalsquad` (520 skills) e `dtsquad` (405) estão presentes.
+   `~/Devlop/ejsquad`). Só `legalsquad` (520 skills) e `dtsquad` (405) estão presentes.
 2. **O conjunto transversal é derivável hoje.** A doc diz que as ~20 skills transversais foram
-   "isoladas ao criar o EJsquad". Com o ejsquad ausente, a interseção de nomes entre `criminalsquad`
+   "isoladas ao criar o EJsquad". Com o ejsquad ausente, a interseção de nomes entre `legalsquad`
    e `dtsquad` dá **exatamente 20 entradas** (19 skills + `_evals`), confirmando o número da
    `ARQUITETURA §3`:
 

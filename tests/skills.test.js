@@ -29,7 +29,7 @@ const SAMPLE_SKILL_MD = `---\nname: seo-optimizer\nversion: 1.2.0\ntype: tool\nd
 // --- listInstalled ---
 
 test('listInstalled returns empty array when skills/ does not exist', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const result = await listInstalled(dir);
     assert.deepEqual(result, []);
@@ -38,11 +38,11 @@ test('listInstalled returns empty array when skills/ does not exist', async () =
   }
 });
 
-test('listInstalled excludes the built-in criminalsquad-skill-creator skill', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+test('listInstalled excludes the built-in legalsquad-skill-creator skill', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const skillsDir = join(dir, 'skills');
-    await mkdir(join(skillsDir, 'criminalsquad-skill-creator'), { recursive: true });
+    await mkdir(join(skillsDir, 'legalsquad-skill-creator'), { recursive: true });
     await mkdir(join(skillsDir, 'seo-optimizer'), { recursive: true });
     const result = await listInstalled(dir);
     assert.deepEqual(result, ['seo-optimizer']);
@@ -52,7 +52,7 @@ test('listInstalled excludes the built-in criminalsquad-skill-creator skill', as
 });
 
 test('listInstalled returns installed skill ids from skills/', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const skillsDir = join(dir, 'skills');
     await mkdir(join(skillsDir, 'seo-optimizer'), { recursive: true });
@@ -78,7 +78,7 @@ test('listAvailable returns bundled skill ids', async () => {
 // --- installSkill ---
 
 test('installSkill copies SKILL.md from bundled skills to skills/<id>/', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await installSkill('gerador-imagem', dir, SKILLS_DEMO);
     const content = await readFile(join(dir, 'skills', 'gerador-imagem', 'SKILL.md'), 'utf-8');
@@ -90,7 +90,7 @@ test('installSkill copies SKILL.md from bundled skills to skills/<id>/', async (
 });
 
 test('installSkill creates skills/ directory if missing', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await installSkill('conector-mcp', dir, SKILLS_DEMO);
     const content = await readFile(join(dir, 'skills', 'conector-mcp', 'SKILL.md'), 'utf-8');
@@ -101,7 +101,7 @@ test('installSkill creates skills/ directory if missing', async () => {
 });
 
 test('installSkill throws when skill not found in bundled skills', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await assert.rejects(
       () => installSkill('nonexistent', dir),
@@ -113,7 +113,7 @@ test('installSkill throws when skill not found in bundled skills', async () => {
 });
 
 test('installSkill throws on invalid skill id', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await assert.rejects(
       () => installSkill('../evil', dir),
@@ -124,13 +124,13 @@ test('installSkill throws on invalid skill id', async () => {
   }
 });
 
-test('installSkill copies full directory including subdirs for criminalsquad-skill-creator', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+test('installSkill copies full directory including subdirs for legalsquad-skill-creator', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
-    await installSkill('criminalsquad-skill-creator', dir, SKILLS_DEMO);
-    const skill = await readFile(join(dir, 'skills', 'criminalsquad-skill-creator', 'SKILL.md'), 'utf-8');
+    await installSkill('legalsquad-skill-creator', dir, SKILLS_DEMO);
+    const skill = await readFile(join(dir, 'skills', 'legalsquad-skill-creator', 'SKILL.md'), 'utf-8');
     assert.ok(skill.length > 0);
-    const scripts = await readdir(join(dir, 'skills', 'criminalsquad-skill-creator', 'scripts'));
+    const scripts = await readdir(join(dir, 'skills', 'legalsquad-skill-creator', 'scripts'));
     assert.ok(scripts.length > 0);
     // installSkill não conhece excludeInstalled (só listInstalled filtra) — o
     // conteúdo real fica em disco, mas listInstalled deve escondê-lo mesmo assim.
@@ -138,7 +138,7 @@ test('installSkill copies full directory including subdirs for criminalsquad-ski
     // mão), aqui o caminho de exclusão é exercitado contra uma skill de verdade,
     // instalada pelo fluxo real (mesmo nome hardcoded em src/skills.js:14).
     const installed = await listInstalled(dir);
-    assert.ok(!installed.includes('criminalsquad-skill-creator'));
+    assert.ok(!installed.includes('legalsquad-skill-creator'));
   } finally {
     await rm(dir, { recursive: true });
   }
@@ -153,7 +153,7 @@ test('installSkill skips copy when src and dest resolve to the same path', async
 // --- removeSkill ---
 
 test('removeSkill deletes the skill directory from skills/', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const skillDir = join(dir, 'skills', 'seo-optimizer');
     await mkdir(skillDir, { recursive: true });
@@ -169,7 +169,7 @@ test('removeSkill deletes the skill directory from skills/', async () => {
 });
 
 test('removeSkill does not throw when skill not installed', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await assert.doesNotReject(() => removeSkill('nonexistent', dir));
   } finally {
@@ -178,7 +178,7 @@ test('removeSkill does not throw when skill not installed', async () => {
 });
 
 test('removeSkill throws on invalid skill id', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await assert.rejects(
       () => removeSkill('../evil', dir),
@@ -192,7 +192,7 @@ test('removeSkill throws on invalid skill id', async () => {
 // --- getSkillVersion ---
 
 test('getSkillVersion returns version from SKILL.md frontmatter', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const skillDir = join(dir, 'skills', 'seo-optimizer');
     await mkdir(skillDir, { recursive: true });
@@ -205,7 +205,7 @@ test('getSkillVersion returns version from SKILL.md frontmatter', async () => {
 });
 
 test('getSkillVersion returns null when SKILL.md has no version', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const skillDir = join(dir, 'skills', 'seo-optimizer');
     await mkdir(skillDir, { recursive: true });
@@ -218,7 +218,7 @@ test('getSkillVersion returns null when SKILL.md has no version', async () => {
 });
 
 test('getSkillVersion returns null when skill is not installed', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const version = await getSkillVersion('nonexistent', dir);
     assert.equal(version, null);
@@ -228,7 +228,7 @@ test('getSkillVersion returns null when skill is not installed', async () => {
 });
 
 test('getSkillVersion returns null when SKILL.md has no frontmatter', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const skillDir = join(dir, 'skills', 'seo-optimizer');
     await mkdir(skillDir, { recursive: true });
@@ -262,7 +262,7 @@ test('getSkillMeta reads lifecycle and version from nested metadata', async () =
   const meta = await getSkillMeta(id, SKILLS_DEMO);
   assert.equal(meta.lifecycle, 'preview');
 
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await installSkill(id, dir, SKILLS_DEMO);
     assert.equal(await getSkillVersion(id, dir), '3.0.0');
@@ -334,7 +334,7 @@ test('clearMetaCache forces re-read from disk', async () => {
 });
 
 test('installSkill invalidates metaCache for that skill', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const before = await getSkillMeta('gerador-imagem', SKILLS_DEMO);
     await installSkill('gerador-imagem', dir, SKILLS_DEMO);
@@ -346,7 +346,7 @@ test('installSkill invalidates metaCache for that skill', async () => {
 });
 
 test('removeSkill invalidates metaCache for that skill', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await installSkill('gerador-imagem', dir, SKILLS_DEMO);
     await getSkillMeta('gerador-imagem', SKILLS_DEMO); // populate cache

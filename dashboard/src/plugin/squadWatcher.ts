@@ -93,7 +93,7 @@ const AGENT_STATUSES = new Set(["idle", "working", "delivering", "done", "checkp
 // validate the FULL shape — not just the top-level types. A structurally-valid
 // but incomplete state (e.g. step:{} or an agent without desk) would otherwise
 // propagate `undefined` into the feed and crash the Phaser scene (a.desk.col).
-// Contrato único (lado do ESCRITOR): _criminalsquad/core/state.schema.json,
+// Contrato único (lado do ESCRITOR): _legalsquad/core/state.schema.json,
 // gravado por scripts/squad-state.mjs. Mantenha os enums abaixo em sincronia.
 function isValidState(data: unknown): data is SquadState {
   if (!data || typeof data !== "object") return false;

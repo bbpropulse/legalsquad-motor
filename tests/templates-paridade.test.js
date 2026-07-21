@@ -25,19 +25,19 @@ async function body(relPath) {
 // wrapped differently per IDE. Drift between copies is silent in production
 // (each file is hand-maintained) — these tests turn drift into a CI failure.
 
-// --- Shared /criminalsquad command body (the ~271-line skill prompt) ---
+// --- Shared /legalsquad command body (the ~271-line skill prompt) ---
 
 const COMMAND_BODY_FILES = [
-  'claude-code/.claude/skills/criminalsquad/SKILL.md',
-  'gemini-cli/.gemini/skills/criminalsquad/SKILL.md',
-  'qwen-code/.qwen/skills/criminalsquad/SKILL.md',
-  'vscode-copilot/.github/prompts/criminalsquad.prompt.md',
-  'antigravity/.agent/workflows/criminalsquad.md',
+  'claude-code/.claude/skills/legalsquad/SKILL.md',
+  'gemini-cli/.gemini/skills/legalsquad/SKILL.md',
+  'qwen-code/.qwen/skills/legalsquad/SKILL.md',
+  'vscode-copilot/.github/prompts/legalsquad.prompt.md',
+  'antigravity/.agent/workflows/legalsquad.md',
   'codex/AGENTS.md',
   'opencode/AGENTS.md',
 ];
 
-test('the /criminalsquad command body is identical across every IDE that carries it', async () => {
+test('the /legalsquad command body is identical across every IDE that carries it', async () => {
   const [reference, ...rest] = await Promise.all(COMMAND_BODY_FILES.map(body));
   assert.ok(reference.length > 1000, 'reference command body looks too short');
   for (let i = 0; i < rest.length; i++) {
@@ -55,9 +55,9 @@ const INSTRUCTIONS_BODY_FILES = [
   'claude-code/CLAUDE.md',
   'gemini-cli/GEMINI.md',
   'qwen-code/QWEN.md',
-  'antigravity/.agent/rules/criminalsquad.md',
-  'cursor/.cursor/rules/criminalsquad.mdc',
-  'trae/.trae/rules/criminalsquad.md',
+  'antigravity/.agent/rules/legalsquad.md',
+  'cursor/.cursor/rules/legalsquad.mdc',
+  'trae/.trae/rules/legalsquad.md',
 ];
 
 test('the project-instructions body is identical across every IDE that carries it', async () => {

@@ -139,7 +139,7 @@ export function createResourceCli(config) {
   return async function run(subcommand, args, targetDir) {
     // Require initialized project
     try {
-      await stat(join(targetDir, '_criminalsquad'));
+      await stat(join(targetDir, '_legalsquad'));
     } catch {
       await loadLocale('English');
       console.log(`\n  ${tp('NotInitialized')}\n`);

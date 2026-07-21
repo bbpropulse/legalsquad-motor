@@ -12,11 +12,11 @@ node_modules/
 # real — sigilo/LGPD. O scaffold do produto fica em templates/squads/*/_memory/.
 /squads/*/_memory/
 
-# Instância de memória/sessões do projeto (o produto distribui via _criminalsquad/core/seeds/)
-/_criminalsquad/_memory/company.md
-/_criminalsquad/_memory/preferences.md
-/_criminalsquad/_browser_profile/
-/_criminalsquad/logs/
+# Instância de memória/sessões do projeto (o produto distribui via _legalsquad/core/seeds/)
+/_legalsquad/_memory/company.md
+/_legalsquad/_memory/preferences.md
+/_legalsquad/_browser_profile/
+/_legalsquad/logs/
 
 # Acervo: dados de clientes na RAIZ (sigilo/LGPD). A estrutura-modelo fica em templates/acervo/.
 /acervo/casos/
@@ -38,9 +38,9 @@ test-results/
 **/.DS_Store
 
 # Runtime/privado (memória, estados, cache, mapa do vault Obsidian)
-/_criminalsquad/_memory/vault-map.yaml
-/_criminalsquad/_memory/states/
-/_criminalsquad/_memory/djen-tracker.jsonl
+/_legalsquad/_memory/vault-map.yaml
+/_legalsquad/_memory/states/
+/_legalsquad/_memory/djen-tracker.jsonl
 
 # Python bytecode (scripts embarcados)
 __pycache__/

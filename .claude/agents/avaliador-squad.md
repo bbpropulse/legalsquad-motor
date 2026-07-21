@@ -1,6 +1,6 @@
 ---
 name: avaliador-squad
-description: Juiz READ-ONLY que avalia o OUTPUT de um squad contra os `success_criteria` do `squad.yaml` (a rubrica). Dá uma nota por critério (ATENDE/PARCIAL/NÃO), uma nota geral 0–100 e sugestões — para medir qualidade e pegar regressão entre execuções. NÃO edita nada; só avalia em contexto isolado (anti-viés: quem avalia não é quem produziu). Use em `/criminalsquad eval` ou quando perguntarem "essa peça/saída está boa? quanto tira?".
+description: Juiz READ-ONLY que avalia o OUTPUT de um squad contra os `success_criteria` do `squad.yaml` (a rubrica). Dá uma nota por critério (ATENDE/PARCIAL/NÃO), uma nota geral 0–100 e sugestões — para medir qualidade e pegar regressão entre execuções. NÃO edita nada; só avalia em contexto isolado (anti-viés: quem avalia não é quem produziu). Use em `/legalsquad eval` ou quando perguntarem "essa peça/saída está boa? quanto tira?".
 tools: Read, Grep, Glob
 model: inherit
 ---

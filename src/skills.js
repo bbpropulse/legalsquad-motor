@@ -11,7 +11,7 @@ const registry = createRegistry({
   sourceFile: 'SKILL.md',
   installedDir: 'skills',
   installLayout: 'dir',
-  excludeInstalled: ['criminalsquad-skill-creator'],
+  excludeInstalled: ['legalsquad-skill-creator'],
   metaFields: [
     { key: 'type', kind: 'scalar', defaultValue: 'prompt' },
     { key: 'env', kind: 'list' },

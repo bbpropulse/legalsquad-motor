@@ -1,4 +1,4 @@
-# Plano de Implementação — Lado CriminalSquad (motor de sync)
+# Plano de Implementação — Lado LegalSquad (motor de sync)
 
 > Recorte do [PLAN.md](PLAN.md) só com o que vive **neste repositório** (a engine compartilhada).
 > Executável **sem servidor**: o motor sincroniza a partir de um pacote-semente assinado à mão.
@@ -46,12 +46,12 @@ Invariantes: o sync **só** escreve em `acervo/_packs/`; nunca toca `jurispruden
 ## Superfície de CLI
 
 ```
-criminalsquad acervo sync   [--from <dir|url>] [--only <pack_id,…>] [--dry-run]
-criminalsquad acervo status                 # tiers, packs instalados, versão, frescor (idade)
-criminalsquad acervo packs  [--json]        # disponíveis vs instalados
-criminalsquad acervo verify                 # revalida assinatura/hash de tudo no cache
+legalsquad acervo sync   [--from <dir|url>] [--only <pack_id,…>] [--dry-run]
+legalsquad acervo status                 # tiers, packs instalados, versão, frescor (idade)
+legalsquad acervo packs  [--json]        # disponíveis vs instalados
+legalsquad acervo verify                 # revalida assinatura/hash de tudo no cache
 ```
-Wiring em `bin/criminalsquad.js` (tabela de comandos) + `src/acervo-cli.js`, no padrão de
+Wiring em `bin/legalsquad.js` (tabela de comandos) + `src/acervo-cli.js`, no padrão de
 `search-acervo` e `captura`. `checkSuccess: true`.
 
 ## Algoritmo do `sync`
@@ -62,7 +62,7 @@ Wiring em `bin/criminalsquad.js` (tabela de comandos) + `src/acervo-cli.js`, no 
    a. Baixar/ler `manifest.json`.
    b. Baixar/ler cada arquivo de entidade listado.
    c. **Verificar:** `sha256` de cada arquivo == manifesto; recomputar `content_hash`; **verificar
-      assinatura Ed25519** com a pública embarcada (`_criminalsquad/config/acervo-keys.json`, por `kid`).
+      assinatura Ed25519** com a pública embarcada (`_legalsquad/config/acervo-keys.json`, por `kid`).
    d. **Só após verificar tudo:** gravar em `acervo/_packs/<pack_id>/` (escrita atômica: tmp → rename).
    e. Atualizar `acervo/_packs/_manifest.json` (`version`, `content_hash`, `verificado_em`).
 4. Aplicar `revoked` (CM4): apagar do cache packs revogados.
@@ -75,7 +75,7 @@ sync segue com os demais e sai != 0.
 ## Marcos (com arquivos e aceite)
 
 ### CM0 — Fundações no repo  · *~2 dias*
-- `_criminalsquad/config/acervo-keys.json` (chave **pública** Ed25519 + `kid`).
+- `_legalsquad/config/acervo-keys.json` (chave **pública** Ed25519 + `kid`).
 - `schemas/acervo/*.json` (norma, dispositivo+versão, decisão, súmula, tese-firmada, tese-modelo).
 - `tools/build-pack.mjs` (dev): entidades JSONL → diretório de pack + `manifest.json` + assinatura
   (assina com a privada, fora do repo).
@@ -100,14 +100,14 @@ sync segue com os demais e sai != 0.
   usuário continua `DISCOVERY_ONLY`; `casos/` fora do índice; índice fresco após sync.
 
 ### CM3 — Gate de citações  · *~2 dias*
-- `_criminalsquad/core/best-practices/verificacao-citacoes.md`: 3 níveis (assinado+vigente >
+- `_legalsquad/core/best-practices/verificacao-citacoes.md`: 3 níveis (assinado+vigente >
   DISCOVERY_ONLY > web). Citar dispositivo `revogado`/precedente `superado` **bloqueia** com aviso.
 - Hook/checagem: quando uma peça cita uma URN presente no índice como `superado`/`revogado`, sinaliza.
 - **Aceite:** citar uma súmula `vigente` do pack passa; citar um precedente `superado` bloqueia com
   a alternativa (`superado_por`).
 
 ### CM4 — Ponte com o servidor  · *~2 dias (após F2 do servidor)*
-- Trocar `--from` fixo por `GET /v1/catalog` + `~/.config/criminalsquad/license`; cache-first;
+- Trocar `--from` fixo por `GET /v1/catalog` + `~/.config/legalsquad/license`; cache-first;
   base tier sem conta; aplicar `revoked`.
 - **Aceite (mockado):** com licença Pro baixa o pack Pro; sem licença, só o base; URL expirada e
   401/403 tratados; nada de termos de busca sai do cliente (auditar o request).

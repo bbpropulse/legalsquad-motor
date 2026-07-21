@@ -212,11 +212,11 @@ test('catálogo real aplica o mesmo gate sem confiar no campo gerado do índice'
 });
 
 test('Runner e Skills Engine tornam o resolvedor pré-condição da injeção', async () => {
-  const runner = await readFile(join(ROOT, '_criminalsquad/core/runner.pipeline.md'), 'utf8');
-  const engine = await readFile(join(ROOT, '_criminalsquad/core/skills.engine.md'), 'utf8');
+  const runner = await readFile(join(ROOT, '_legalsquad/core/runner.pipeline.md'), 'utf8');
+  const engine = await readFile(join(ROOT, '_legalsquad/core/skills.engine.md'), 'utf8');
 
   for (const content of [runner, engine]) {
-    assert.match(content, /criminalsquad resolve-skills/);
+    assert.match(content, /legalsquad resolve-skills/);
     assert.match(content, /high_performance_eligible|highPerformanceEligible/);
     assert.match(content, /supervis/i);
     assert.match(content, /pilot.*opt-in/is);
@@ -227,7 +227,7 @@ test('Runner e Skills Engine tornam o resolvedor pré-condição da injeção', 
 });
 
 test('CLI propaga o gate pelo exit code e entrega manifesto JSON', () => {
-  const bin = join(ROOT, 'bin/criminalsquad.js');
+  const bin = join(ROOT, 'bin/legalsquad.js');
   const blocked = spawnSync(process.execPath, [
     bin,
     'resolve-skills',

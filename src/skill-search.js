@@ -135,7 +135,7 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
   }
 
   const catalog = discoverSkillCatalog(skillsDir);
-  const profilesPath = join(rootDir, '_criminalsquad', 'core', 'skill-quality-profiles.json');
+  const profilesPath = join(rootDir, '_legalsquad', 'core', 'skill-quality-profiles.json');
   const audit = auditSkillCatalogQuality(catalog, {
     profilesPath: existsSync(profilesPath) ? profilesPath : undefined,
   });

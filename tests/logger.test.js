@@ -9,7 +9,7 @@ test('logEvent writes JSONL line to cli.log', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'osq-log-'));
   try {
     await logEvent('init', {}, dir);
-    const raw = await readFile(join(dir, '_criminalsquad', 'logs', 'cli.log'), 'utf-8');
+    const raw = await readFile(join(dir, '_legalsquad', 'logs', 'cli.log'), 'utf-8');
     const entry = JSON.parse(raw.trim());
     assert.equal(entry.action, 'init');
     assert.ok(entry.timestamp);
@@ -23,7 +23,7 @@ test('logEvent appends multiple entries', async () => {
   try {
     await logEvent('init', {}, dir);
     await logEvent('update', {}, dir);
-    const raw = await readFile(join(dir, '_criminalsquad', 'logs', 'cli.log'), 'utf-8');
+    const raw = await readFile(join(dir, '_legalsquad', 'logs', 'cli.log'), 'utf-8');
     const lines = raw.trim().split('\n');
     assert.equal(lines.length, 2);
   } finally {
@@ -35,7 +35,7 @@ test('logEvent includes details', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'osq-log-'));
   try {
     await logEvent('skill:install', { name: 'apify' }, dir);
-    const raw = await readFile(join(dir, '_criminalsquad', 'logs', 'cli.log'), 'utf-8');
+    const raw = await readFile(join(dir, '_legalsquad', 'logs', 'cli.log'), 'utf-8');
     const entry = JSON.parse(raw.trim());
     assert.equal(entry.details.name, 'apify');
   } finally {
@@ -102,9 +102,9 @@ test('readCliLogs handles malformed lines gracefully', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'osq-log-'));
   try {
     const { mkdir, writeFile } = await import('node:fs/promises');
-    await mkdir(join(dir, '_criminalsquad', 'logs'), { recursive: true });
+    await mkdir(join(dir, '_legalsquad', 'logs'), { recursive: true });
     await writeFile(
-      join(dir, '_criminalsquad', 'logs', 'cli.log'),
+      join(dir, '_legalsquad', 'logs', 'cli.log'),
       'not json\n{"action":"init","timestamp":"2026-01-01T00:00:00Z","details":{}}\n',
       'utf-8'
     );
@@ -138,7 +138,7 @@ test('logSkillRun grava somente telemetria permitida e descarta conteúdo do cas
       fatos: ['NÃO DEVE SER GRAVADO'],
     }, dir);
     assert.equal(ok, true);
-    const raw = await readFile(join(dir, '_criminalsquad', 'logs', 'skill-runs.jsonl'), 'utf-8');
+    const raw = await readFile(join(dir, '_legalsquad', 'logs', 'skill-runs.jsonl'), 'utf-8');
     const entry = JSON.parse(raw.trim());
     assert.equal(entry.skill, 'execucao-diagnostico-360');
     assert.equal(entry.nomeCliente, undefined);

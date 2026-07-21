@@ -5,7 +5,7 @@ consultam um **cache local** em vez de re-chamar a API do DJEN a cada pergunta.
 Ganhos: respostas **instantâneas**, funcionam **offline**, dão **histórico pesquisável**
 de intimações e evitam novos prompts de permissão de Bash a cada comando.
 
-## O cache: `_criminalsquad/_memory/djen-tracker.jsonl`
+## O cache: `_legalsquad/_memory/djen-tracker.jsonl`
 
 Um objeto JSON **por linha** (append-only, gitignored — é dado privado/sigiloso). Esquema:
 

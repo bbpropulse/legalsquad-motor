@@ -1,7 +1,7 @@
 # Acervo-as-a-Service — Especificação Técnica
 
 > Status: **Rascunho para decisão** · Escopo: infraestrutura compartilhada de acervo jurídico
-> (legislação, jurisprudência, súmulas, teses) para **todos os squads** (CriminalSquad,
+> (legislação, jurisprudência, súmulas, teses) para **todos os squads** (LegalSquad,
 > DTSquad, EJsquad e futuros). Companheiro: [PLAN.md](PLAN.md) (plano de implementação).
 
 Documento visual de arquitetura/modelagem que originou este spec:
@@ -43,7 +43,7 @@ não trai o discurso "tudo local, nada vaza" que é o maior ativo dos produtos.
               pacotes assinados por domínio (saída)
         ┌───────────────────┬───────────┴───────────┬───────────────────┐
         ▼                   ▼                       ▼                     ▼
-  CriminalSquad          DTSquad                 EJsquad             (futuros)
+  LegalSquad          DTSquad                 EJsquad             (futuros)
   base: penal        base: trabalhista       base: registral/
   packs: penal,      packs: trabalhista,     notarial, civil
    proc. penal,       proc. do trabalho
@@ -83,7 +83,7 @@ caminho crítico de nenhuma busca.
 **Servidor (ver §8):** coletores por fonte → normalização/canonização (URN) → build de pacotes →
 assinatura (Ed25519) → CDN de tarballs + endpoint de licença. Curadoria humana antes de assinar.
 
-**Cliente (ver §9):** `criminalsquad acervo sync` → lê manifesto → baixa deltas → **verifica
+**Cliente (ver §9):** `legalsquad acervo sync` → lê manifesto → baixa deltas → **verifica
 assinatura/hash** → funde no cache `acervo/_packs/` → roda `indexar-acervo` → `search-acervo` local.
 
 ---
@@ -236,7 +236,7 @@ jurisprudencia.stj.penal@2026.07.2.tar.zst
   "version": "2026.07.2",                   // calendário: AAAA.MM.SEQ
   "created_at": "2026-07-14T03:00:00Z",
   "requires_tier": "pro",                   // base | essencial | pro
-  "product_scope": ["criminalsquad"],       // quais produtos podem instalar
+  "product_scope": ["legalsquad"],       // quais produtos podem instalar
   "counts": { "decisoes": 48213, "teses": 640 },
   "entities": [
     { "file": "decisoes.jsonl.zst", "sha256": "9f2c…", "bytes": 91223344 },
@@ -262,7 +262,7 @@ Como a busca é local, o servidor expõe **dois** contratos apenas.
 ### 7.1 Catálogo / entitlement
 
 ```
-GET /v1/catalog?license=CS-XXXX-XXXX&product=criminalsquad
+GET /v1/catalog?license=CS-XXXX-XXXX&product=legalsquad
     &have=jurisprudencia.stj.penal@2026.07.1,legislacao.penal@2026.06.1
 
 200 →
@@ -326,18 +326,18 @@ Componentes (todos fora do caminho de busca do usuário):
 
 ## 9. Especificação do cliente (motor compartilhado)
 
-Vive na engine compartilhada → presente em CriminalSquad, DTSquad, EJsquad automaticamente.
+Vive na engine compartilhada → presente em LegalSquad, DTSquad, EJsquad automaticamente.
 
 ### 9.1 Comando
 
 ```
-criminalsquad acervo sync            # sincroniza os packs com direito
-criminalsquad acervo sync --check    # só relata o que está desatualizado (exit != 0 se há update)
-criminalsquad acervo status          # tiers, versões instaladas, frescor por pack
-criminalsquad acervo packs           # lista packs disponíveis vs instalados
+legalsquad acervo sync            # sincroniza os packs com direito
+legalsquad acervo sync --check    # só relata o que está desatualizado (exit != 0 se há update)
+legalsquad acervo status          # tiers, versões instaladas, frescor por pack
+legalsquad acervo packs           # lista packs disponíveis vs instalados
 ```
 
-Wiring idêntico ao dos comandos existentes (`bin/criminalsquad.js` + `src/acervo-cli.js`),
+Wiring idêntico ao dos comandos existentes (`bin/legalsquad.js` + `src/acervo-cli.js`),
 espelhando o padrão de `search-acervo`/`contract-skills`.
 
 ### 9.2 Fluxo do `sync`

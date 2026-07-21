@@ -16,8 +16,8 @@ export const agentsCli = createResourceCli({
     getLocalizedDescription,
   },
   i18nPrefix: 'agents',
-  header: 'CriminalSquad Agents',
-  browseLine: 'Browse available agents at: https://github.com/bbpropulse/criminalsquad/tree/main/agents',
+  header: 'LegalSquad Agents',
+  browseLine: 'Browse available agents at: https://github.com/bbpropulse/legalsquad/tree/main/agents',
   formatListItem: (meta, desc) => {
     const parts = [meta.name];
     if (meta.icon) parts.unshift(meta.icon);
@@ -27,8 +27,8 @@ export const agentsCli = createResourceCli({
   },
   logResource: 'agent',
   usage: {
-    install: '\n  Usage: criminalsquad agents install <id>\n',
-    remove: '\n  Usage: criminalsquad agents remove <id>\n',
-    updateOne: '\n  Usage: criminalsquad update <name>\n',
+    install: '\n  Usage: legalsquad agents install <id>\n',
+    remove: '\n  Usage: legalsquad agents remove <id>\n',
+    updateOne: '\n  Usage: legalsquad update <name>\n',
   },
 });

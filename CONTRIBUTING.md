@@ -1,8 +1,8 @@
-# Contributing to CriminalSquad
+# Contributing to LegalSquad
 
 Você está contribuindo para algo maior que código.
 
-CriminalSquad existe para liberar empresas do trabalho repetitivo. Cada skill que você cria, cada melhoria que você faz, permite que empreendedores e times dediquem seu tempo àquilo que máquinas não conseguem fazer: criatividade, relacionamento, decisão humana.
+LegalSquad existe para liberar empresas do trabalho repetitivo. Cada skill que você cria, cada melhoria que você faz, permite que empreendedores e times dediquem seu tempo àquilo que máquinas não conseguem fazer: criatividade, relacionamento, decisão humana.
 
 Você não está apenas desenvolvendo um framework. Você está mudando a forma como as pessoas trabalham.
 
@@ -14,7 +14,7 @@ Queremos contribuidores que entendem nossa missão: **liberar tempo para trabalh
 
 ### Quem somos
 
-CriminalSquad é um framework de orquestração multi-agente. Ajudamos empreendedores e profissionais não-técnicos a criar times de agentes de IA que trabalham juntos automaticamente.
+LegalSquad é um framework de orquestração multi-agente. Ajudamos empreendedores e profissionais não-técnicos a criar times de agentes de IA que trabalham juntos automaticamente.
 
 ### Quem queremos como contribuidor
 
@@ -27,9 +27,9 @@ CriminalSquad é um framework de orquestração multi-agente. Ajudamos empreende
 
 ## A Regra de Ouro: Verticalize, Não Complique
 
-A maneira certa de contribuir é **verticalizando**: criando novas skills, agents, squads e guias de best practices que expandem o que o criminalsquad pode fazer para empresas e criadores de conteúdo.
+A maneira certa de contribuir é **verticalizando**: criando novas skills, agents, squads e guias de best practices que expandem o que o legalsquad pode fazer para empresas e criadores de conteúdo.
 
-O criminalsquad roda com `npx criminalsquad init` e pronto. Um gerente de equipe, um dono de empresa, um criador de conteúdo precisa conseguir usar sem ser técnico. Queremos manter essa simplicidade.
+O legalsquad roda com `npx legalsquad init` e pronto. Um gerente de equipe, um dono de empresa, um criador de conteúdo precisa conseguir usar sem ser técnico. Queremos manter essa simplicidade.
 
 O framework é intencionalmente baseado em arquivos e leve em dependências.
 
@@ -55,15 +55,15 @@ Cada skill, guia de best practices ou agent adicionado ao projeto aumenta o tama
 
 Antes de começar a codar, vale se perguntar: **"Isso ajuda um empreendedor fazer mais em menos tempo, ou adiciona fricção?"**
 
-O criminalsquad roda com `npx criminalsquad init` e pronto. Essa simplicidade é intencional. Contribuições que vão em outra direção provavelmente não serão incorporadas - mas a gente sempre pode conversar. Abra uma [issue](https://github.com/bbpropulse/criminalsquad/issues) antes para alinhar.
+O legalsquad roda com `npx legalsquad init` e pronto. Essa simplicidade é intencional. Contribuições que vão em outra direção provavelmente não serão incorporadas - mas a gente sempre pode conversar. Abra uma [issue](https://github.com/bbpropulse/legalsquad/issues) antes para alinhar.
 
 Exemplos do que geralmente não se encaixa:
 
 - Trocar o sistema baseado em arquivos por bancos de dados (SQLite, Postgres, etc.) - o filesystem é a fonte de verdade por design
 - Adicionar dependências de infraestrutura (Docker, vector databases, servidores adicionais) - queremos zero setup além do Node.js
-- Reescrever `_criminalsquad/core/` - prefira estender via skills e agents
+- Reescrever `_legalsquad/core/` - prefira estender via skills e agents
 - Aumentar significativamente a árvore de dependências - cada dependência nova é uma barreira a mais
-- Funcionalidades de desenvolvimento de software - o criminalsquad é para automatizar processos de negócio, não para criar apps
+- Funcionalidades de desenvolvimento de software - o legalsquad é para automatizar processos de negócio, não para criar apps
 
 > Tem uma ideia que não se encaixa aqui mas que você acha valiosa? Abre uma issue e vamos conversar. As melhores ideias nem sempre seguem as regras.
 
@@ -102,7 +102,7 @@ Não sabe por onde começar? Aqui estão algumas ideias de skills e squads que a
 
 Novo por aqui? Comece por aqui:
 
-2. Rode `npx criminalsquad init` em uma pasta de teste para experimentar o fluxo
+2. Rode `npx legalsquad init` em uma pasta de teste para experimentar o fluxo
 3. Explore as skills existentes em `skills/` - veja como cada `SKILL.md` é estruturado
 4. Procure issues com a label **`good first issue`** - são tarefas simples e bem definidas
 5. Escolha uma issue (ou uma ideia da [lista acima](#ideias-de-contribuição)), comente que vai trabalhar nela, e mãos à obra
@@ -113,10 +113,10 @@ Não precisa ser expert - curiosidade e vontade de aprender são o que importa.
 
 ### Criando uma Skill
 
-Skills são o principal ponto de extensão do criminalsquad. É a melhor forma de contribuir. Use a skill `criminalsquad-skill-creator` para criar e iterar:
+Skills são o principal ponto de extensão do legalsquad. É a melhor forma de contribuir. Use a skill `legalsquad-skill-creator` para criar e iterar:
 
 ```
-/criminalsquad install criminalsquad-skill-creator
+/legalsquad install legalsquad-skill-creator
 ```
 
 Estrutura de diretório:
@@ -129,7 +129,7 @@ skills/sua-skill/
   assets/           (opcional - recursos visuais)
 ```
 
-O formato completo do `SKILL.md` está documentado em [`skills/criminalsquad-skill-creator/references/skill-format.md`](skills/criminalsquad-skill-creator/references/skill-format.md).
+O formato completo do `SKILL.md` está documentado em [`skills/legalsquad-skill-creator/references/skill-format.md`](skills/legalsquad-skill-creator/references/skill-format.md).
 
 Tipos de skill: `mcp`, `script`, `hybrid`, `prompt`.
 
@@ -155,19 +155,19 @@ Skills submetidas pela comunidade passam por review de código antes de serem ac
 
 ### Criando um Guia de Best Practices
 
-O criminalsquad já vem com guias de copywriting, design de carrosséis, SEO e mais. Mas tem muito mais a ser coberto. Use a skill `criminalsquad-best-practice-creator`:
+O legalsquad já vem com guias de copywriting, design de carrosséis, SEO e mais. Mas tem muito mais a ser coberto. Use a skill `legalsquad-best-practice-creator`:
 
 ```
-/criminalsquad install criminalsquad-best-practice-creator
+/legalsquad install legalsquad-best-practice-creator
 ```
 
-Após criar, registre o guia no [`_criminalsquad/core/best-practices/_catalog.yaml`](_criminalsquad/core/best-practices/_catalog.yaml). Verifique se já não existe um guia similar antes de criar.
+Após criar, registre o guia no [`_legalsquad/core/best-practices/_catalog.yaml`](_legalsquad/core/best-practices/_catalog.yaml). Verifique se já não existe um guia similar antes de criar.
 
 ### Criando um Squad Template
 
 Squads prontos que a comunidade pode importar e usar direto. Para contribuir com um squad template:
 
-1. Crie o squad usando `/criminalsquad create`
+1. Crie o squad usando `/legalsquad create`
 2. Teste-o pelo menos 2-3 vezes para garantir que funciona bem
 3. Coloque na pasta `squads/` do seu PR com uma descrição no `squad.yaml`
 
@@ -189,7 +189,7 @@ Para melhorias de performance, inclua benchmarks antes/depois no PR.
 
 ## Reportando bugs
 
-Abra uma [issue](https://github.com/bbpropulse/criminalsquad/issues) com:
+Abra uma [issue](https://github.com/bbpropulse/legalsquad/issues) com:
 
 - **Descrição clara** do problema
 - **Passos para reproduzir** (passo a passo)
@@ -198,15 +198,15 @@ Abra uma [issue](https://github.com/bbpropulse/criminalsquad/issues) com:
 
 ## Sugerindo features
 
-Antes de abrir um PR com uma feature nova, abra uma [issue](https://github.com/bbpropulse/criminalsquad/issues) para discutir a ideia. Isso evita trabalho duplicado e garante alinhamento com a direção do projeto.
+Antes de abrir um PR com uma feature nova, abra uma [issue](https://github.com/bbpropulse/legalsquad/issues) para discutir a ideia. Isso evita trabalho duplicado e garante alinhamento com a direção do projeto.
 
 Lembre-se da [Regra de Ouro](#a-regra-de-ouro-verticalize-não-complique): prefira criar skills, agents e guias - não mudar a arquitetura.
 
 ## Setup de Desenvolvimento
 
 ```bash
-git clone https://github.com/bbpropulse/criminalsquad.git
-cd criminalsquad
+git clone https://github.com/bbpropulse/legalsquad.git
+cd legalsquad
 npm install
 node --test
 ```
@@ -215,7 +215,7 @@ Requisito: **Node.js 20+**
 
 ### Conteúdo compartilhado entre IDEs (fonte única)
 
-O corpo do comando `/criminalsquad` e as instruções do projeto são **iguais** em todas
+O corpo do comando `/legalsquad` e as instruções do projeto são **iguais** em todas
 as IDEs — só muda o frontmatter de cada uma. Esse conteúdo vive em **um só lugar**:
 
 - `templates/ide-assets/command-body.md` — corpo do comando (skill/prompt/workflow/AGENTS.md)
@@ -239,7 +239,7 @@ git push origin main --tags
 ```
 
 O `release` faz o bump do `package.json` **e** do version file
-(`templates/_criminalsquad/.criminalsquad-version` — fonte única), move a seção
+(`templates/_legalsquad/.legalsquad-version` — fonte única), move a seção
 `[Unreleased]` do CHANGELOG para `[x.y.z]` datada e cria o commit + tag `vx.y.z`
 (sem push — você revisa antes). O `verify` falha se `package.json` e o version file
 divergirem.
@@ -296,7 +296,7 @@ Inclua na descrição:
 
 ## Precisa de ajuda?
 
-- Abra uma [issue](https://github.com/bbpropulse/criminalsquad/issues) com sua dúvida
+- Abra uma [issue](https://github.com/bbpropulse/legalsquad/issues) com sua dúvida
 
 Tentaremos responder PRs e issues em até **5 dias úteis**.
 
@@ -306,18 +306,18 @@ Seja respeitoso, construtivo e colaborativo. Estamos aqui para construir algo in
 
 ---
 
-# Contributing to criminalsquad (English)
+# Contributing to legalsquad (English)
 
-Thanks for your interest in contributing! criminalsquad is a multi-agent orchestration framework **focused on automating real business work** - generating social media content, creating carousels, turning long videos into short clips, writing tutorials, planning product launches. It is not a software development framework.
+Thanks for your interest in contributing! legalsquad is a multi-agent orchestration framework **focused on automating real business work** - generating social media content, creating carousels, turning long videos into short clips, writing tutorials, planning product launches. It is not a software development framework.
 
-criminalsquad's strength comes from the **ecosystem** - skills, agents, squads, and best-practice guides - not from framework complexity.
+legalsquad's strength comes from the **ecosystem** - skills, agents, squads, and best-practice guides - not from framework complexity.
 
 
 ## The Golden Rule: Verticalize, Don't Complicate
 
-The right way to contribute is by **verticalizing**: creating new skills, agents, squads, and best-practice guides that expand what criminalsquad can do for businesses and content creators.
+The right way to contribute is by **verticalizing**: creating new skills, agents, squads, and best-practice guides that expand what legalsquad can do for businesses and content creators.
 
-criminalsquad runs with `npx criminalsquad init` and that's it.
+legalsquad runs with `npx legalsquad init` and that's it.
 
 A team manager, a business owner, a content creator needs to be able to use it without being technical. We want to keep that simplicity.
 
@@ -341,17 +341,17 @@ Every skill, best-practice guide, or agent added to the project increases the co
 
 ## What Doesn't Fit
 
-Before you start coding, ask yourself: **"Does this change keep criminalsquad simple for non-technical users?"**
+Before you start coding, ask yourself: **"Does this change keep legalsquad simple for non-technical users?"**
 
-criminalsquad runs with `npx criminalsquad init` and that's it. That simplicity is intentional. Contributions that go in a different direction probably won't be merged - but we can always talk. Open an [issue](https://github.com/bbpropulse/criminalsquad/issues) first to align.
+legalsquad runs with `npx legalsquad init` and that's it. That simplicity is intentional. Contributions that go in a different direction probably won't be merged - but we can always talk. Open an [issue](https://github.com/bbpropulse/legalsquad/issues) first to align.
 
 Examples of what generally doesn't fit:
 
 - Replacing the file-based system with databases (SQLite, Postgres, etc.) - the filesystem is the source of truth by design
 - Adding infrastructure dependencies (Docker, vector databases, additional servers) - we want zero setup beyond Node.js
-- Rewriting `_criminalsquad/core/` - prefer extending via skills and agents
+- Rewriting `_legalsquad/core/` - prefer extending via skills and agents
 - Significantly increasing the dependency tree - every new dependency is one more barrier
-- Software development features - criminalsquad is for automating business processes, not for building apps
+- Software development features - legalsquad is for automating business processes, not for building apps
 
 > Have an idea that doesn't fit here but you think is valuable? Open an issue and let's talk. The best ideas don't always follow the rules.
 
@@ -390,7 +390,7 @@ Not sure where to start? Here are some skills and squads the community would lov
 
 New here? Start here:
 
-2. Run `npx criminalsquad init` in a test folder to experience the flow
+2. Run `npx legalsquad init` in a test folder to experience the flow
 3. Explore existing skills in `skills/` - see how each `SKILL.md` is structured
 4. Look for issues labeled **`good first issue`** - these are simple, well-defined tasks
 5. Pick an issue (or an idea from the [list above](#contribution-ideas)), comment that you'll work on it, and get started
@@ -401,10 +401,10 @@ You don't need to be an expert - curiosity and willingness to learn is what matt
 
 ### Creating a Skill
 
-Skills are criminalsquad's primary extension point. This is the best way to contribute. Use the `criminalsquad-skill-creator` skill to create and iterate:
+Skills are legalsquad's primary extension point. This is the best way to contribute. Use the `legalsquad-skill-creator` skill to create and iterate:
 
 ```
-/criminalsquad install criminalsquad-skill-creator
+/legalsquad install legalsquad-skill-creator
 ```
 
 Directory structure:
@@ -417,7 +417,7 @@ skills/your-skill/
   assets/           (optional - visual assets)
 ```
 
-The full `SKILL.md` format is documented in [`skills/criminalsquad-skill-creator/references/skill-format.md`](skills/criminalsquad-skill-creator/references/skill-format.md).
+The full `SKILL.md` format is documented in [`skills/legalsquad-skill-creator/references/skill-format.md`](skills/legalsquad-skill-creator/references/skill-format.md).
 
 Skill types: `mcp`, `script`, `hybrid`, `prompt`.
 
@@ -443,19 +443,19 @@ Community-submitted skills go through code review before being accepted into the
 
 ### Creating a Best-Practice Guide
 
-criminalsquad ships with guides for copywriting, carousel design, SEO, and more. But there's much more to cover. Use the `criminalsquad-best-practice-creator` skill:
+legalsquad ships with guides for copywriting, carousel design, SEO, and more. But there's much more to cover. Use the `legalsquad-best-practice-creator` skill:
 
 ```
-/criminalsquad install criminalsquad-best-practice-creator
+/legalsquad install legalsquad-best-practice-creator
 ```
 
-After creating, register the guide in [`_criminalsquad/core/best-practices/_catalog.yaml`](_criminalsquad/core/best-practices/_catalog.yaml). Check for overlap with existing guides before creating a new one.
+After creating, register the guide in [`_legalsquad/core/best-practices/_catalog.yaml`](_legalsquad/core/best-practices/_catalog.yaml). Check for overlap with existing guides before creating a new one.
 
 ### Creating a Squad Template
 
 Ready-to-use squads that the community can import and use right away. To contribute a squad template:
 
-1. Create the squad using `/criminalsquad create`
+1. Create the squad using `/legalsquad create`
 2. Test it at least 2-3 times to make sure it works well
 3. Place it in the `squads/` folder of your PR with a description in `squad.yaml`
 
@@ -477,7 +477,7 @@ For performance improvements, include before/after benchmarks in the PR.
 
 ## Reporting Bugs
 
-Open an [issue](https://github.com/bbpropulse/criminalsquad/issues) with:
+Open an [issue](https://github.com/bbpropulse/legalsquad/issues) with:
 
 - **Clear description** of the problem
 - **Steps to reproduce** (step by step)
@@ -486,15 +486,15 @@ Open an [issue](https://github.com/bbpropulse/criminalsquad/issues) with:
 
 ## Suggesting Features
 
-Before opening a PR with a new feature, open an [issue](https://github.com/bbpropulse/criminalsquad/issues) to discuss the idea. This avoids duplicate work and ensures alignment with the project direction.
+Before opening a PR with a new feature, open an [issue](https://github.com/bbpropulse/legalsquad/issues) to discuss the idea. This avoids duplicate work and ensures alignment with the project direction.
 
 Remember the [Golden Rule](#the-golden-rule-verticalize-dont-complicate): prefer creating skills, agents, and guides - not changing the architecture.
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/bbpropulse/criminalsquad.git
-cd criminalsquad
+git clone https://github.com/bbpropulse/legalsquad.git
+cd legalsquad
 npm install
 node --test
 ```
@@ -553,7 +553,7 @@ Include in your description:
 
 ## Need Help?
 
-- Open an [issue](https://github.com/bbpropulse/criminalsquad/issues) with your question
+- Open an [issue](https://github.com/bbpropulse/legalsquad/issues) with your question
 
 We respond to PRs and issues within **5 business days**.
 

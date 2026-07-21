@@ -16,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = join(__dirname, '..', 'templates');
 
 const PROTECTED_PATHS = [
-  '_criminalsquad/_memory',
+  '_legalsquad/_memory',
   'acervo', // dados do usuário (materiais + índice + casos sigilosos) — semeado no init, nunca sobrescrito no update
   'agents',
   'squads',
@@ -31,7 +31,7 @@ function isProtected(relativePath) {
 
 // package.json is the mentee's OWN project manifest (their scripts/deps live here).
 // A wholesale copy would wipe their additions, so we MERGE: keep everything the user
-// has, and ensure the CriminalSquad scripts/dependencies are present/current.
+// has, and ensure the LegalSquad scripts/dependencies are present/current.
 // Returns true if the file changed (for the update count).
 async function mergePackageJson(templatePath, destPath, backupFn) {
   const templateObj = JSON.parse(await readFile(templatePath, 'utf-8'));
@@ -87,11 +87,11 @@ async function backupIfExists(destPath) {
 }
 
 export async function update(targetDir) {
-  console.log('\n  🔄 CriminalSquad — Update\n');
+  console.log('\n  🔄 LegalSquad — Update\n');
 
   // 1. Check initialized
   try {
-    await stat(join(targetDir, '_criminalsquad'));
+    await stat(join(targetDir, '_legalsquad'));
   } catch {
     await loadLocale('English');
     console.log(`  ${t('updateNotInitialized')}`);
@@ -105,14 +105,14 @@ export async function update(targetDir) {
   let currentVersion = null;
   try {
     currentVersion = (
-      await readFile(join(targetDir, '_criminalsquad', '.criminalsquad-version'), 'utf-8')
+      await readFile(join(targetDir, '_legalsquad', '.legalsquad-version'), 'utf-8')
     ).trim();
   } catch {
     // Legacy install — no version file
   }
 
   const newVersion = (
-    await readFile(join(TEMPLATES_DIR, '_criminalsquad', '.criminalsquad-version'), 'utf-8')
+    await readFile(join(TEMPLATES_DIR, '_legalsquad', '.legalsquad-version'), 'utf-8')
   ).trim();
 
   // 4. Announce
@@ -137,7 +137,7 @@ export async function update(targetDir) {
 
     const destPath = join(targetDir, relativePath);
     // package.json belongs to the user — merge instead of overwriting (preserves
-    // their scripts/deps while delivering new CriminalSquad scripts).
+    // their scripts/deps while delivering new LegalSquad scripts).
     if (normalizedRel === 'package.json') {
       if (await mergePackageJson(entry, destPath, backupIfExists)) {
         console.log(`  ${t('updatedFile', { path: normalizedRel })}`);
@@ -203,7 +203,7 @@ export async function update(targetDir) {
   const availableSkills = await listAvailableSkills();
   const installedSkills = await listInstalledSkills(targetDir);
   for (const id of availableSkills) {
-    if (id === 'criminalsquad-skill-creator') continue;
+    if (id === 'legalsquad-skill-creator') continue;
     if (installedSkills.includes(id)) continue;
     const meta = await getSkillMeta(id);
     if (!meta) continue;

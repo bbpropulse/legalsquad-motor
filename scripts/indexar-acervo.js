@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Indexador do acervo do CriminalSquad.
+// Indexador do acervo do LegalSquad.
 // Varre acervo/ e (re)gera acervo/_index.yaml — o catálogo que os agentes de
 // pesquisa consultam ANTES da web (best-practice `pesquisa-jurisprudencial`).
 // Uso: npm run indexar-acervo
@@ -11,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', 'acervo');
-const VAULT_MAP = join(__dirname, '..', '_criminalsquad', '_memory', 'vault-map.yaml');
+const VAULT_MAP = join(__dirname, '..', '_legalsquad', '_memory', 'vault-map.yaml');
 
 const STRICT = process.argv.includes('--strict'); // CI: falha (exit 1) se houver wikilink quebrado
 

@@ -14,12 +14,12 @@ async function scaffoldProject({ qualityStatus, lifecycle = 'active' } = {}) {
   const dir = await mkdtemp(join(tmpdir(), 'csq-contract-'));
   await mkdir(join(dir, 'skills', 'nova-skill-defesa'), { recursive: true });
   await mkdir(join(dir, 'skills', '_evals'), { recursive: true });
-  await mkdir(join(dir, '_criminalsquad', 'core'), { recursive: true });
+  await mkdir(join(dir, '_legalsquad', 'core'), { recursive: true });
   // The Architect authors a rich SKILL.md with a minimal v5 starter frontmatter;
   // the contract layer supplies everything else.
   await cp(
-    join(ROOT, '_criminalsquad', 'core', 'skill-quality-profiles.json'),
-    join(dir, '_criminalsquad', 'core', 'skill-quality-profiles.json'),
+    join(ROOT, '_legalsquad', 'core', 'skill-quality-profiles.json'),
+    join(dir, '_legalsquad', 'core', 'skill-quality-profiles.json'),
   );
   await writeFile(
     join(dir, 'skills', 'nova-skill-defesa', 'SKILL.md'),

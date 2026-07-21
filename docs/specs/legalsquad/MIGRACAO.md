@@ -1,16 +1,16 @@
 # LegalSquad — Plano de construção (repositório novo)
 
 > Companheiro de [`ARQUITETURA.md`](ARQUITETURA.md).
-> **Decisão: o CriminalSquad NÃO é tocado.** O LegalSquad nasce em repositório próprio.
+> **Decisão: o LegalSquad NÃO é tocado.** O LegalSquad nasce em repositório próprio.
 
 ## Por que repo novo é a decisão certa
 
-1. **O CriminalSquad está lançando.** Turma fundadora, 30 vagas, aula de implementação de 3h. Refatorar
+1. **O LegalSquad está lançando.** Turma fundadora, 30 vagas, aula de implementação de 3h. Refatorar
    o produto vivo para um sistema de pacotes às vésperas do lançamento é risco desnecessário —
    qualquer regressão aparece na frente de 30 advogados pagantes.
 2. **Repo novo dá liberdade de acertar.** Sem a trava de "não pode quebrar o que já vende", a
    arquitetura de pacotes nasce limpa.
-3. **Nada se perde.** O conteúdo do CriminalSquad é reaproveitado por **leitura**, não por mudança.
+3. **Nada se perde.** O conteúdo do LegalSquad é reaproveitado por **leitura**, não por mudança.
 
 ---
 
@@ -19,7 +19,7 @@
 | Repositório | Papel | Muda? |
 |---|---|---|
 | **`legalsquad`** (novo) | **Motor + plataforma**: roteador, Arquiteto, gates, CLI, `sync`, licença, empacotamento | é onde o motor evolui daqui pra frente |
-| `criminalsquad` | **Fonte de conteúdo criminal** + o produto que vende hoje | **intocado** |
+| `legalsquad` | **Fonte de conteúdo criminal** + o produto que vende hoje | **intocado** |
 | `dtsquad` | fonte de conteúdo trabalhista | **intocado** |
 | `ejsquad` | fonte de conteúdo extrajudicial | **intocado** |
 
@@ -28,11 +28,11 @@ Um passo de build no LegalSquad **lê** o repositório de conteúdo e produz o p
 
 Consequência prática que vale ouro:
 
-> O conteúdo criminal continua sendo **autorado no CriminalSquad** — o ambiente que você e o Prof.
+> O conteúdo criminal continua sendo **autorado no LegalSquad** — o ambiente que você e o Prof.
 > Salim já dominam, com os gates (`check:skills`, `check:skill-evals`, Citation Gate) que já
 > funcionam. O LegalSquad só **empacota e distribui**.
 
-E é **re-executável**: conteúdo novo entra no CriminalSquad na curadoria semanal → roda o build →
+E é **re-executável**: conteúdo novo entra no LegalSquad na curadoria semanal → roda o build →
 sai `area.criminal@nova-versão` → os assinantes sincronizam. Sem migração, sem mexer no que existe.
 
 ---
@@ -41,7 +41,7 @@ sai `area.criminal@nova-versão` → os assinantes sincronizam. Sem migração, 
 
 ### F0 — Criar o repositório e a fronteira · *~1 semana*
 - Criar `legalsquad` (sugestão: `~/Devlop/legalsquad`).
-- **Última cópia do motor**: partir do motor do CriminalSquad (maduro: roteador, Arquiteto, pipeline
+- **Última cópia do motor**: partir do motor do LegalSquad (maduro: roteador, Arquiteto, pipeline
   runner, resolvedor fail-closed, CLI, `captura`, calculadoras, integrações) e **remover todo o
   conteúdo jurídico** — skills, squads, best-practices de matéria, acervo.
 - Aplicar a fronteira núcleo × pacote da [`ARQUITETURA.md §2`](ARQUITETURA.md).
@@ -54,12 +54,12 @@ sai `area.criminal@nova-versão` → os assinantes sincronizam. Sem migração, 
   `core/best-practices/` e o perfil, e produz o pacote assinado.
 - Separa o **transversal** (as ~20 skills que sobrevivem a qualquer área — as mesmas isoladas ao
   criar o EJsquad) do conteúdo específico da área.
-- **Aceite:** `area.criminal` gerado a partir do `criminalsquad` **com `git status` limpo no
-  criminalsquad** (prova de que o build é read-only). Contagem de skills bate com as 520.
+- **Aceite:** `area.criminal` gerado a partir do `legalsquad` **com `git status` limpo no
+  legalsquad** (prova de que o build é read-only). Contagem de skills bate com as 520.
 
 ### F2 — Paridade · *~1–2 semanas*
 - Instalação limpa: `legalsquad` + `transversal` + `area.criminal`.
-- **Aceite:** reproduz a experiência atual do CriminalSquad — mesmos 9 squads, mesmas skills,
+- **Aceite:** reproduz a experiência atual do LegalSquad — mesmos 9 squads, mesmas skills,
   `check:skills` / `check:skill-evals` / `check:skill-quality` verdes, resolvedor fail-closed e
   Citation Gate funcionando. **Se não houver paridade, para aqui** — não se abre área nova nem se
   fala em migrar aluno.
@@ -82,9 +82,9 @@ sai `area.criminal@nova-versão` → os assinantes sincronizam. Sem migração, 
 ## Regras inegociáveis do plano
 
 1. **Nenhum passo escreve nos repos de conteúdo.** O build é read-only, e o aceite de cada fase
-   inclui conferir que `criminalsquad`, `dtsquad` e `ejsquad` continuam com `git status` limpo.
+   inclui conferir que `legalsquad`, `dtsquad` e `ejsquad` continuam com `git status` limpo.
 2. **Motor novo só no LegalSquad.** A partir da F0, evolução de motor acontece só lá. O
-   CriminalSquad entra em modo manutenção (só correção crítica) — o que **para a sangria** de portar
+   LegalSquad entra em modo manutenção (só correção crítica) — o que **para a sangria** de portar
    correção à mão entre forks.
 3. **Uma área só vira pacote com curador de verdade.** Arquitetura ampla, vitrine estreita — é o que
    te separa do catálogo raso do concorrente.
@@ -94,12 +94,12 @@ sai `area.criminal@nova-versão` → os assinantes sincronizam. Sem migração, 
 ## Coexistência dos dois produtos
 
 Durante a turma fundadora, **os dois convivem**:
-- Quem comprou o Núcleo usa o **CriminalSquad** como está — nada muda para ele.
+- Quem comprou o Núcleo usa o **LegalSquad** como está — nada muda para ele.
 - O **LegalSquad** amadurece em paralelo, alimentado pelo mesmo conteúdo.
 
 A migração da base de alunos é uma **decisão comercial futura**, não um requisito técnico. Quando o
 LegalSquad tiver paridade + sync + licença, você escolhe: migrar os fundadores (com o preço travado)
-ou manter o CriminalSquad como o bundle criminal rodando sobre o motor novo.
+ou manter o LegalSquad como o bundle criminal rodando sobre o motor novo.
 
 ---
 
@@ -107,9 +107,9 @@ ou manter o CriminalSquad como o bundle criminal rodando sobre o motor novo.
 
 | Risco | Impacto | Mitigação |
 |---|---|---|
-| Motor diverge entre os repos | médio | Regra 2: motor novo só no LegalSquad; CriminalSquad em manutenção |
+| Motor diverge entre os repos | médio | Regra 2: motor novo só no LegalSquad; LegalSquad em manutenção |
 | Exportação perder conteúdo | alto | F2 tem aceite de **paridade** verificado pelos gates que já existem |
-| Construir plataforma e atrasar o Núcleo | alto | F0–F2 não bloqueiam o lançamento; o CriminalSquad segue intocado e vendendo |
+| Construir plataforma e atrasar o Núcleo | alto | F0–F2 não bloqueiam o lançamento; o LegalSquad segue intocado e vendendo |
 | Diluir em N áreas rasas | alto | Regra 3 (curador) + go-to-market uma área por vez |
 | Duplicar esforço de conteúdo | médio | Conteúdo continua sendo autorado uma vez, no repo da área; o build só empacota |
 

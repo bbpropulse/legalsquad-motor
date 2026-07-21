@@ -1,6 +1,6 @@
 # Scores de eval — demo-squad
 
-Log de regressão preenchido pelo `/criminalsquad eval`. Uma linha por avaliação;
+Log de regressão preenchido pelo `/legalsquad eval`. Uma linha por avaliação;
 o `npm run eval:resumo` lê esta tabela e calcula média, faixa e tendência.
 
 Fixture sintética: todas as notas abaixo são fictícias e existem para exercitar o

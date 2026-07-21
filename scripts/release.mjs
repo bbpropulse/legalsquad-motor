@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Corta uma release do CriminalSquad em 1 comando (ferramenta do MANTENEDOR — não é
+// Corta uma release do LegalSquad em 1 comando (ferramenta do MANTENEDOR — não é
 // distribuída ao aluno). Sem isso, alunos instalam o HEAD de main com a
 // versão congelada e o update anuncia "vX → vX" trocando dezenas de arquivos.
 //   npm run release -- patch|minor|major|x.y.z
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 const PKG = join(ROOT, 'package.json');
-const VERSION_FILE = join(ROOT, 'templates', '_criminalsquad', '.criminalsquad-version');
+const VERSION_FILE = join(ROOT, 'templates', '_legalsquad', '.legalsquad-version');
 const CHANGELOG = join(ROOT, 'CHANGELOG.md');
 
 function die(msg) {
@@ -65,7 +65,7 @@ writeFileSync(
 );
 
 // --- commit + tag (sem push) ---
-sh('git add package.json templates/_criminalsquad/.criminalsquad-version CHANGELOG.md');
+sh('git add package.json templates/_legalsquad/.legalsquad-version CHANGELOG.md');
 sh(`git commit -m "chore(release): v${next}"`);
 sh(`git tag v${next}`);
 

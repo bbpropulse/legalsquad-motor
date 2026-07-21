@@ -1,7 +1,7 @@
-// Lib compartilhada dos scripts "orchestra" do CriminalSquad.
+// Lib compartilhada dos scripts "orchestra" do LegalSquad.
 // Padrão importado do My-Brain-Is-Full-Crew: helpers pré-aprovados que consultam um
 // cache LOCAL (JSONL) — respostas instantâneas, sem re-consultar a API do DJEN.
-// O cache vive em _criminalsquad/_memory/djen-tracker.jsonl (gitignored, privado).
+// O cache vive em _legalsquad/_memory/djen-tracker.jsonl (gitignored, privado).
 
 import { readFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -9,8 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-// scripts/orchestra/ -> raiz do projeto -> _criminalsquad/_memory/
-export const TRACKER = join(__dirname, '..', '..', '_criminalsquad', '_memory', 'djen-tracker.jsonl');
+// scripts/orchestra/ -> raiz do projeto -> _legalsquad/_memory/
+export const TRACKER = join(__dirname, '..', '..', '_legalsquad', '_memory', 'djen-tracker.jsonl');
 
 /** Lê o tracker tolerante a arquivo ausente e linhas inválidas. */
 export function readTracker() {

@@ -10,10 +10,10 @@ import { getLocaleCode, loadLocale } from '../src/i18n.js';
 // --- preferences.json (canonical) ---
 
 test('init writes preferences.json with the expected fields', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await init(dir, { _skipPrompts: true, _language: 'Português (Brasil)', _ides: ['claude-code', 'codex'] });
-    const raw = await readFile(join(dir, '_criminalsquad', '_memory', 'preferences.json'), 'utf-8');
+    const raw = await readFile(join(dir, '_legalsquad', '_memory', 'preferences.json'), 'utf-8');
     const prefs = JSON.parse(raw);
     assert.equal(prefs.outputLanguage, 'Português (Brasil)');
     assert.deepEqual(prefs.ides, ['claude-code', 'codex']);
@@ -24,10 +24,10 @@ test('init writes preferences.json with the expected fields', async () => {
 });
 
 test('init still writes the human-readable preferences.md', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await init(dir, { _skipPrompts: true });
-    const md = await readFile(join(dir, '_criminalsquad', '_memory', 'preferences.md'), 'utf-8');
+    const md = await readFile(join(dir, '_legalsquad', '_memory', 'preferences.md'), 'utf-8');
     assert.ok(md.includes('Output Language:'));
     assert.ok(md.includes('English'));
   } finally {
@@ -38,9 +38,9 @@ test('init still writes the human-readable preferences.md', async () => {
 // --- readPreferences ---
 
 test('readPreferences prefers the JSON file', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
-    const memoryDir = join(dir, '_criminalsquad', '_memory');
+    const memoryDir = join(dir, '_legalsquad', '_memory');
     await mkdir(memoryDir, { recursive: true });
     await writeFile(join(memoryDir, 'preferences.json'), JSON.stringify({ outputLanguage: 'Español', ides: ['cursor'] }), 'utf-8');
     await writeFile(join(memoryDir, 'preferences.md'), '**Output Language:** English\n**IDEs:** claude-code\n', 'utf-8');
@@ -53,9 +53,9 @@ test('readPreferences prefers the JSON file', async () => {
 });
 
 test('readPreferences falls back to Markdown when JSON is absent', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
-    const memoryDir = join(dir, '_criminalsquad', '_memory');
+    const memoryDir = join(dir, '_legalsquad', '_memory');
     await mkdir(memoryDir, { recursive: true });
     await writeFile(join(memoryDir, 'preferences.md'), '**Output Language:** Português (Brasil)\n**IDEs:** claude-code, codex\n', 'utf-8');
     const prefs = await readPreferences(dir);
@@ -67,9 +67,9 @@ test('readPreferences falls back to Markdown when JSON is absent', async () => {
 });
 
 test('readPreferences falls back to Markdown when JSON is malformed', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
-    const memoryDir = join(dir, '_criminalsquad', '_memory');
+    const memoryDir = join(dir, '_legalsquad', '_memory');
     await mkdir(memoryDir, { recursive: true });
     await writeFile(join(memoryDir, 'preferences.json'), 'not valid json', 'utf-8');
     await writeFile(join(memoryDir, 'preferences.md'), '**Output Language:** English\n', 'utf-8');
@@ -81,7 +81,7 @@ test('readPreferences falls back to Markdown when JSON is malformed', async () =
 });
 
 test('readPreferences returns null when no preferences exist', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     assert.equal(await readPreferences(dir), null);
   } finally {
@@ -90,13 +90,13 @@ test('readPreferences returns null when no preferences exist', async () => {
 });
 
 test('loadSavedLocale honors the JSON output language', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     // Estabelece um estado-base conhecido para o flip ser observável independente
     // da ordem de execução dos testes (getLocaleCode é um singleton de módulo).
     await loadLocale('English');
     assert.equal(getLocaleCode(), 'en');
-    const memoryDir = join(dir, '_criminalsquad', '_memory');
+    const memoryDir = join(dir, '_legalsquad', '_memory');
     await mkdir(memoryDir, { recursive: true });
     await writeFile(join(memoryDir, 'preferences.json'), JSON.stringify({ outputLanguage: 'Português (Brasil)' }), 'utf-8');
     await loadSavedLocale(dir);
@@ -109,7 +109,7 @@ test('loadSavedLocale honors the JSON output language', async () => {
 // --- filesIdentical ---
 
 test('filesIdentical is true for identical files and false otherwise', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const a = join(dir, 'a.txt');
     const b = join(dir, 'b.txt');
@@ -128,7 +128,7 @@ test('filesIdentical is true for identical files and false otherwise', async () 
 // --- incremental update ---
 
 test('update does not back up files the user has not changed', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await init(dir, { _skipPrompts: true });
     // CLAUDE.md is identical to the template right after init.
@@ -140,7 +140,7 @@ test('update does not back up files the user has not changed', async () => {
 });
 
 test('update backs up and overwrites files the user changed', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await init(dir, { _skipPrompts: true });
     await writeFile(join(dir, 'CLAUDE.md'), 'changed by user', 'utf-8');
@@ -148,7 +148,7 @@ test('update backs up and overwrites files the user changed', async () => {
     const backup = await readFile(join(dir, 'CLAUDE.md.bak'), 'utf-8');
     assert.equal(backup, 'changed by user');
     const current = await readFile(join(dir, 'CLAUDE.md'), 'utf-8');
-    assert.ok(current.includes('CriminalSquad'));
+    assert.ok(current.includes('LegalSquad'));
     assert.ok(!current.includes('changed by user'));
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -158,9 +158,9 @@ test('update backs up and overwrites files the user changed', async () => {
 // --- regressões da revisão de bugs ---
 
 test('readPreferences merges a partial JSON with the Markdown (não perde estado)', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
-    const memoryDir = join(dir, '_criminalsquad', '_memory');
+    const memoryDir = join(dir, '_legalsquad', '_memory');
     await mkdir(memoryDir, { recursive: true });
     // JSON válido mas incompleto (ex.: hand-edit removeu campos)
     await writeFile(join(memoryDir, 'preferences.json'), JSON.stringify({ userName: 'Bruno' }), 'utf-8');
@@ -175,9 +175,9 @@ test('readPreferences merges a partial JSON with the Markdown (não perde estado
 });
 
 test('readPreferences ignora JSON não-objeto (array) e usa o Markdown', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
-    const memoryDir = join(dir, '_criminalsquad', '_memory');
+    const memoryDir = join(dir, '_legalsquad', '_memory');
     await mkdir(memoryDir, { recursive: true });
     await writeFile(join(memoryDir, 'preferences.json'), '[1,2,3]', 'utf-8');
     await writeFile(join(memoryDir, 'preferences.md'), '**Output Language:** English\n', 'utf-8');
@@ -189,7 +189,7 @@ test('readPreferences ignora JSON não-objeto (array) e usa o Markdown', async (
 });
 
 test('update preserva chaves do usuário no settings.json de IDE (merge, não overwrite)', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await init(dir, { _skipPrompts: true, _ides: ['vscode-copilot'] });
     const settingsPath = join(dir, '.vscode', 'settings.json');
@@ -208,11 +208,11 @@ test('update preserva chaves do usuário no settings.json de IDE (merge, não ov
 });
 
 test('update tolera ides não-array em preferences.json (cai no default sem travar)', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await init(dir, { _skipPrompts: true });
     // hand-edit inválido: ides como string
-    const pj = join(dir, '_criminalsquad', '_memory', 'preferences.json');
+    const pj = join(dir, '_legalsquad', '_memory', 'preferences.json');
     await writeFile(pj, JSON.stringify({ outputLanguage: 'English', ides: 'claude-code' }), 'utf-8');
     const result = await update(dir);
     assert.equal(result.success, true);
@@ -222,7 +222,7 @@ test('update tolera ides não-array em preferences.json (cai no default sem trav
 });
 
 test('update preserva o acervo do usuário (materiais próprios não são sobrescritos)', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await init(dir, { _skipPrompts: true });
     // material próprio do aluno no acervo
@@ -242,7 +242,7 @@ test('update preserva o acervo do usuário (materiais próprios não são sobres
 });
 
 test('update não sobrescreve o .gitignore do usuário (fonte única = seed)', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     await init(dir, { _skipPrompts: true });
     const giPath = join(dir, '.gitignore');

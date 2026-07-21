@@ -30,7 +30,7 @@ test('a matéria jurídica no motor não se espalha para arquivos novos', () => 
   try {
     saida = execFileSync(
       'grep',
-      ['-rlEi', MATERIA, 'src/', 'bin/', 'scripts/', 'templates/', '_criminalsquad/', '.claude/'],
+      ['-rlEi', MATERIA, 'src/', 'bin/', 'scripts/', 'templates/', '_legalsquad/', '.claude/'],
       { encoding: 'utf8' }
     );
   } catch (e) {

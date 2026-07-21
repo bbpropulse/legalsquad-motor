@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Gate único de verificação do CriminalSquad — roda TUDO que mantém o repo íntegro
+// Gate único de verificação do LegalSquad — roda TUDO que mantém o repo íntegro
 // antes de um commit/PR. É o que o CI (.github/workflows/ci.yml) executa.
 //   node scripts/verify.mjs   (ou: npm run verify)
 //
@@ -60,7 +60,7 @@ const checks = [
     fn: () => {
       try {
         const pkgVersion = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf-8')).version;
-        const fileVersion = readFileSync(join(ROOT, 'templates', '_criminalsquad', '.criminalsquad-version'), 'utf-8').trim();
+        const fileVersion = readFileSync(join(ROOT, 'templates', '_legalsquad', '.legalsquad-version'), 'utf-8').trim();
         return pkgVersion === fileVersion
           ? { ok: true, out: `v${pkgVersion}` }
           : { ok: false, out: `package.json diz ${pkgVersion} mas o version file diz ${fileVersion} — rode \`npm run release\` (ou sincronize à mão)` };
@@ -110,7 +110,7 @@ const checks = [
       const count = (re) => files.filter((f) => re.test(f)).length;
       const problems = [];
       // NÃO pode vazar:
-      if (count(/_criminalsquad\/_memory\//)) problems.push('VAZAMENTO: _criminalsquad/_memory/ no tarball (dado pessoal/LGPD)');
+      if (count(/_legalsquad\/_memory\//)) problems.push('VAZAMENTO: _legalsquad/_memory/ no tarball (dado pessoal/LGPD)');
       if (count(/^squads\/[^/]+\/_memory\//)) problems.push('VAZAMENTO: squads/*/_memory/ (raiz) no tarball (sigilo/LGPD)');
       if (count(/templates\/ide-assets\//)) problems.push('templates/ide-assets/ (fonte build-time) não deve ir no tarball');
       // PRECISA estar presente:
@@ -126,11 +126,11 @@ const checks = [
         if (!files.includes(distributed)) problems.push(`motor determinístico não chega ao aluno: falta ${distributed}`);
       }
       if (!count(/templates\/scripts\/validate-legal-output\.mjs$/)) problems.push('faltando validador de sidecar nos templates');
-      if (!count(/_criminalsquad\/core\/state\.schema\.json$/)) problems.push('faltando o contrato _criminalsquad/core/state.schema.json no tarball');
-      if (!count(/_criminalsquad\/core\/execution-output\.schema\.json$/)) problems.push('faltando o contrato de saída jurídica v4 no tarball');
-      if (!count(/_criminalsquad\/core\/skill-quality-profiles\.json$/)) problems.push('faltando os perfis de qualidade de skills no tarball');
-      if (!count(/_criminalsquad\/core\/best-practices\/skills-alta-performance\.md$/)) problems.push('faltando o padrão transversal de skills no tarball');
-      if (!count(/templates\/_criminalsquad\/\.criminalsquad-version$/)) problems.push('faltando o version file (templates/_criminalsquad/.criminalsquad-version)');
+      if (!count(/_legalsquad\/core\/state\.schema\.json$/)) problems.push('faltando o contrato _legalsquad/core/state.schema.json no tarball');
+      if (!count(/_legalsquad\/core\/execution-output\.schema\.json$/)) problems.push('faltando o contrato de saída jurídica v4 no tarball');
+      if (!count(/_legalsquad\/core\/skill-quality-profiles\.json$/)) problems.push('faltando os perfis de qualidade de skills no tarball');
+      if (!count(/_legalsquad\/core\/best-practices\/skills-alta-performance\.md$/)) problems.push('faltando o padrão transversal de skills no tarball');
+      if (!count(/templates\/_legalsquad\/\.legalsquad-version$/)) problems.push('faltando o version file (templates/_legalsquad/.legalsquad-version)');
       if (!count(/templates\/squads\//)) problems.push('faltando templates/squads/ no tarball');
       if (!count(/templates\/ide-templates\/claude-code\/\.claude\/agents\/.+\.md$/)) problems.push('faltando os agentes (templates/.../claude-code/.claude/agents/) no tarball');
       // Bundle de skills: só existe quando um pacote de área é empacotado junto.
@@ -171,7 +171,7 @@ const checks = [
   },
 ];
 
-console.log('\n  CriminalSquad — verify\n');
+console.log('\n  LegalSquad — verify\n');
 let failed = 0;
 for (const { name, fn } of checks) {
   process.stdout.write(`  • ${name} ... `);

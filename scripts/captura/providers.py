@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Transcricao de midia para o CriminalSquad — backends local e OpenRouter.
+"""Transcricao de midia para o LegalSquad — backends local e OpenRouter.
 
 Substitui o whisper.py do claude-video (que era so nuvem Groq/OpenAI). Aqui:
 
@@ -245,7 +245,7 @@ def _openrouter_post(endpoint: str, body: dict, api_key: str) -> dict:
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
-        "X-Title": "CriminalSquad captura-midia-av",
+        "X-Title": "LegalSquad captura-midia-av",
     }
     request = Request(endpoint, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
     context = ssl.create_default_context()

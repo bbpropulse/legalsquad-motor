@@ -11,7 +11,7 @@ const HOOK = join(ROOT, '.claude', 'hooks', 'verifica-citacoes.mjs');
 let sandbox;
 
 before(async () => {
-  sandbox = await mkdtemp(join(tmpdir(), 'criminalsquad-citation-gate-'));
+  sandbox = await mkdtemp(join(tmpdir(), 'legalsquad-citation-gate-'));
 });
 
 after(async () => {
@@ -39,7 +39,7 @@ function hook(filePath) {
 function manifestFor(artifactPath, content, overrides = {}) {
   return {
     schema_version: '1',
-    kind: 'criminalsquad.citation-gate-attestation',
+    kind: 'legalsquad.citation-gate-attestation',
     artifact: artifactPath.split('/').pop(),
     artifact_sha256: sha256(content),
     gate_status: 'aprovado',

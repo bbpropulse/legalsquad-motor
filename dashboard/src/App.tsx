@@ -32,7 +32,7 @@ export function App() {
           letterSpacing: 0.5,
         }}
       >
-        criminalsquad Dashboard
+        legalsquad Dashboard
       </header>
 
       {/* Main content */}

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 export async function logEvent(action, details = {}, targetDir = process.cwd()) {
   try {
-    const logDir = join(targetDir, '_criminalsquad', 'logs');
+    const logDir = join(targetDir, '_legalsquad', 'logs');
     await mkdir(logDir, { recursive: true });
     const entry = JSON.stringify({
       timestamp: new Date().toISOString(),
@@ -18,7 +18,7 @@ export async function logEvent(action, details = {}, targetDir = process.cwd()) 
 
 export async function readCliLogs({ action, limit } = {}, targetDir = process.cwd()) {
   try {
-    const raw = await readFile(join(targetDir, '_criminalsquad', 'logs', 'cli.log'), 'utf-8');
+    const raw = await readFile(join(targetDir, '_legalsquad', 'logs', 'cli.log'), 'utf-8');
     const lines = raw.trim().split('\n');
     let entries = [];
     for (const line of lines) {
@@ -53,7 +53,7 @@ export async function logSkillRun(details, targetDir = process.cwd()) {
       if (SKILL_RUN_FIELDS.has(key)) safe[key] = value;
     }
     if (!safe.runId || !safe.skill || !safe.status) return false;
-    const logDir = join(targetDir, '_criminalsquad', 'logs');
+    const logDir = join(targetDir, '_legalsquad', 'logs');
     await mkdir(logDir, { recursive: true });
     const entry = JSON.stringify({
       timestamp: new Date().toISOString(),
@@ -68,7 +68,7 @@ export async function logSkillRun(details, targetDir = process.cwd()) {
 
 export async function readSkillRunMetrics(targetDir = process.cwd()) {
   try {
-    const raw = await readFile(join(targetDir, '_criminalsquad', 'logs', 'skill-runs.jsonl'), 'utf-8');
+    const raw = await readFile(join(targetDir, '_legalsquad', 'logs', 'skill-runs.jsonl'), 'utf-8');
     const entries = raw.trim().split('\n').flatMap((line) => {
       try { return [JSON.parse(line)]; } catch { return []; }
     });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Resumo AGREGADO dos scores de eval — lê `<squads>/<squad>/_evals/scores.md`
-// (preenchido pelo `/criminalsquad eval`). Determinístico (sem IA): mostra a
+// (preenchido pelo `/legalsquad eval`). Determinístico (sem IA): mostra a
 // nota média/última e pega REGRESSÃO ao longo do tempo.
 //
 //   node scripts/eval-resumo.mjs <squad>                    um squad
@@ -110,7 +110,7 @@ export function main(argv = process.argv.slice(2)) {
     : resumirSquads({ squadsDir });
 
   if (!linhas.length) {
-    console.log('Nenhum squad com _evals/scores.md ainda. Rode /criminalsquad eval <squad> primeiro.');
+    console.log('Nenhum squad com _evals/scores.md ainda. Rode /legalsquad eval <squad> primeiro.');
     return 0;
   }
 

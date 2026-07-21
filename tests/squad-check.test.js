@@ -185,7 +185,7 @@ test('squad sem nenhum checkpoint humano gera aviso, não erro', async () => {
 test('o CLI check-squad sai 0 no squad íntegro e != 0 no avariado', async () => {
   const ok = spawnSync(
     process.execPath,
-    [join(RAIZ, 'bin', 'criminalsquad.js'), 'check-squad', 'demo-squad', '--squads-dir', SQUADS_DEMO],
+    [join(RAIZ, 'bin', 'legalsquad.js'), 'check-squad', 'demo-squad', '--squads-dir', SQUADS_DEMO],
     { encoding: 'utf8' }
   );
   assert.equal(ok.status, 0, ok.stderr || ok.stdout);
@@ -196,7 +196,7 @@ test('o CLI check-squad sai 0 no squad íntegro e != 0 no avariado', async () =>
     await mkdir(join(tmp, 'quebrado'), { recursive: true });
     const ruim = spawnSync(
       process.execPath,
-      [join(RAIZ, 'bin', 'criminalsquad.js'), 'check-squad', 'quebrado', '--squads-dir', tmp],
+      [join(RAIZ, 'bin', 'legalsquad.js'), 'check-squad', 'quebrado', '--squads-dir', tmp],
       { encoding: 'utf8' }
     );
     assert.notEqual(ruim.status, 0, 'squad quebrado precisa sair com código != 0 para servir de gate');

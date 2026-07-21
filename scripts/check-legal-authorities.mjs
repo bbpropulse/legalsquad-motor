@@ -28,7 +28,7 @@ function isFresh(record, today) {
 export function checkLegalAuthorities({
   today = localIsoDate(),
   root = DEFAULT_ROOT,
-  registryDir = join(root, '_criminalsquad', 'core', 'authorities'),
+  registryDir = join(root, '_legalsquad', 'core', 'authorities'),
   skillsDir = join(root, 'skills'),
 } = {}) {
   const problems = [];

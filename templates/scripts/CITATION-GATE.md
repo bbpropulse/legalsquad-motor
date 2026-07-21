@@ -37,7 +37,7 @@ Para `recurso-final.md`, crie ao lado
 ```json
 {
   "schema_version": "1",
-  "kind": "criminalsquad.citation-gate-attestation",
+  "kind": "legalsquad.citation-gate-attestation",
   "artifact": "recurso-final.md",
   "artifact_sha256": "SHA256_HEXADECIMAL_DO_ARQUIVO",
   "gate_status": "aprovado",

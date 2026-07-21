@@ -37,7 +37,7 @@ function scenarios(count) {
       id: 'behavior-grader',
       type: 'model',
       model: MODEL,
-      rubric_version: 'criminalsquad-rubric/1.0.0',
+      rubric_version: 'legalsquad-rubric/1.0.0',
     },
   }));
 }
@@ -109,7 +109,7 @@ function suite(result, overrides = {}) {
 }
 
 function withTempSkill(run) {
-  const root = mkdtempSync(join(tmpdir(), 'criminalsquad-promotion-'));
+  const root = mkdtempSync(join(tmpdir(), 'legalsquad-promotion-'));
   try {
     mkdirSync(join(root, 'demo-peca-alpha'), { recursive: true });
     cpSync(join(SKILLS, 'demo-peca-alpha', 'SKILL.md'), join(root, 'demo-peca-alpha', 'SKILL.md'));

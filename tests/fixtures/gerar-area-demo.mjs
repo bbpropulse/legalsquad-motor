@@ -53,8 +53,8 @@ const SKILLS = [
   { nome: 'gerador-imagem-env',   lifecycle: 'active',      perfil: PERFIL_A, risco: 'r1', entrega: 'external-mutation',  tipo: 'prompt', env: ['DEMO_API_KEY'] },
   // Nome real hardcoded no motor (src/skills.js:14 excludeInstalled, src/update.js:206)
   // — não "legalsquad-*": ver CLAUDE.md e ARQUITETURA.md §6, o identificador
-  // `criminalsquad` permanece por decisão, não é o momento de renomear o produto.
-  { nome: 'criminalsquad-skill-creator', lifecycle: 'active', perfil: PERFIL_A, risco: 'r2', entrega: 'system-artifact', tipo: 'prompt', scripts: true },
+  // `legalsquad` permanece por decisão, não é o momento de renomear o produto.
+  { nome: 'legalsquad-skill-creator', lifecycle: 'active', perfil: PERFIL_A, risco: 'r2', entrega: 'system-artifact', tipo: 'prompt', scripts: true },
 ];
 
 const skillMd = (s) => `---
@@ -554,7 +554,7 @@ async function gerarAcervo() {
 // Passo 3 (Task 6): autoridade viva com expiração datada
 // ─────────────────────────────────────────────────────────────────────────
 
-// Campos conferidos contra _criminalsquad/core/authority-record.schema.json
+// Campos conferidos contra _legalsquad/core/authority-record.schema.json
 // (schema real, additionalProperties:false em todos os níveis) — DIVERGE do
 // esqueleto de exemplo do brief, que usava nomes de campo inexistentes no
 // schema real (human_review.reviewed_by, sources[].url/consulted_at). Aqui o
@@ -651,7 +651,7 @@ async function gerarBestPractices() {
 // Estrutura (squad.yaml + squad-party.csv + agents/*.custom.md +
 // pipeline/pipeline.yaml + pipeline/steps/*.md) conferida por leitura
 // read-only de squads/defesa-criminal-completa e squads/execucao-penal em
-// ~/Documents/Projetos/Devlop/criminalsquad/app (só a ESTRUTURA; nenhum
+// ~/Documents/Projetos/Devlop/legalsquad/app (só a ESTRUTURA; nenhum
 // texto jurídico foi copiado — o conteúdo abaixo é 100% fictício).
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -681,8 +681,8 @@ success_criteria:
   - "As duas revisões paralelas (A e B) emitem veredito independente"
   - "Qualquer REJECT das revisões devolve o pipeline ao passo de redação"
 
-company: "_criminalsquad/_memory/company.md"
-preferences: "_criminalsquad/_memory/preferences.md"
+company: "_legalsquad/_memory/company.md"
+preferences: "_legalsquad/_memory/preferences.md"
 memory: "_memory/memories.md"
 
 target_audience: "Fixture de teste do motor — não é conteúdo para usuário final"

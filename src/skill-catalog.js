@@ -112,7 +112,7 @@ export function renderSkillIndex(catalog) {
     groups.get(entry.group).push(entry);
   }
 
-  let yaml = '# Índice de Skills — GERADO por `npx criminalsquad indexar-skills` (não editar à mão; será sobrescrito).\n';
+  let yaml = '# Índice de Skills — GERADO por `npx legalsquad indexar-skills` (não editar à mão; será sobrescrito).\n';
   yaml += '# Fonte de verdade para Arquiteto, Sherlock, chefe-roteador e catalog-scout.\n';
   yaml += '# Lifecycle e maturidade são dimensões independentes; qualidade exige evidência.\n';
   yaml += `# Última indexação determinística: ${catalog.entries.length} skills.\n\n`;
@@ -132,7 +132,7 @@ export function renderSkillIndex(catalog) {
   yaml += '  promotion_evidence_schema: "criminalsquad.skill-promotion-evidence/v1"\n';
   yaml += '  label_without_computed_eligibility: blocked\n\n';
   yaml += 'discovery_policy:\n';
-  yaml += '  command: "npx criminalsquad search-skills --query <capability> --limit 8 --json"\n';
+  yaml += '  command: "npx legalsquad search-skills --query <capability> --limit 8 --json"\n';
   yaml += '  max_prompt_results: 8\n';
   yaml += '  full_index_in_prompt: false\n';
   yaml += '  query_must_exclude_case_data: true\n\n';
@@ -575,7 +575,7 @@ export function validateSkillCatalog({
   integrationPath = findIntegrationManifest(skillsDir),
   checkIndex = true,
   requireIntegration = true,
-  bestPracticesCatalogPath = join(dirname(skillsDir), '_criminalsquad', 'core', 'best-practices', '_catalog.yaml'),
+  bestPracticesCatalogPath = join(dirname(skillsDir), '_legalsquad', 'core', 'best-practices', '_catalog.yaml'),
   requireCanonicalSources = true,
 } = {}) {
   const catalog = discoverSkillCatalog(skillsDir);
@@ -650,7 +650,7 @@ export function validateSkillCatalog({
     } else {
       const actual = readFileSync(indexPath, 'utf8');
       if (actual !== expectedIndex) {
-        errors.push(issue('stale-index', 'skills/_index.yaml está desatualizado; rode npx criminalsquad indexar-skills', indexPath));
+        errors.push(issue('stale-index', 'skills/_index.yaml está desatualizado; rode npx legalsquad indexar-skills', indexPath));
       }
     }
   }

@@ -1,4 +1,4 @@
-// Cobertura de MECANISMO do Pipeline Runner (_criminalsquad/core/runner.pipeline.md)
+// Cobertura de MECANISMO do Pipeline Runner (_legalsquad/core/runner.pipeline.md)
 // — não de execução penal. Recria, sobre a fixture sintética, a cobertura que
 // saiu junto com a matéria na Task 4 (tests/execucao-v4.test.js, removido) e
 // não tinha sucessor em nenhuma suíte remanescente (ver task-4-report.md,

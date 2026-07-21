@@ -48,7 +48,7 @@ test('busca reflete perfis corrigidos e mantém shortlist compacta', () => {
 });
 
 test('CLI JSON devolve shortlist determinística e falha em query vazia', () => {
-  const bin = join(ROOT, 'bin', 'criminalsquad.js');
+  const bin = join(ROOT, 'bin', 'legalsquad.js');
   const found = spawnSync(process.execPath, [
     bin,
     'search-skills',

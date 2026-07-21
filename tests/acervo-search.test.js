@@ -48,7 +48,7 @@ test('shortlist é compacta e não vaza confiança quarentenada por padrão', ()
 });
 
 test('CLI JSON devolve shortlist determinística e falha em query vazia', () => {
-  const bin = join(ROOT, 'bin', 'criminalsquad.js');
+  const bin = join(ROOT, 'bin', 'legalsquad.js');
   const found = spawnSync(process.execPath, [
     bin, 'search-acervo', '--query', 'tribunal demo tema 2024', '--limit', '2', '--json',
   ], { cwd: AREA_DEMO, encoding: 'utf8' });

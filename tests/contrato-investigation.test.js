@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const discovery = readFileSync(
-  join(RAIZ, '_criminalsquad', 'core', 'prompts', 'discovery.prompt.md'),
+  join(RAIZ, '_legalsquad', 'core', 'prompts', 'discovery.prompt.md'),
   'utf8'
 );
 const commandBody = readFileSync(

@@ -8,9 +8,9 @@
 # Usage:   bash scripts/publish-dist.sh [owner/repo]
 set -euo pipefail
 
-REPO="${1:-bbpropulse/criminalsquad-nucleo}"
+REPO="${1:-bbpropulse/legalsquad-nucleo}"
 VERSION="$(node -p "require('./package.json').version")"
-OUT="$(mktemp -d)/criminalsquad-dist"
+OUT="$(mktemp -d)/legalsquad-dist"
 
 echo "==> Construindo a árvore de distribuição (v${VERSION})…"
 node scripts/build-dist.mjs "$OUT"
@@ -21,7 +21,7 @@ git init -q
 git config user.name "${DIST_AUTHOR_NAME:-Criminal Lab}"
 git config user.email "${DIST_AUTHOR_EMAIL:-propulseglobal@gmail.com}"
 git add -A
-git commit -q -m "dist: criminalsquad v${VERSION}"
+git commit -q -m "dist: legalsquad v${VERSION}"
 git branch -M main
 
 if gh repo view "$REPO" >/dev/null 2>&1; then
@@ -31,10 +31,10 @@ if gh repo view "$REPO" >/dev/null 2>&1; then
 else
   echo "==> Criando repo PÚBLICO ${REPO} e publicando…"
   gh repo create "$REPO" --public --source=. --remote=origin --push \
-    --description "CriminalSquad — distribuição pública (instalação/atualização do Núcleo de Prática Criminal)"
+    --description "LegalSquad — distribuição pública (instalação/atualização do Núcleo de Prática Criminal)"
 fi
 
 echo
 echo "Publicado: https://github.com/${REPO}"
-echo "Aluno instala:  npm i -g github:${REPO} && criminalsquad init"
-echo "Aluno atualiza: npm i -g github:${REPO} && criminalsquad update"
+echo "Aluno instala:  npm i -g github:${REPO} && legalsquad init"
+echo "Aluno atualiza: npm i -g github:${REPO} && legalsquad update"

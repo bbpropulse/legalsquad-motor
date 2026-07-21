@@ -18,12 +18,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ENGINE_DIR = join(__dirname, '..', 'scripts', 'captura');
 
 const USAGE = `
-  criminalsquad captura — assiste vídeo e transcreve áudio dos autos (embarcado)
+  legalsquad captura — assiste vídeo e transcreve áudio dos autos (embarcado)
 
   Uso:
-    npx criminalsquad captura setup            Instala deps no uso (ffmpeg/yt-dlp/faster-whisper)
-    npx criminalsquad captura setup --check    Preflight: 0 = pronto; senão diz o que falta
-    npx criminalsquad captura <arquivo|URL>    Extrai frames + transcreve (LOCAL por padrão)
+    npx legalsquad captura setup            Instala deps no uso (ffmpeg/yt-dlp/faster-whisper)
+    npx legalsquad captura setup --check    Preflight: 0 = pronto; senão diz o que falta
+    npx legalsquad captura <arquivo|URL>    Extrai frames + transcreve (LOCAL por padrão)
 
   Opções repassadas ao motor (watch.py):
     --sigiloso                 Segredo de justiça: força LOCAL e bloqueia a nuvem

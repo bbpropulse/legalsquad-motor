@@ -29,10 +29,10 @@ Congelar contratos e gerar as chaves. Nada aqui depende de servidor.
 - Congelar o **modelo de dados** (§4 do SPEC) e a **URN** — schemas JSON (`schemas/*.json`) versionados.
 - Congelar o **formato do pacote** e o `manifest.json` (`format_version: "1.0"`).
 - Gerar par de chaves **Ed25519**; guardar a privada em KMS/1Password; **embarcar a pública** no
-  core (`_criminalsquad/config/acervo-keys.json`, com `kid`).
+  core (`_legalsquad/config/acervo-keys.json`, com `kid`).
 - Escrever `tools/build-pack.mjs` (dev): recebe JSONL de entidades → produz tarball `.tar.zst` +
   `manifest.json` + assinatura. Determinístico.
-- Produzir **1 pacote-semente** curado à mão para o CriminalSquad: `legislacao.penal.base` +
+- Produzir **1 pacote-semente** curado à mão para o LegalSquad: `legislacao.penal.base` +
   `sumulas.stf-stj.penal` + `teses-modelos.penal.base`.
 
 **Aceite:** `build-pack` gera um tarball; a assinatura valida com a pública embarcada; o schema
@@ -45,11 +45,11 @@ com redação atual (versão única) e adiar o versionamento completo para a Fas
 
 ## Fase 1 — Motor de sync no cliente (sem servidor)  · *~1–2 semanas*  ⭐ MVP
 
-Tudo na engine compartilhada → CriminalSquad, DTSquad e EJsquad herdam de graça.
+Tudo na engine compartilhada → LegalSquad, DTSquad e EJsquad herdam de graça.
 
 **Tarefas**
 - `src/acervo-sync.js` + `src/acervo-cli.js`; registrar `acervo sync|status|packs` em
-  `bin/criminalsquad.js` (padrão dos comandos existentes).
+  `bin/legalsquad.js` (padrão dos comandos existentes).
 - **Source do pacote:** nesta fase, um caminho local/URL fixa para o semente (flag `--from`), sem
   entitlement. Baixa (ou lê) → **verifica sha256 + Ed25519** → extrai para `acervo/_packs/<id>/`.
 - `acervo/_packs/_manifest.json` (registro do instalado).
@@ -64,7 +64,7 @@ Tudo na engine compartilhada → CriminalSquad, DTSquad e EJsquad herdam de gra�
   offline, idempotência de re-sync, e o corte de confiança no gate de citações.
 
 **Aceite**
-- `criminalsquad acervo sync --from ./seed` instala o semente; `search-acervo` acha as entidades e
+- `legalsquad acervo sync --from ./seed` instala o semente; `search-acervo` acha as entidades e
   mostra `VERIFIED_OFFICIAL` + data.
 - Um tarball com 1 byte trocado é **recusado** (assinatura inválida) e nada é gravado.
 - `casos/` e o material do usuário permanecem no índice como `DISCOVERY_ONLY`, intactos.
@@ -86,7 +86,7 @@ O "servidor burro": CDN + endpoint de licença. Ainda com o corpus-semente (o co
 - `GET /v1/signing-keys` (rotação).
 - Emissão de licenças (mínimo viável: chaves + tier + validade + `product_scope`; pode ser planilha
   → KV no começo).
-- Cliente: trocar o `--from` fixo por `GET /v1/catalog` (com `~/.config/criminalsquad/license`).
+- Cliente: trocar o `--from` fixo por `GET /v1/catalog` (com `~/.config/legalsquad/license`).
   Cache-first; base tier sem conta.
 - Loga só `{license, product, packs, ts}` (LGPD).
 
@@ -101,7 +101,7 @@ O "servidor burro": CDN + endpoint de licença. Ainda com o corpus-semente (o co
 
 ## Fase 3 — Esteira de ingestão v1 (o corpus criminal)  · *meses, incremental*
 
-A parte cara. Construir o corpus real do CriminalSquad, em ondas.
+A parte cara. Construir o corpus real do LegalSquad, em ondas.
 
 **Ordem interna (valor/dificuldade):**
 1. **Legislação penal versionada** — CP, CPP, LEP, Lei de Drogas, ECA penal etc., com
@@ -133,7 +133,7 @@ Mesma infra, novos domínios.
 - **DTSquad:** packs `legislacao.trabalhista.*`, `jurisprudencia.tst.*`, teses-modelo trabalhistas;
   pacote-base próprio no `main`; `product_scope: ["dtsquad"]` nas licenças.
 - **EJsquad:** packs registral/notarial/civil; provimentos CNJ/CGJ; base próprio.
-- Entitlement por produto (uma licença CriminalSquad não abre packs trabalhistas, salvo bundle).
+- Entitlement por produto (uma licença LegalSquad não abre packs trabalhistas, salvo bundle).
 - O **motor de sync não muda** (já é compartilhado) — só os pacotes e os escopos.
 
 **Aceite:** cada squad sincroniza seus packs de domínio; escopos de produto respeitados; base tier
@@ -186,8 +186,8 @@ tudo funcionando offline após o sync.
 ## Arquivos que este plano cria (referência)
 
 **Cliente (engine compartilhada):** `src/acervo-sync.js`, `src/acervo-cli.js`,
-`_criminalsquad/config/acervo-keys.json` (pública), extensão de `scripts/indexar-acervo.js`,
-`schemas/*.json`, testes em `tests/acervo-sync.test.js`. Wiring em `bin/criminalsquad.js`.
+`_legalsquad/config/acervo-keys.json` (pública), extensão de `scripts/indexar-acervo.js`,
+`schemas/*.json`, testes em `tests/acervo-sync.test.js`. Wiring em `bin/legalsquad.js`.
 
 **Ferramentas de build (dev):** `tools/build-pack.mjs`, `tools/sign-pack.mjs`.
 

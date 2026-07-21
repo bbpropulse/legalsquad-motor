@@ -10,7 +10,7 @@ import { auditSkillCatalogQuality } from './skill-quality.js';
 import { contractSkillCatalog, generateSkillOpenAiMetadata } from './skill-contract.js';
 
 function projectProfilesPath(targetDir) {
-  const path = join(targetDir, '_criminalsquad', 'core', 'skill-quality-profiles.json');
+  const path = join(targetDir, '_legalsquad', 'core', 'skill-quality-profiles.json');
   return existsSync(path) ? path : undefined;
 }
 
@@ -40,7 +40,7 @@ function printErrors(result) {
 export function indexSkillsProject(targetDir) {
   const skillsDir = join(targetDir, 'skills');
   if (!existsSync(skillsDir)) {
-    console.error('Diretório skills/ ausente. Execute `npx criminalsquad init` primeiro.');
+    console.error('Diretório skills/ ausente. Execute `npx legalsquad init` primeiro.');
     return { success: false };
   }
   const catalog = discoverSkillCatalog(skillsDir);
@@ -58,7 +58,7 @@ export function indexSkillsProject(targetDir) {
 export function checkSkillsProject(targetDir) {
   const skillsDir = join(targetDir, 'skills');
   if (!existsSync(skillsDir)) {
-    console.error('Diretório skills/ ausente. Execute `npx criminalsquad init` primeiro.');
+    console.error('Diretório skills/ ausente. Execute `npx legalsquad init` primeiro.');
     return { success: false };
   }
   const result = validateProjectCatalog(targetDir);
@@ -74,7 +74,7 @@ export function checkSkillsProject(targetDir) {
 export function auditSkillsProject(targetDir) {
   const skillsDir = join(targetDir, 'skills');
   if (!existsSync(skillsDir)) {
-    console.error('Diretório skills/ ausente. Execute `npx criminalsquad init` primeiro.');
+    console.error('Diretório skills/ ausente. Execute `npx legalsquad init` primeiro.');
     return { success: false };
   }
   const report = auditSkillCatalogQuality(discoverSkillCatalog(skillsDir), {
@@ -107,7 +107,7 @@ export function auditSkillsProject(targetDir) {
 export function contractSkillsProject(targetDir, { force = false } = {}) {
   const skillsDir = join(targetDir, 'skills');
   if (!existsSync(skillsDir)) {
-    console.error('Diretório skills/ ausente. Execute `npx criminalsquad init` primeiro.');
+    console.error('Diretório skills/ ausente. Execute `npx legalsquad init` primeiro.');
     return { success: false };
   }
   const profilesPath = projectProfilesPath(targetDir);
@@ -128,6 +128,6 @@ export function contractSkillsProject(targetDir, { force = false } = {}) {
     printErrors(result);
     return { success: false, result, contract, ui };
   }
-  console.log('Catálogo íntegro e fresco. Rode `npx criminalsquad audit-skills` para a maturidade.');
+  console.log('Catálogo íntegro e fresco. Rode `npx legalsquad audit-skills` para a maturidade.');
   return { success: true, result, contract, ui };
 }

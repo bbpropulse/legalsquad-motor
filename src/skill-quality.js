@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PROFILES_PATH = join(
   __dirname,
   '..',
-  '_criminalsquad',
+  '_legalsquad',
   'core',
   'skill-quality-profiles.json',
 );
@@ -71,7 +71,7 @@ const PROFILE_PATTERNS = [
   },
   {
     profile: 'system-orchestration',
-    pattern: /^(?:criminalsquad-|skill-|squad-|template-designer|apify|blotato|canva|image-creator|obsidian-vault)|\b(?:orquestra[cç][aã]o|infraestrutura|indexar|auditoria-qualidade)\b/i,
+    pattern: /^(?:legalsquad-|skill-|squad-|template-designer|apify|blotato|canva|image-creator|obsidian-vault)|\b(?:orquestra[cç][aã]o|infraestrutura|indexar|auditoria-qualidade)\b/i,
   },
   {
     profile: 'legal-drafting',

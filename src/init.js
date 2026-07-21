@@ -15,8 +15,8 @@ const TEMPLATES_DIR = join(__dirname, '..', 'templates');
 const PACKAGE_ROOT = join(__dirname, '..');
 
 const CANONICAL_SOURCES = [
-  { src: join(PACKAGE_ROOT, '_criminalsquad', 'core'), dest: join('_criminalsquad', 'core') },
-  { src: join(PACKAGE_ROOT, '_criminalsquad', 'config'), dest: join('_criminalsquad', 'config') },
+  { src: join(PACKAGE_ROOT, '_legalsquad', 'core'), dest: join('_legalsquad', 'core') },
+  { src: join(PACKAGE_ROOT, '_legalsquad', 'config'), dest: join('_legalsquad', 'config') },
   { src: join(PACKAGE_ROOT, 'dashboard'), dest: 'dashboard' },
   // scripts/legal-calculators saiu: calculadoras de matéria são pacote de área,
   // não motor. Chegam pelo sync, não pelo init.
@@ -47,13 +47,13 @@ export async function init(targetDir, options = {}) {
   // Check if already initialized
   let isReInit = false;
   try {
-    await stat(join(targetDir, '_criminalsquad'));
+    await stat(join(targetDir, '_legalsquad'));
     isReInit = true;
   } catch {
     // Not initialized yet — continue
   }
 
-  console.log(isReInit ? '\n  🔄 CriminalSquad — Re-configure\n' : '\n  🟢 CriminalSquad — Setup\n');
+  console.log(isReInit ? '\n  🔄 LegalSquad — Re-configure\n' : '\n  🟢 LegalSquad — Setup\n');
 
   // Guided installation (skip in test mode)
   let language = options._language || 'English';
@@ -97,9 +97,9 @@ export async function init(targetDir, options = {}) {
   // Write user preferences. The JSON file is the canonical, machine-read source;
   // the Markdown file is the human-friendly doc. Readers prefer JSON and fall
   // back to Markdown so hand-edits that break the .md never silently lose state.
-  const memoryDir = join(targetDir, '_criminalsquad', '_memory');
+  const memoryDir = join(targetDir, '_legalsquad', '_memory');
   await mkdir(memoryDir, { recursive: true });
-  const prefsContent = `# CriminalSquad Preferences
+  const prefsContent = `# LegalSquad Preferences
 
 - **User Name:** ${userName}
 - **Output Language:** ${language}
@@ -120,14 +120,14 @@ export async function init(targetDir, options = {}) {
   );
 
   // Seed the office/institution profile (only if not already present)
-  const companyPath = join(targetDir, '_criminalsquad', '_memory', 'company.md');
+  const companyPath = join(targetDir, '_legalsquad', '_memory', 'company.md');
   try {
     await stat(companyPath);
   } catch {
-    const seedPath = join(PACKAGE_ROOT, '_criminalsquad', 'core', 'seeds', 'company.md');
+    const seedPath = join(PACKAGE_ROOT, '_legalsquad', 'core', 'seeds', 'company.md');
     try {
       await cp(seedPath, companyPath);
-      console.log(`  ${t('createdFile', { path: '_criminalsquad/_memory/company.md' })}`);
+      console.log(`  ${t('createdFile', { path: '_legalsquad/_memory/company.md' })}`);
     } catch {
       // seed missing — skip; the onboarding flow will collect the profile
     }
@@ -135,10 +135,10 @@ export async function init(targetDir, options = {}) {
 
   // Seed/merge the project .gitignore (npm strips .gitignore from tarballs).
   // Idempotent: if the user already has a .gitignore, APPEND any missing
-  // CriminalSquad entries so sensitive paths (acervo/casos/, _criminalsquad/logs/,
+  // LegalSquad entries so sensitive paths (acervo/casos/, _legalsquad/logs/,
   // browser profile, etc.) are ALWAYS ignored — sigilo/LGPD.
   const gitignorePath = join(targetDir, '.gitignore');
-  const giSeed = join(PACKAGE_ROOT, '_criminalsquad', 'core', 'seeds', 'gitignore');
+  const giSeed = join(PACKAGE_ROOT, '_legalsquad', 'core', 'seeds', 'gitignore');
   try {
     const seedContent = await readFile(giSeed, 'utf-8');
     let existing = null;
@@ -157,7 +157,7 @@ export async function init(targetDir, options = {}) {
         .filter((l) => l.trim() && !l.trim().startsWith('#') && !have.has(l.trim()));
       if (missing.length > 0) {
         const sep = existing.endsWith('\n') ? '' : '\n';
-        await writeFile(gitignorePath, `${existing}${sep}\n# CriminalSquad\n${missing.join('\n')}\n`, 'utf-8');
+        await writeFile(gitignorePath, `${existing}${sep}\n# LegalSquad\n${missing.join('\n')}\n`, 'utf-8');
         console.log(`  ${t('updatedFile', { path: '.gitignore' })}`);
       }
     }
@@ -204,7 +204,7 @@ export async function init(targetDir, options = {}) {
 // to parsing the Markdown doc (legacy installs or hand-edited .json). Returns
 // null when neither is present. Shape: { outputLanguage, ides, ... }.
 export async function readPreferences(targetDir) {
-  const memoryDir = join(targetDir, '_criminalsquad', '_memory');
+  const memoryDir = join(targetDir, '_legalsquad', '_memory');
 
   // 1. Canonical JSON — only a plain object counts (array/scalar is ignored).
   let json = null;
@@ -518,7 +518,7 @@ function ensurePlaywrightMcp(parsed) {
   if (!parsed.mcpServers.playwright) {
     parsed.mcpServers.playwright = {
       command: 'npx',
-      args: ['@playwright/mcp@latest', '--config', '_criminalsquad/config/playwright.config.json'],
+      args: ['@playwright/mcp@latest', '--config', '_legalsquad/config/playwright.config.json'],
     };
   }
 }

@@ -10,11 +10,11 @@ import { agentsCli } from '../src/agents-cli.js';
 import { capturaCli } from '../src/captura-cli.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BIN = join(__dirname, '..', 'bin', 'criminalsquad.js');
+const BIN = join(__dirname, '..', 'bin', 'legalsquad.js');
 
 async function initializedDir() {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
-  await mkdir(join(dir, '_criminalsquad', '_memory'), { recursive: true });
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
+  await mkdir(join(dir, '_legalsquad', '_memory'), { recursive: true });
   return dir;
 }
 
@@ -45,7 +45,7 @@ function runBin(args, cwd) {
 // --- skillsCli ---
 
 test('skillsCli returns failure when project not initialized', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const { result } = await capture(() => skillsCli('list', [], dir));
     assert.equal(result.success, false);
@@ -59,7 +59,7 @@ test('skillsCli list succeeds on an initialized project', async () => {
   try {
     const { result, out } = await capture(() => skillsCli('list', [], dir));
     assert.equal(result.success, true);
-    assert.ok(out.includes('CriminalSquad Skills'));
+    assert.ok(out.includes('LegalSquad Skills'));
   } finally {
     await rm(dir, { recursive: true });
   }
@@ -70,7 +70,7 @@ test('skillsCli install with no id fails (prints usage)', async () => {
   try {
     const { result, out } = await capture(() => skillsCli('install', [], dir));
     assert.equal(result.success, false);
-    assert.ok(out.includes('Usage: criminalsquad install <id>'));
+    assert.ok(out.includes('Usage: legalsquad install <id>'));
   } finally {
     await rm(dir, { recursive: true });
   }
@@ -125,7 +125,7 @@ test('agentsCli list succeeds on an initialized project', async () => {
   try {
     const { result, out } = await capture(() => agentsCli('list', [], dir));
     assert.equal(result.success, true);
-    assert.ok(out.includes('CriminalSquad Agents'));
+    assert.ok(out.includes('LegalSquad Agents'));
   } finally {
     await rm(dir, { recursive: true });
   }
@@ -144,29 +144,29 @@ test('agentsCli rejects an unknown subcommand', async () => {
 // --- bin command table ---
 
 test('bin prints help and exits 0 with no command', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const { code, stdout } = await runBin([], dir);
     assert.equal(code, 0);
-    assert.ok(stdout.includes('criminalsquad'));
+    assert.ok(stdout.includes('legalsquad'));
   } finally {
     await rm(dir, { recursive: true });
   }
 });
 
 test('bin exits 1 on an unknown command', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const { code, stdout } = await runBin(['bogus-command'], dir);
     assert.equal(code, 1);
-    assert.ok(stdout.includes('criminalsquad'));
+    assert.ok(stdout.includes('legalsquad'));
   } finally {
     await rm(dir, { recursive: true });
   }
 });
 
 test('bin skills exits 1 when project is not initialized', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const { code } = await runBin(['skills'], dir);
     assert.equal(code, 1);
@@ -176,7 +176,7 @@ test('bin skills exits 1 when project is not initialized', async () => {
 });
 
 test('bin indexar-skills e check-skills funcionam num projeto distribuído sem src local', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const skillDir = join(dir, 'skills', 'exemplo');
     await mkdir(skillDir, { recursive: true });
@@ -208,7 +208,7 @@ description: Skill de teste
 test('capturaCli help prints usage and succeeds without spawning python', async () => {
   const { result, out } = await capture(() => capturaCli(['help']));
   assert.equal(result.success, true);
-  assert.ok(out.includes('criminalsquad captura'));
+  assert.ok(out.includes('legalsquad captura'));
   assert.ok(out.includes('--sigiloso'));
 });
 
@@ -224,7 +224,7 @@ test('capturaCli with no args fails and does not spawn', async () => {
 });
 
 test('bin captura help exits 0 and surfaces the sigilo rule', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const { code, stdout } = await runBin(['captura', 'help'], dir);
     assert.equal(code, 0);
@@ -236,7 +236,7 @@ test('bin captura help exits 0 and surfaces the sigilo rule', async () => {
 });
 
 test('bin captura with no args exits 1', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const { code } = await runBin(['captura'], dir);
     assert.equal(code, 1);
@@ -246,7 +246,7 @@ test('bin captura with no args exits 1', async () => {
 });
 
 test('main help lists the native captura command', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const { stdout } = await runBin([], dir);
     assert.ok(stdout.includes('captura'));
@@ -256,7 +256,7 @@ test('main help lists the native captura command', async () => {
 });
 
 test('bin audit-skills gera relatório de maturidade num projeto distribuído', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-cli-'));
   try {
     const skillDir = join(dir, 'skills', 'exemplo');
     await mkdir(skillDir, { recursive: true });

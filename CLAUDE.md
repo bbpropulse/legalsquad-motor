@@ -9,11 +9,11 @@ baixados por `sync` e liberados por licença.
 | Repositório | Papel | Pode ser modificado? |
 |---|---|---|
 | **`legalsquad`** (este) | Motor + plataforma de distribuição | **sim** — é onde o motor evolui |
-| `~/Documents/Projetos/Devlop/criminalsquad/app` | Fonte do conteúdo criminal **e** produto que vende hoje (Núcleo, turma fundadora) | **NÃO** |
+| `~/Documents/Projetos/Devlop/legalsquad/app` | Fonte do conteúdo criminal **e** produto que vende hoje (Núcleo, turma fundadora) | **NÃO** |
 | `~/Devlop/dtsquad` | Fonte do conteúdo trabalhista | **NÃO** |
 
 > `~/Devlop/ejsquad/app` (fonte do conteúdo extrajudicial) **não existe no disco** — nem
-> `~/Devlop/ejsquad`. Hoje só `criminalsquad` (520 skills) e `dtsquad` (405) estão presentes.
+> `~/Devlop/ejsquad`. Hoje só `legalsquad` (520 skills) e `dtsquad` (405) estão presentes.
 > Ver [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
 
 > **Regra dura:** o `build-area` **lê** os repos de conteúdo e produz pacotes. Nenhum passo escreve
@@ -43,7 +43,7 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
 3. **Degradação graciosa.** Licença vencida nunca vira tijolo: cache segue read-only com selo
    *"desatualizado há N dias"*.
 4. **Uma área só vira pacote com curador de verdade.** Arquitetura ampla, vitrine estreita.
-5. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
+5. **Motor novo só aqui.** O LegalSquad está em manutenção (correção crítica apenas).
 
 ## Documentação
 
@@ -58,17 +58,17 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
 
 ## Estado atual: F0 concluído
 
-Motor copiado do CriminalSquad (**a última cópia**) com todo o conteúdo jurídico removido.
+Motor copiado do LegalSquad (**a última cópia**) com todo o conteúdo jurídico removido.
 Commit inicial: `19e29be`.
 
 ### Pendências abertas (não são bugs — é o F0 inacabado por decisão)
 
-- **Identidade interna ainda é `criminalsquad`**: o comando, a pasta `_criminalsquad/`, textos e
+- **Identidade interna ainda é `legalsquad`**: o comando, a pasta `_legalsquad/`, textos e
   templates. Rename é mecânico mas é diff grande — decisão em `ARQUITETURA.md §6`
-  (recomendação: manter `criminalsquad` como bundle comercial e renomear quando a 2ª área for
+  (recomendação: manter `legalsquad` como bundle comercial e renomear quando a 2ª área for
   vendida). `legalsquad` já existe como alias de bin.
 - **Pacote `transversal` não extraído** — as ~20 skills que servem qualquer área. O conjunto já é
-  **derivável hoje**, sem depender do `ejsquad`: a interseção de nomes entre `criminalsquad` e
+  **derivável hoje**, sem depender do `ejsquad`: a interseção de nomes entre `legalsquad` e
   `dtsquad` dá exatamente 20 entradas (19 skills + `_evals`), confirmando o número da
   `ARQUITETURA §3`. `incidente-falsidade-documental` é a única com cara de matéria — o F1 decide se é
   transversal de verdade ou por acidente de fork. Extrair à mão seria uma 2ª cópia; isso é trabalho do
@@ -82,7 +82,7 @@ Commit inicial: `19e29be`.
   (calculadoras criminais, execução penal — removidas com razão) e ~57 eram motor testado tendo as
   skills criminais como fixture — hoje reapontadas para `tests/fixtures/area-demo/` (sintética, sem
   matéria jurídica real). Das 7 falhas que restam, **duas causas distintas, não uma só**: 6 delas —
-  `init.test.js` (4: `apify`/`blotato`/`canva` não instaladas, `criminalsquad-skill-creator/scripts`,
+  `init.test.js` (4: `apify`/`blotato`/`canva` não instaladas, `legalsquad-skill-creator/scripts`,
   `_evals/README.md`, `habeas-corpus/references/high-performance-contract.md`), `update.test.js` (1:
   `image-ai-generator/SKILL.md`) e `cli.test.js` (1: `skillsCli install` de `image-creator`) — são
   ENOENT puro: este repo não tem mais um `<repo>/skills` de verdade para instalar, e parametrizar
@@ -101,7 +101,7 @@ Commit inicial: `19e29be`.
   publicável e exige conteúdo de área que este repo não tem mais: exatamente 487 `SKILL.md` (com
   `references/high-performance-contract.md` e `agents/openai.yaml` correspondentes), os três motores de
   `legal-calculators/` (fração/data, remição, prescrição executória) e
-  `_criminalsquad/core/authorities/execucao-penal-art-112.json`. Continuará vermelho até o `build-area`
+  `_legalsquad/core/authorities/execucao-penal-art-112.json`. Continuará vermelho até o `build-area`
   (F1) produzir um pacote de área para alimentar o tarball.
 
 ## Próximo passo: F1 — o exportador
@@ -109,9 +109,9 @@ Commit inicial: `19e29be`.
 `tools/build-area.mjs <repo-de-conteudo> <area-id>` → lê `skills/`, `squads/`,
 `core/best-practices/` e o perfil; separa `transversal` de `area.*`; produz o pacote assinado.
 
-**Aceite do F1:** gerar `area.criminal` a partir do CriminalSquad com **`git status` limpo lá**
+**Aceite do F1:** gerar `area.criminal` a partir do LegalSquad com **`git status` limpo lá**
 (prova de que o build é read-only) e contagem batendo com as **520 skills**.
 
 **Aceite do F2 (paridade):** instalação limpa `legalsquad` + `transversal` + `area.criminal`
-reproduz a experiência atual do CriminalSquad — 9 squads, gates verdes, resolvedor e Citation Gate
+reproduz a experiência atual do LegalSquad — 9 squads, gates verdes, resolvedor e Citation Gate
 funcionando. **Se não houver paridade, para** — não se abre área nova nem se migra aluno.

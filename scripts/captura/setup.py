@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Setup / preflight do captura-midia-av (CriminalSquad).
+"""Setup / preflight do captura-midia-av (LegalSquad).
 
 Modos:
   setup.py --check   Preflight silencioso. Exit 0 se pronto, !=0 se falta algo.
   setup.py --json    Status legivel por maquina.
   setup.py           Instalador. Instala deps no uso (ffmpeg/ffprobe/yt-dlp + faster-whisper).
 
-Filosofia do CriminalSquad:
+Filosofia do LegalSquad:
 - Transcricao LOCAL (faster-whisper) e o PADRAO — nao precisa de nenhuma chave de API.
   Roda offline; o audio nunca sai da maquina (obrigatorio para segredo de justica).
 - OpenRouter (nuvem multimodal) e OPCIONAL, so para midia ja PUBLICA.
@@ -29,7 +29,7 @@ PY_DEP_PIP = "faster-whisper"      # pip name
 CONFIG_DIR = Path.home() / ".config" / "captura-midia-av"
 CONFIG_FILE = CONFIG_DIR / ".env"
 
-ENV_TEMPLATE = """# captura-midia-av — configuracao (CriminalSquad)
+ENV_TEMPLATE = """# captura-midia-av — configuracao (LegalSquad)
 #
 # TRANSCRICAO LOCAL e o padrao e NAO precisa de chave nenhuma (faster-whisper).
 # Material sigiloso (audiencia/depoimento em segredo de justica) SEMPRE local.

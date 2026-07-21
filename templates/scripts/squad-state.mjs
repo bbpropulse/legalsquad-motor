@@ -2,7 +2,7 @@
 // Escritor DETERMINÍSTICO do state.json de um squad — substitui a escrita à mão
 // do JSON pelo Pipeline Runner. Garante timestamps reais, transições atômicas
 // (write tmp + rename) e saída sempre válida contra o contrato.
-// Contrato: _criminalsquad/core/state.schema.json | Tipos: dashboard/src/types/state.ts
+// Contrato: _legalsquad/core/state.schema.json | Tipos: dashboard/src/types/state.ts
 //
 //   node scripts/squad-state.mjs init       <squad-dir> --total <N>
 //   node scripts/squad-state.mjs step       <squad-dir> --current <K> --label "<L>" --working <id> [--working <id> ...] [--from <prevId>] [--message "<m>"] [--activity "<a>"]
@@ -104,7 +104,7 @@ function loadState(dir) {
   }
 }
 
-// Rede de segurança: espelha _criminalsquad/core/state.schema.json e o isValidState
+// Rede de segurança: espelha _legalsquad/core/state.schema.json e o isValidState
 // do dashboard. Por construção a saída já é válida; isto pega regressões cedo.
 function validate(s) {
   const errs = [];

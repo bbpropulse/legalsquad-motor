@@ -27,7 +27,7 @@ function pecaOutput(content) {
 function approveCitationGate(fp, content) {
   writeFileSync(`${fp}.citation-gate.json`, JSON.stringify({
     schema_version: '1',
-    kind: 'criminalsquad.citation-gate-attestation',
+    kind: 'legalsquad.citation-gate-attestation',
     artifact: basename(fp),
     artifact_sha256: createHash('sha256').update(content).digest('hex'),
     gate_status: 'aprovado',

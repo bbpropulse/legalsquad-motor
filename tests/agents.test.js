@@ -68,7 +68,7 @@ test('clearMetaCache forces re-read when bundled agents exist', async () => {
 test('installAgent invalidates metaCache', async () => {
   const available = await listAvailable();
   if (available.length === 0) return;
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const id = available[0];
     clearMetaCache();
@@ -84,7 +84,7 @@ test('installAgent invalidates metaCache', async () => {
 test('removeAgent invalidates metaCache', async () => {
   const available = await listAvailable();
   if (available.length === 0) return;
-  const dir = await mkdtemp(join(tmpdir(), 'criminalsquad-test-'));
+  const dir = await mkdtemp(join(tmpdir(), 'legalsquad-test-'));
   try {
     const id = available[0];
     await installAgent(id, dir);

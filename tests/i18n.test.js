@@ -7,12 +7,12 @@ import { loadLocale, t, getLocaleCode } from '../src/i18n.js';
 
 test('loadLocale loads English by default', async () => {
   await loadLocale('English');
-  assert.equal(t('success'), '✅ CriminalSquad initialized successfully!');
+  assert.equal(t('success'), '✅ LegalSquad initialized successfully!');
 });
 
 test('loadLocale loads Portuguese locale', async () => {
   await loadLocale('Português (Brasil)');
-  assert.equal(t('success'), '✅ CriminalSquad inicializado com sucesso!');
+  assert.equal(t('success'), '✅ LegalSquad inicializado com sucesso!');
 });
 
 test('t falls back to English for missing keys', async () => {
@@ -32,7 +32,7 @@ test('t returns key name for completely unknown keys', async () => {
 
 test('loadLocale falls back to English for unknown language', async () => {
   await loadLocale('Klingon');
-  assert.equal(t('success'), '✅ CriminalSquad initialized successfully!');
+  assert.equal(t('success'), '✅ LegalSquad initialized successfully!');
 });
 
 test('all locales have update keys', async () => {

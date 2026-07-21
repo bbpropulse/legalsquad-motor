@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Package-root CLI over the shared v5 contract layer. Applies (or dry-runs) the
 // high-performance contract to the repository's own skills/ library. The cwd-aware
-// twin used inside a mentee's project is `npx criminalsquad contract-skills`.
+// twin used inside a mentee's project is `npx legalsquad contract-skills`.
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contractSkillCatalog } from '../src/skill-contract.js';

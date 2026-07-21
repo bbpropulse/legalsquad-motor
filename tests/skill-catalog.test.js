@@ -94,7 +94,7 @@ test('catálogo da fixture está fresco, íntegro e serializa gatilhos/lifecycle
 });
 
 test('checker detecta índice stale, pasta sem SKILL, name divergente, ref quebrada e grafo inválido', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'criminalsquad-catalog-'));
+  const root = await mkdtemp(join(tmpdir(), 'legalsquad-catalog-'));
   const skillsDir = join(root, 'skills');
   try {
     await mkdir(join(skillsDir, 'sem-skill'), { recursive: true });
@@ -200,14 +200,14 @@ canonicalization:
 
 test('Arquitetura, Discovery, Design e Sherlock usam shortlist local e manifesto direcionado', async () => {
   const files = [
-    '_criminalsquad/core/architect.agent.yaml',
-    '_criminalsquad/core/prompts/discovery.prompt.md',
-    '_criminalsquad/core/prompts/design.prompt.md',
-    '_criminalsquad/core/prompts/sherlock-shared.md',
-    '_criminalsquad/core/prompts/sherlock-instagram.md',
-    '_criminalsquad/core/prompts/sherlock-linkedin.md',
-    '_criminalsquad/core/prompts/sherlock-twitter.md',
-    '_criminalsquad/core/prompts/sherlock-youtube.md',
+    '_legalsquad/core/architect.agent.yaml',
+    '_legalsquad/core/prompts/discovery.prompt.md',
+    '_legalsquad/core/prompts/design.prompt.md',
+    '_legalsquad/core/prompts/sherlock-shared.md',
+    '_legalsquad/core/prompts/sherlock-instagram.md',
+    '_legalsquad/core/prompts/sherlock-linkedin.md',
+    '_legalsquad/core/prompts/sherlock-twitter.md',
+    '_legalsquad/core/prompts/sherlock-youtube.md',
   ];
   for (const file of files.slice(0, 4)) {
     const content = await readFile(join(ROOT, file), 'utf8');

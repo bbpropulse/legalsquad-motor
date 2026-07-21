@@ -15,8 +15,8 @@ success_criteria:
   - "As duas revisões paralelas (A e B) emitem veredito independente"
   - "Qualquer REJECT das revisões devolve o pipeline ao passo de redação"
 
-company: "_criminalsquad/_memory/company.md"
-preferences: "_criminalsquad/_memory/preferences.md"
+company: "_legalsquad/_memory/company.md"
+preferences: "_legalsquad/_memory/preferences.md"
 memory: "_memory/memories.md"
 
 target_audience: "Fixture de teste do motor — não é conteúdo para usuário final"

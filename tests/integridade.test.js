@@ -33,7 +33,7 @@ const dirs = (p) => (existsSync(p) ? readdirSync(p, { withFileTypes: true }).fil
 
 // 1. Catálogo de best-practices: todo `file:` aponta para um arquivo existente.
 // A fixture está no formato de destino (core/ direto na raiz da área, sem o
-// prefixo _criminalsquad/ do motor) — ver tests/legal-authorities.test.js.
+// prefixo _legalsquad/ do motor) — ver tests/legal-authorities.test.js.
 test('integridade: _catalog.yaml referencia arquivos existentes', () => {
   const catPath = join(CORE_DEMO, 'best-practices', '_catalog.yaml');
   assert.ok(existsSync(catPath), '_catalog.yaml deve existir');

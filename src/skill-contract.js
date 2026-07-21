@@ -14,7 +14,7 @@ import {
 
 // The v5 operational contract layer, extracted so both the package-root
 // dev scripts (scripts/migrate-skills-v5.mjs, scripts/generate-skill-openai-metadata.mjs)
-// and the cwd-aware CLI (`npx criminalsquad contract-skills`, used by the
+// and the cwd-aware CLI (`npx legalsquad contract-skills`, used by the
 // Architect inside a mentee's project) share one implementation. The functions
 // are parameterized on `root`; nothing here is package-relative except the
 // static quality-profile config, which is identical across installs.
@@ -399,7 +399,7 @@ export function contractSkillCatalog({ root, force = false, dryRun = false, prof
     mkdirSync(evalsDir, { recursive: true });
     writeFileSync(join(evalsDir, 'catalog-v5.json'), `${JSON.stringify({
       schema_version: '1',
-      suite: 'criminalsquad-catalog-v5-contracts',
+      suite: 'legalsquad-catalog-v5-contracts',
       evaluation_type: 'contract-specification',
       privacy: 'Todos os cenários são fictícios e não contêm dados de clientes.',
       limitations: [
