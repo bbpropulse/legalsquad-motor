@@ -19,8 +19,8 @@ import {
 // are parameterized on `root`; nothing here is package-relative except the
 // static quality-profile config, which is identical across installs.
 
-const START = '<!-- CRIMINALSQUAD:HP-CONTRACT:START -->';
-const END = '<!-- CRIMINALSQUAD:HP-CONTRACT:END -->';
+const START = '<!-- LEGALSQUAD:HP-CONTRACT:START -->';
+const END = '<!-- LEGALSQUAD:HP-CONTRACT:END -->';
 
 // Os únicos status que significam desempenho comprovado. Não se declaram: só existem
 // com evidência comportamental válida (forward-run + baseline + revisores independentes,
@@ -352,8 +352,8 @@ export function contractSkillCatalog({ root, force = false, dryRun = false, prof
     if (!profile) throw new Error(`${entry.id}: perfil inexistente ${profileId}`);
 
     const currentEvalIds = entry.frontmatter ? parseList(entry.frontmatter, 'eval_case_ids') : [];
-    const evalIds = currentEvalIds.length ? currentEvalIds : [`csq-v5-${entry.id}`];
-    const generatedEvalId = evalIds.find((id) => id.startsWith('csq-v5-'));
+    const evalIds = currentEvalIds.length ? currentEvalIds : [`lsq-v5-${entry.id}`];
+    const generatedEvalId = evalIds.find((id) => id.startsWith('lsq-v5-'));
     if (generatedEvalId) generatedCases.push(generatedEval(entry, generatedEvalId, profileId, profile));
 
     // Preserva a promoção conquistada. Este passo é o normalizador ESTRUTURAL, não o juiz

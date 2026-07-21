@@ -45,7 +45,7 @@ test('as skills da fixture têm contrato v5, perfil, risco, guards e eval vincul
     assert.ok(meta.freshnessPolicy, entry.id);
     assert.ok(meta.guardTriggers.length >= 3, entry.id);
     assert.ok(meta.evalCaseIds.length >= 1, entry.id);
-    assert.match(entry.raw, /CRIMINALSQUAD:HP-CONTRACT:START/, entry.id);
+    assert.match(entry.raw, /LEGALSQUAD:HP-CONTRACT:START/, entry.id);
     assert.ok(entry.raw.split(/\r?\n/).length <= 500, `${entry.id} excede 500 linhas`);
     assert.ok(existsSync(join(dirname(entry.skillPath), 'references', 'high-performance-contract.md')), entry.id);
     assert.ok(existsSync(join(dirname(entry.skillPath), 'agents', 'openai.yaml')), entry.id);

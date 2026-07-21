@@ -480,7 +480,7 @@ Quando criar for inevitável, para CADA skill nova:
 1. **Leia a doutrina e um exemplar.** Leia `_legalsquad/core/best-practices/skills-alta-performance.md` (princípios, contrato mínimo, portões jurídicos, hard fails) e abra 1–2 skills do mesmo domínio em `skills/` como calibragem de profundidade e tom (escolha os exemplares entre as skills que a área instalada realmente publica — descubra com `search-skills`, não presuma nomes). Se a doutrina ou o exemplar **não existirem** (área não instalada / catálogo vazio), siga com o contrato v5 abaixo como especificação única e registre a ausência no Quality Report — nunca dilua o contrato por falta de exemplo.
 
 2. **Autore `skills/{nome}/SKILL.md`** com:
-   - **Frontmatter inicial mínimo** (o pipeline completa o resto — NÃO escreva à mão o bloco `<!-- CRIMINALSQUAD:HP-CONTRACT -->`, nem `references/`, nem `agents/openai.yaml`, nem o eval):
+   - **Frontmatter inicial mínimo** (o pipeline completa o resto — NÃO escreva à mão o bloco `<!-- LEGALSQUAD:HP-CONTRACT -->`, nem `references/`, nem `agents/openai.yaml`, nem o eval):
      ```yaml
      ---
      name: {nome}
@@ -500,7 +500,7 @@ Quando criar for inevitável, para CADA skill nova:
    ```
    npx legalsquad contract-skills
    ```
-   Isso normaliza o frontmatter para v5 (schema_version, quality_profile, risk_level, guards, `eval_case_ids`…), injeta o bloco de contrato, gera `references/high-performance-contract.md` e `agents/openai.yaml`, registra o eval `csq-v5-{nome}` no `skills/_evals/catalog-v5.json` e regenera `skills/_index.yaml`. É idempotente.
+   Isso normaliza o frontmatter para v5 (schema_version, quality_profile, risk_level, guards, `eval_case_ids`…), injeta o bloco de contrato, gera `references/high-performance-contract.md` e `agents/openai.yaml`, registra o eval `lsq-v5-{nome}` no `skills/_evals/catalog-v5.json` e regenera `skills/_index.yaml`. É idempotente.
 
 4. **Valide e corrija até verde:**
    ```
@@ -630,9 +630,9 @@ Se QUALQUER item falhar: corrija o arquivo (replicando o padrão de um squad-mod
 
 Aplica-se apenas se o squad criou uma ou mais skills novas (Step B2). Se não criou nenhuma, pule este gate. Para CADA skill nova em `skills/{nome}/`, verifique:
 - [ ] `SKILL.md` tem `schema_version: "5"`, `quality_profile`, `risk_level`, `guard_triggers` (≥3) e `eval_case_ids` no frontmatter (metadata)
-- [ ] `SKILL.md` contém o bloco `<!-- CRIMINALSQUAD:HP-CONTRACT:START -->`
+- [ ] `SKILL.md` contém o bloco `<!-- LEGALSQUAD:HP-CONTRACT:START -->`
 - [ ] Existem `references/high-performance-contract.md` e `agents/openai.yaml`
-- [ ] O eval `csq-v5-{nome}` está em `skills/_evals/catalog-v5.json` com cenários `normal` e `adversarial`
+- [ ] O eval `lsq-v5-{nome}` está em `skills/_evals/catalog-v5.json` com cenários `normal` e `adversarial`
 - [ ] A skill aparece em `skills/_index.yaml` (índice fresco)
 - [ ] Corpo denso e específico (base legal, teses/roteiro, checklist, conformidade) — não um esqueleto genérico
 - [ ] Citações sob Citation Gate (`[NÃO VERIFICADO]`/remissão à skill de jurisprudência; nada de súmula/precedente de memória)

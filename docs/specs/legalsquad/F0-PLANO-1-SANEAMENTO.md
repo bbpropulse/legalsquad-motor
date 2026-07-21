@@ -524,7 +524,7 @@ metadata:
 
 # ${s.nome} (fixture sintética)
 
-<!-- CRIMINALSQUAD:HP-CONTRACT:START -->
+<!-- LEGALSQUAD:HP-CONTRACT:START -->
 
 ## Quando usar
 
@@ -541,7 +541,7 @@ catálogo, busca, política de runtime e resolvedor — sem conteúdo jurídico 
 
 Não produz entrega de produção. Não substitui revisão humana.
 
-<!-- CRIMINALSQUAD:HP-CONTRACT:END -->
+<!-- LEGALSQUAD:HP-CONTRACT:END -->
 `;
 
 // short_description precisa ter 25..64 caracteres — validado em skill-quality.test.js:60
@@ -634,7 +634,7 @@ Estenda o gerador para produzir `tests/fixtures/area-demo/skills/_evals/`:
   `skill`, `evaluation_type:"contract"` e `scenarios` contendo **≥1 `kind:"normal"` e ≥1
   `kind:"adversarial"`** — `skill-evals.test.js:12` exige os dois.
 - `promotion-evidence.schema.json`: `properties.schema_version.const` **exatamente**
-  `"criminalsquad.skill-promotion-evidence/v1"` (`skill-promotion-evidence.test.js:268`).
+  `"legalsquad.skill-promotion-evidence/v1"` (`skill-promotion-evidence.test.js:268`).
 - `demo-canonicas.json` e `README.md`: distribuídos pelo `init`.
 - `results/`: **um arquivo por `quality_profile` usado** — como a fixture usa 2 perfis, são 2
   relatórios. `skill-evals.test.js:44` exige que o conjunto de `result.profile` seja **igual** ao

@@ -26,7 +26,7 @@ metadata:
 
 # demo-deprecada (fixture sintética)
 
-<!-- CRIMINALSQUAD:HP-CONTRACT:START -->
+<!-- LEGALSQUAD:HP-CONTRACT:START -->
 
 ## Quando usar
 
@@ -45,4 +45,4 @@ Não produz entrega de produção. Não substitui revisão humana. Toda citaçã
 fonte oficial exige proveniência registrada — ver
 [contrato de alta performance](references/high-performance-contract.md).
 
-<!-- CRIMINALSQUAD:HP-CONTRACT:END -->
+<!-- LEGALSQUAD:HP-CONTRACT:END -->

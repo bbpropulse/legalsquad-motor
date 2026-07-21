@@ -15,7 +15,7 @@
   ],
   "properties": {
     "schema_version": {
-      "const": "criminalsquad.skill-promotion-evidence/v1"
+      "const": "legalsquad.skill-promotion-evidence/v1"
     },
     "suite": {
       "type": "string",

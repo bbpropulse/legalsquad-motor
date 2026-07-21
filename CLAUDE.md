@@ -69,16 +69,20 @@ Commit inicial: `19e29be`.
    `_catalog.yaml` **da área instalada**, em vez de nomes criminais fixos. `tests/fronteira.test.js`
    passou de inventário de dívida a **guarda de não-regressão**: `DIVIDA_CONHECIDA` está vazia e
    nenhuma matéria pode voltar a entrar.
-2. **Identidade renomeada** para `legalsquad` (comando, `_legalsquad/`, `bin/legalsquad.js`, textos
-   e os wrappers das 13 IDEs). O bin mantém `criminalsquad` como **alias**, então quem já instalou
-   não perde o comando.
+2. **Identidade `legalsquad` por inteiro** — comando, `_legalsquad/`, `bin/legalsquad.js`, textos,
+   os wrappers das 13 IDEs, os marcadores de contrato (`LEGALSQUAD:HP-CONTRACT`,
+   `LEGALSQUAD:CITATION-GATE`), o schema `legalsquad.skill-promotion-evidence/v1` e o prefixo de
+   eval `lsq-v5-*`. **Sem alias de compatibilidade**: nada foi distribuído, então não há instalação
+   a preservar.
 
-**Três identificadores conservam o nome antigo de propósito** — são formato de dados, não marca:
-`CRIMINALSQUAD:HP-CONTRACT` e `CRIMINALSQUAD:CITATION-GATE` (marcadores gravados dentro dos
-`SKILL.md` das 520 skills criminais e das 405 trabalhistas) e
-`criminalsquad.skill-promotion-evidence/v1` (schema versionado). Trocá-los faria o pacote do F1 não
-ser reconhecido pelo motor e quebraria a paridade do F2 em silêncio — é migração de dados, não
-rename.
+> **Requisito que isso cria para o F1 — leia antes de escrever o `build-area`.** As skills do
+> `criminalsquad` (520) e do `dtsquad` (405) têm gravados os marcadores antigos
+> (`<!-- CRIMINALSQUAD:HP-CONTRACT:START -->`) e ids de eval `csq-v5-*`. O **`build-area` precisa
+> traduzir esses identificadores ao empacotar** — de `CRIMINALSQUAD:` para `LEGALSQUAD:`, de
+> `csq-v5-` para `lsq-v5-`, e o `schema_version` da evidência de promoção. É normalização de
+> empacotamento, não migração dos repos de conteúdo (que continuam intocados, como manda a regra
+> dura). Sem essa tradução, o motor não reconhece o contrato das skills importadas e a paridade do
+> F2 falha.
 
 ### Pendências abertas (não são bugs — é o F0 inacabado por decisão)
 

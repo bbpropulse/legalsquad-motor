@@ -129,7 +129,7 @@ export function renderSkillIndex(catalog) {
   yaml += '  blocked: [legacy, quarantined]\n';
   yaml += '  implicit_selection_requires: high_performance_eligible\n';
   yaml += '  contracted_execution_requires: supervised\n';
-  yaml += '  promotion_evidence_schema: "criminalsquad.skill-promotion-evidence/v1"\n';
+  yaml += '  promotion_evidence_schema: "legalsquad.skill-promotion-evidence/v1"\n';
   yaml += '  label_without_computed_eligibility: blocked\n\n';
   yaml += 'discovery_policy:\n';
   yaml += '  command: "npx legalsquad search-skills --query <capability> --limit 8 --json"\n';

@@ -25,7 +25,7 @@ import { readFileSync } from 'node:fs';
 
 const EXIT_BLOCKED = 2;
 const MANIFEST_SUFFIX = '.citation-gate.json';
-const FINAL_MARKER = /<!--\s*CRIMINALSQUAD:CITATION-GATE:FINAL\s*-->/i;
+const FINAL_MARKER = /<!--\s*LEGALSQUAD:CITATION-GATE:FINAL\s*-->/i;
 const FINAL_FRONTMATTER = /^---\s*[\s\S]*?^citation_gate:\s*["']?final["']?\s*$[\s\S]*?^---\s*$/im;
 const DRAFT_FRONTMATTER = /^---\s*[\s\S]*?^citation_gate:\s*["']?(?:draft|internal|rascunho)["']?\s*$[\s\S]*?^---\s*$/im;
 const PENDING_MARKER = /\[(?:N[ÃA]O[ _]VERIFICAD[OA]|DIVERGENTE|CONFERIR|A[ _]CONFERIR|VERIFICAR|HIP[ÓO]TESE|CITA[ÇC][ÃA]O[ _]PENDENTE|FONTE[ _]PENDENTE|PENDENTE[ _]DE[ _]VERIFICA[ÇC][ÃA]O)\]/gi;

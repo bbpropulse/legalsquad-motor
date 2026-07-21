@@ -15,7 +15,7 @@ test('busca ranqueia capability exata sem carregar bodies no resultado', () => {
   assert.equal(result.results[0].id, 'demo-peca-alpha');
   assert.equal(result.results.length <= 5, true);
   const serialized = JSON.stringify(result);
-  assert.doesNotMatch(serialized, /CRIMINALSQUAD:HP-CONTRACT/);
+  assert.doesNotMatch(serialized, /LEGALSQUAD:HP-CONTRACT/);
   assert.doesNotMatch(serialized, /skillPath|"raw"|"frontmatter"/);
 });
 

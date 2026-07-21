@@ -144,7 +144,7 @@ test('aprova sentinela estrutural com atestação material íntegra', async () =
 });
 
 test('aceita atestação explícita sem citações em artefato final sem referência material', async () => {
-  const content = '<!-- CRIMINALSQUAD:CITATION-GATE:FINAL -->\n# Pedido\n\nRequer deferimento.';
+  const content = '<!-- LEGALSQUAD:CITATION-GATE:FINAL -->\n# Pedido\n\nRequer deferimento.';
   const artifact = await put('squads/defesa/output/pedido.md', content);
   await put(
     'squads/defesa/output/pedido.md.citation-gate.json',

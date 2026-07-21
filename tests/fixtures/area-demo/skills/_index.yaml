@@ -17,7 +17,7 @@ quality_policy:
   blocked: [legacy, quarantined]
   implicit_selection_requires: high_performance_eligible
   contracted_execution_requires: supervised
-  promotion_evidence_schema: "criminalsquad.skill-promotion-evidence/v1"
+  promotion_evidence_schema: "legalsquad.skill-promotion-evidence/v1"
   label_without_computed_eligibility: blocked
 
 discovery_policy:

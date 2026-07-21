@@ -10,10 +10,10 @@ Motor de orquestração multi-agente para o Direito.
 | Repositório | Papel | Muda? |
 |---|---|---|
 | **`legalsquad`** (este) | Motor + plataforma: roteador, Arquiteto, gates, CLI, `sync`, licença, empacotamento | é onde o motor evolui |
-| `legalsquad` | Fonte do conteúdo criminal **e** o produto que vende hoje | **intocado** |
+| `criminalsquad` | Fonte do conteúdo criminal **e** o produto que vende hoje | **intocado** |
 | `dtsquad` | Fonte do conteúdo trabalhista | **intocado** |
 
-> `ejsquad` (fonte do conteúdo extrajudicial) **não existe no disco**. Hoje só `legalsquad`
+> `ejsquad` (fonte do conteúdo extrajudicial) **não existe no disco**. Hoje só `criminalsquad`
 > (520 skills) e `dtsquad` (405) estão presentes — ver
 > [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
 
@@ -47,13 +47,18 @@ calculadoras específicas de área.
 O motor foi copiado do CriminalSquad — **a última cópia que será feita** — e todo o conteúdo
 jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqui**.
 
-**O motor não tem mais categoria de assunto.** A matéria jurídica de área foi zerada do núcleo (a
-dívida `§5-bis`, de 34 arquivos, está paga — `tests/fronteira.test.js` agora guarda a
-não-regressão com inventário vazio) e a identidade foi renomeada para `legalsquad`. O bin mantém
-`criminalsquad` como alias, e três identificadores de **formato** conservam o nome antigo de
-propósito (`CRIMINALSQUAD:HP-CONTRACT`, `CRIMINALSQUAD:CITATION-GATE` e
-`criminalsquad.skill-promotion-evidence/v1`): eles estão gravados dentro dos `SKILL.md` dos pacotes
-de área, e trocá-los quebraria a paridade do F2.
+**O motor não tem mais categoria de assunto, nem resquício do nome antigo.** A matéria jurídica de
+área foi zerada do núcleo (a dívida `§5-bis`, de 34 arquivos, está paga — `tests/fronteira.test.js`
+agora guarda a não-regressão com inventário vazio) e a identidade é `legalsquad` por inteiro:
+comando, `_legalsquad/`, `bin/legalsquad.js`, os marcadores de contrato
+(`LEGALSQUAD:HP-CONTRACT`, `LEGALSQUAD:CITATION-GATE`), o schema
+`legalsquad.skill-promotion-evidence/v1` e o prefixo de eval `lsq-v5-*`. Sem alias de
+compatibilidade — nada foi distribuído ainda.
+
+> **Requisito que isso cria para o F1:** as skills do `criminalsquad` e do `dtsquad` têm gravados os
+> marcadores antigos (`CRIMINALSQUAD:HP-CONTRACT`) e evals `csq-v5-*`. O **`build-area` precisa
+> traduzi-los ao empacotar** — é uma normalização de empacotamento, e o pacote é o lugar certo para
+> ela. Sem isso, o motor não reconhece o contrato das skills importadas.
 
 ### Pendências conhecidas do F0
 

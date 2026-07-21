@@ -85,7 +85,7 @@ metadata:
 
 # ${s.nome} (fixture sintética)
 
-<!-- CRIMINALSQUAD:HP-CONTRACT:START -->
+<!-- LEGALSQUAD:HP-CONTRACT:START -->
 
 ## Quando usar
 
@@ -104,7 +104,7 @@ Não produz entrega de produção. Não substitui revisão humana. Toda citaçã
 fonte oficial exige proveniência registrada — ver
 [contrato de alta performance](references/high-performance-contract.md).
 
-<!-- CRIMINALSQUAD:HP-CONTRACT:END -->
+<!-- LEGALSQUAD:HP-CONTRACT:END -->
 `;
 
 // short_description precisa ter 25..64 caracteres — validado em skill-quality.test.js:60
@@ -259,7 +259,7 @@ const PROMOTION_EVIDENCE_SCHEMA = {
   additionalProperties: false,
   required: ['schema_version', 'suite', 'evaluated_at', 'execution_model', 'evaluator', 'results'],
   properties: {
-    schema_version: { const: 'criminalsquad.skill-promotion-evidence/v1' },
+    schema_version: { const: 'legalsquad.skill-promotion-evidence/v1' },
     suite: { type: 'string', minLength: 1 },
     evaluated_at: { type: 'string', format: 'date-time' },
     execution_model: { $ref: '#/$defs/model' },

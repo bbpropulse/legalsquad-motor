@@ -20,7 +20,7 @@ O gate alcança arquivos gravados por `Write`/`Edit` dentro de
 
 - o nome representa peça jurídica (`peticao`, `recurso`, `memoriais`, `parecer` etc.);
 - o nome contém `final` ou o arquivo está no subdiretório `output/final/`;
-- o texto contém `<!-- CRIMINALSQUAD:CITATION-GATE:FINAL -->`;
+- o texto contém `<!-- LEGALSQUAD:CITATION-GATE:FINAL -->`;
 - o frontmatter contém `citation_gate: final`.
 
 Minutas e arquivos internos (`minuta`, `rascunho`, `draft`, `_...`, diretórios de

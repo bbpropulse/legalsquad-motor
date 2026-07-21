@@ -21,7 +21,7 @@ export const SKILL_QUALITY_STATUSES = Object.freeze([
   'quarantined',
 ]);
 
-export const PROMOTION_EVIDENCE_SCHEMA_VERSION = 'criminalsquad.skill-promotion-evidence/v1';
+export const PROMOTION_EVIDENCE_SCHEMA_VERSION = 'legalsquad.skill-promotion-evidence/v1';
 
 // These are promotion floors, not recommendations. A team may demand more
 // scenarios/reviewers, but lowering them would invalidate cross-installation
@@ -521,7 +521,7 @@ export function evaluateSkillQuality(entry, {
     description_valid: description.length > 0 && description.length <= 1024 && !/[<>]/.test(description),
     description_front_loaded: /^(?:use|utilize|analisa|avalia|redige|elabora|produz|converte|extrai|monitora|calcula|classifica|estrutura|cria|automatiza)/i.test(description),
     description_boundary: /n[aã]o use|n[aã]o utilizar|fora do escopo|n[aã]o substitui/i.test(description),
-    contract_marker: /CRIMINALSQUAD:HP-CONTRACT:START/.test(body),
+    contract_marker: /LEGALSQUAD:HP-CONTRACT:START/.test(body),
     contract_reference: hasProfileReference,
     inputs_declared: /\*\*Entrada|Entradas m[ií]nimas/i.test(body) || hasProfileReference,
     blockers_declared: /\*\*Bloqueio|hard stop|blocked/i.test(body) || hasProfileReference,

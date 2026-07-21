@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 
 async function scaffoldProject({ qualityStatus, lifecycle = 'active' } = {}) {
-  const dir = await mkdtemp(join(tmpdir(), 'csq-contract-'));
+  const dir = await mkdtemp(join(tmpdir(), 'lsq-contract-'));
   await mkdir(join(dir, 'skills', 'nova-skill-defesa'), { recursive: true });
   await mkdir(join(dir, 'skills', '_evals'), { recursive: true });
   await mkdir(join(dir, '_legalsquad', 'core'), { recursive: true });
@@ -57,8 +57,8 @@ test('contract-skills aplica o contrato v5 completo num projeto (cwd-aware)', as
     assert.match(skill, /schema_version: "5"/, 'frontmatter deve migrar para v5');
     assert.match(skill, /quality_profile: "legal-analysis"/, 'perfil deve ser classificado');
     assert.match(skill, /quality_status: "contracted"/, 'skill nova nasce contracted');
-    assert.match(skill, /eval_case_ids: \["csq-v5-nova-skill-defesa"\]/);
-    assert.match(skill, /CRIMINALSQUAD:HP-CONTRACT:START/, 'bloco de contrato deve ser injetado');
+    assert.match(skill, /eval_case_ids: \["lsq-v5-nova-skill-defesa"\]/);
+    assert.match(skill, /LEGALSQUAD:HP-CONTRACT:START/, 'bloco de contrato deve ser injetado');
     assert.match(skill, /## Base legal/, 'o conteúdo autoral deve ser preservado');
 
     // O bloco não pode alegar desempenho: `high_performance_eligible` é computado a
@@ -77,7 +77,7 @@ test('contract-skills aplica o contrato v5 completo num projeto (cwd-aware)', as
     );
 
     const catalog = JSON.parse(await readFile(join(dir, 'skills', '_evals', 'catalog-v5.json'), 'utf8'));
-    const evalCase = catalog.cases.find((c) => c.id === 'csq-v5-nova-skill-defesa');
+    const evalCase = catalog.cases.find((c) => c.id === 'lsq-v5-nova-skill-defesa');
     assert.ok(evalCase, 'o eval de contrato deve ser registrado no catalog-v5.json');
     assert.equal(evalCase.skill, 'nova-skill-defesa');
     const kinds = new Set(evalCase.scenarios.map((s) => s.kind));
