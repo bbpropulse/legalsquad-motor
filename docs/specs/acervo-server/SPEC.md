@@ -1,7 +1,7 @@
 # Acervo-as-a-Service — Especificação Técnica
 
 > Status: **Rascunho para decisão** · Escopo: infraestrutura compartilhada de acervo jurídico
-> (legislação, jurisprudência, súmulas, teses) para **todos os squads** (LegalSquad,
+> (legislação, jurisprudência, súmulas, teses) para **todos os squads** (CriminalSquad,
 > DTSquad, EJsquad e futuros). Companheiro: [PLAN.md](PLAN.md) (plano de implementação).
 
 Documento visual de arquitetura/modelagem que originou este spec:
@@ -43,7 +43,7 @@ não trai o discurso "tudo local, nada vaza" que é o maior ativo dos produtos.
               pacotes assinados por domínio (saída)
         ┌───────────────────┬───────────┴───────────┬───────────────────┐
         ▼                   ▼                       ▼                     ▼
-  LegalSquad          DTSquad                 EJsquad             (futuros)
+  CriminalSquad          DTSquad                 EJsquad             (futuros)
   base: penal        base: trabalhista       base: registral/
   packs: penal,      packs: trabalhista,     notarial, civil
    proc. penal,       proc. do trabalho
@@ -538,7 +538,7 @@ Componentes (todos fora do caminho de busca do usuário):
 
 ## 9. Especificação do cliente (motor compartilhado)
 
-Vive na engine compartilhada → presente em LegalSquad, DTSquad, EJsquad automaticamente.
+Vive na engine compartilhada → presente em CriminalSquad, DTSquad, EJsquad automaticamente.
 
 ### 9.1 Comando
 

@@ -1,4 +1,4 @@
-# Plano de Implementação — Lado LegalSquad (motor de sync)
+# Plano de Implementação — Lado CriminalSquad (motor de sync)
 
 > Recorte do [PLAN.md](PLAN.md) só com o que vive **neste repositório** (a engine compartilhada).
 > Executável **sem servidor**: o motor sincroniza a partir de um pacote-semente assinado à mão.

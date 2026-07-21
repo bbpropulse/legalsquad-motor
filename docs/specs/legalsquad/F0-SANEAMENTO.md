@@ -358,14 +358,14 @@ Ordem de execução: **A → B → C → pacote**.
 
    O critério **não** é "`git status` limpo" — isso não é mais verificável. Durante a execução deste
    ciclo, uma sessão paralela passou a implementar `sync` e overlay de pacotes *dentro* do
-   LegalSquad (12 arquivos modificados, `src/packs-overlay.js` e `tests/packs-overlay.test.js`
+   CriminalSquad (12 arquivos modificados, `src/packs-overlay.js` e `tests/packs-overlay.test.js`
    novos). É trabalho deliberado do autor, não interferência deste ciclo.
 
-   O critério passa a ser **diferencial**: registrar `git -C <legalsquad> status --short` antes de
+   O critério passa a ser **diferencial**: registrar `git -C <criminalsquad> status --short` antes de
    cada tarefa e comparar depois. Só as mudanças introduzidas pela tarefa contam.
 
    > **Nota para o F1/Plano 2.** Essa implementação paralela cria um `sync` e um formato de cache de
-   > pacotes no LegalSquad, enquanto a §4 deste spec define o formato de pacote para o LegalSquad.
+   > pacotes no CriminalSquad, enquanto a §4 deste spec define o formato de pacote para o LegalSquad.
    > São o mesmo conceito em dois repositórios — exatamente a duplicação que a
    > [`MIGRACAO.md`](MIGRACAO.md) chama de "sangria de portar correção à mão entre forks". Antes de
    > executar o Plano 2, vale decidir se o formato do LegalSquad **adota** o que foi construído lá,
@@ -436,7 +436,7 @@ fronteira, falhando se aparecer matéria em arquivo que hoje está limpo.
 | **Des-criminalizar o `src/`** | Dívida da §5-bis. A correção é parametrizar por pacote de área, e o parâmetro só existe com o `build-area`. |
 | `build-area` | É o F1. Este ciclo entrega o contrato que ele vai cumprir. |
 | Extrair o pacote `transversal` | Extrair as 19 skills transversais *é* trabalho do `build-area`; fazer à mão seria uma 2ª cópia manual, contra a regra "a última cópia". |
-| Rename `legalsquad` → `legalsquad` | [`ARQUITETURA.md §6`](ARQUITETURA.md) recomenda adiar até a 2ª área ser comercializada. |
+| Rename `criminalsquad` → `legalsquad` | [`ARQUITETURA.md §6`](ARQUITETURA.md) recomenda adiar até a 2ª área ser comercializada. |
 | `sync`, licença, entitlement | F3. |
 
 ## 7. Correção de documentação
@@ -445,9 +445,9 @@ Duas coisas que a doc afirma e não se sustentam:
 
 1. **`ejsquad` não existe no disco.** `CLAUDE.md`, `README.md` e `MIGRACAO.md` listam
    `~/Devlop/ejsquad/app` como fonte do conteúdo extrajudicial; o caminho não existe (nem
-   `~/Devlop/ejsquad`). Só `legalsquad` (520 skills) e `dtsquad` (405) estão presentes.
+   `~/Devlop/ejsquad`). Só `criminalsquad` (520 skills) e `dtsquad` (405) estão presentes.
 2. **O conjunto transversal é derivável hoje.** A doc diz que as ~20 skills transversais foram
-   "isoladas ao criar o EJsquad". Com o ejsquad ausente, a interseção de nomes entre `legalsquad`
+   "isoladas ao criar o EJsquad". Com o ejsquad ausente, a interseção de nomes entre `criminalsquad`
    e `dtsquad` dá **exatamente 20 entradas** (19 skills + `_evals`), confirmando o número da
    `ARQUITETURA §3`:
 

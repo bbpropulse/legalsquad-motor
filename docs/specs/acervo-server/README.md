@@ -1,7 +1,7 @@
 # Acervo-as-a-Service
 
 Infraestrutura compartilhada de acervo jurídico (legislação, jurisprudência, súmulas, teses) para
-**todos os squads** (LegalSquad, DTSquad, EJsquad e futuros). O servidor **distribui** pacotes
+**todos os squads** (CriminalSquad, DTSquad, EJsquad e futuros). O servidor **distribui** pacotes
 assinados; cada squad **baixa, cacheia e pesquisa localmente** — a busca nunca sai da máquina.
 
 - **[SPEC.md](SPEC.md)** — especificação técnica: princípios, topologia multi-squad, modelo de

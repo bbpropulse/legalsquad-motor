@@ -8,7 +8,7 @@ mão entre repositórios.
   pacote (`transversal`, `area.*`, `acervo.*`), o `sync` único, o modelo de licença e a
   "sensação de estar pagando" (degradação graciosa), a camada vertical que preserva o marketing,
   e a ressalva estratégica (amplo na arquitetura, profundo no mercado).
-- **[MIGRACAO.md](MIGRACAO.md)** — o plano de construção em **repositório novo**: o LegalSquad
+- **[MIGRACAO.md](MIGRACAO.md)** — o plano de construção em **repositório novo**: o CriminalSquad
   **não é tocado** (segue vendendo e vira *fonte de conteúdo*, lida em modo somente leitura pelo
   `build-area`). Fases F0–F5, com critério de **paridade** antes de qualquer coisa avançar.
 

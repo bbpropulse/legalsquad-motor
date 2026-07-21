@@ -21,7 +21,7 @@ limpo. Nenhum passo escreve nos repositórios de conteúdo.
 ## Restrições globais
 
 - **`~/Documents/Projetos/Devlop/criminalsquad/app` é READ-ONLY.** É a fonte de leitura da Classe A.
-  Ao final, `git -C <legalsquad> status --short` deve ser **idêntico** ao do início (`?? output/`
+  Ao final, `git -C <criminalsquad> status --short` deve ser **idêntico** ao do início (`?? output/`
   e `?? tmp/`, que já existiam). Qualquer linha nova é falha do plano.
 - **Nenhum `skip`, `todo` ou teste comentado.** Se um teste não pode passar, ele é removido com
   justificativa no commit — não silenciado.
@@ -40,7 +40,7 @@ limpo. Nenhum passo escreve nos repositórios de conteúdo.
 
 ## Estrutura de arquivos
 
-**Restaurados** (Classe A, lidos do legalsquad):
+**Restaurados** (Classe A, lidos do criminalsquad):
 - `templates/ide-templates/{claude-code/.claude,gemini-cli/.gemini,qwen-code/.qwen}/skills/legalsquad/SKILL.md`
 - `templates/ide-templates/codex/.agents/skills/legalsquad/SKILL.md`
 - `.claude/skills/legalsquad/SKILL.md`
@@ -236,7 +236,7 @@ Nos **três** arquivos, substitua (o `.toml` tem o mesmo corpo em bloco de strin
 
 | # | Onde | De | Para |
 |---|---|---|---|
-| 1 | `description` do frontmatter | "catálogo de reuso do LegalSquad" | "catálogo de reuso do LegalSquad" |
+| 1 | `description` do frontmatter | "catálogo de reuso do CriminalSquad" | "catálogo de reuso do LegalSquad" |
 | 2 | seção 1, evolução arquitetural | "o manifesto `skills/_execucao-penal-v3-integration.yaml`" | "o manifesto de canonicalização da área (`skills/_*-integration.yaml`)" |
 | 3 | seção 2, exemplos | ``jurisprudencia-stj-stf`, `defesa-criminal-resposta-acusacao`, `triagem-novo-caso`, `monitor-dje-djen`, `resumo-processo`, `verificador-citacoes`, `secretaria-juridica`, `acervo-busca`` | "os nomes exatos vêm de `.claude/agents/` da área instalada — não presuma um catálogo fixo" |
 | 4 | seção 3, best-practices | "(incl. `verificacao-citacoes`, `etica-oab-sigilo` e os nichos `defesa-*`)" | "(incluindo os gates de verificação e ética que a área declarar)" |
@@ -258,10 +258,10 @@ grep -rniE 'execucao-penal|ep-\*|stj|stf|criminal|penal|defesa-|oab' \
 
 Esperado: **nenhuma linha**. Se algo aparecer, generalize também.
 
-> Exceção consciente: a string `legalsquad` sobrevive em nome de comando e caminho de pacote — a
+> Exceção consciente: a string `criminalsquad` sobrevive em nome de comando e caminho de pacote — a
 > decisão de não renomear está em [`ARQUITETURA.md §6`](ARQUITETURA.md). O grep acima não casa
-> `legalsquad` isolado; casa `criminal` como palavra dentro de texto. Se ele acusar apenas
-> ocorrências do identificador `legalsquad`, está correto seguir.
+> `criminalsquad` isolado; casa `criminal` como palavra dentro de texto. Se ele acusar apenas
+> ocorrências do identificador `criminalsquad`, está correto seguir.
 
 - [ ] **Passo 4: Rodar as suítes**
 
@@ -979,10 +979,10 @@ No `CLAUDE.md`, seção "Pendências abertas":
    catalog-scout apagados por engano), ~21 eram matéria removida e ~57 eram motor testado com fixture
    criminal, hoje sobre `tests/fixtures/area-demo/`.
 2. **Corrigir a fonte extrajudicial:** `~/Devlop/ejsquad/app` **não existe** no disco. Ajustar a
-   tabela de repositórios no `CLAUDE.md` e no `README.md` para refletir que só `legalsquad` e
+   tabela de repositórios no `CLAUDE.md` e no `README.md` para refletir que só `criminalsquad` e
    `dtsquad` estão presentes.
 3. **Registrar o conjunto transversal** como derivável hoje: a interseção de nomes entre
-   `legalsquad` e `dtsquad` dá exatamente 20 entradas (19 skills + `_evals`), confirmando o número
+   `criminalsquad` e `dtsquad` dá exatamente 20 entradas (19 skills + `_evals`), confirmando o número
    da `ARQUITETURA §3` sem depender do ejsquad. Anotar que `incidente-falsidade-documental` é a única
    com cara de matéria — **o F1 decide se é transversal de verdade ou por acidente de fork**.
 
@@ -1008,7 +1008,7 @@ trabalhista, sem depender dele."
 | 1 | `npm test` sem falha e sem skip | Task 8, Passo 1 |
 | 2 | `build:ide` roda e não altera o `CLAUDE.md` | Task 8, Passo 2 |
 | 3 | A dívida de fronteira não cresce (teste guarda) | Task 8, Passo 3 |
-| 4 | `legalsquad` intocado | Task 8, Passo 4 |
+| 4 | `criminalsquad` intocado | Task 8, Passo 4 |
 | 5 | Documentação alinhada ao real | Task 8, Passo 5 |
 
 Critérios 4 e 5 da §5 do spec — determinismo de empacotamento e recusa de pacote adulterado —

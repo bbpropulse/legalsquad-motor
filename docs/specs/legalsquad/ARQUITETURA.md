@@ -11,7 +11,7 @@
 **Um motor. Áreas do Direito como pacotes baixáveis, liberados por licença.**
 
 Área do Direito **não é motor — é conteúdo**. A prova está em casa: `DTSquad` e `EJsquad` são forks
-com o **motor idêntico** ao LegalSquad; o que muda é skill, squad, best-practice e perfil de
+com o **motor idêntico** ao CriminalSquad; o que muda é skill, squad, best-practice e perfil de
 instituição. Já foi preciso **portar correção de bug à mão** entre repos — o custo de manter N
 motores para variar conteúdo. Com 3 áreas é chato; com 8 é inviável.
 
@@ -126,9 +126,9 @@ específicos e caros — construindo **uma vez só**. Produto único por baixo, 
 ### Nome e comando (decisão pendente)
 
 Duas saídas, ambas viáveis:
-- **(a) Manter `legalsquad`** como o *bundle comercial* (motor + `area.criminal` pré-instalada) e
+- **(a) Manter `criminalsquad`** como o *bundle comercial* (motor + `area.criminal` pré-instalada) e
   usar `legalsquad` como o nome do motor internamente. Zero ruptura para quem já instalou.
-- **(b) Renomear o pacote para `legalsquad`** com alias `legalsquad` mantido por compatibilidade.
+- **(b) Renomear o pacote para `legalsquad`** com alias `criminalsquad` mantido por compatibilidade.
 
 Recomendação: **(a) agora, (b) quando a segunda área for comercializada.** Não renomear enquanto o
 único produto vendido é o criminal.
@@ -137,7 +137,7 @@ Recomendação: **(a) agora, (b) quando a segunda área for comercializada.** N�
 
 ## 7. Impacto nos repositórios
 
-> **O LegalSquad não muda.** Ele segue como está — o produto que vende hoje **e** a fonte de
+> **O CriminalSquad não muda.** Ele segue como está — o produto que vende hoje **e** a fonte de
 > conteúdo criminal. Tudo abaixo descreve o **repositório novo** (`legalsquad`).
 > Ver [`MIGRACAO.md`](MIGRACAO.md).
 
@@ -151,7 +151,7 @@ Recomendação: **(a) agora, (b) quando a segunda área for comercializada.** N�
   procedência, somada às checagens de lifecycle/evidência.
 - O `_index.yaml` ganha a origem: `fonte_pack: <id>@<versão>`.
 
-**Nos repos de conteúdo (`legalsquad`, `dtsquad`, `ejsquad`):**
+**Nos repos de conteúdo (`criminalsquad`, `dtsquad`, `ejsquad`):**
 - **Nada muda.** São lidos pelo `build-area` (somente leitura) e continuam sendo onde o conteúdo é
   autorado e validado pelos gates que já existem.
 
