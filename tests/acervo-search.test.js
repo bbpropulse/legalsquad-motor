@@ -62,3 +62,61 @@ test('CLI JSON devolve shortlist determinística e falha em query vazia', () => 
   assert.equal(empty.status, 1);
   assert.equal(JSON.parse(empty.stdout).error.code, 'search-query-empty');
 });
+
+test('acervo-search avisa quando o índice está desatualizado em relação ao disco', async () => {
+  const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const raiz = await mkdtemp(join(tmpdir(), 'acervo-stale-'));
+
+  try {
+    await mkdir(join(raiz, 'acervo', 'jurisprudencia'), { recursive: true });
+    // Índice com UMA entrada...
+    await writeFile(
+      join(raiz, 'acervo', '_index.yaml'),
+      'acervo:\n  - path: jurisprudencia/indexado.md\n    tipo: jurisprudencia\n    tema: "tema demo indexado"\n    tags: [demo]\n    confianca: DISCOVERY_ONLY\n'
+    );
+    await writeFile(join(raiz, 'acervo', 'jurisprudencia', 'indexado.md'), '# indexado\n\ntema demo indexado\n');
+    // ...e um arquivo NOVO no disco que o índice não conhece. Sem aviso, ele
+    // seria invisível à busca e ninguém saberia: é a falha muda que o gate cobre.
+    await writeFile(join(raiz, 'acervo', 'jurisprudencia', 'nao-indexado.md'), '# novo\n\ntema demo indexado\n');
+
+    const r = searchAcervoCatalog('tema demo indexado', raiz);
+
+    assert.equal(r.success, true, 'a busca continua funcionando — degradação graciosa, não bloqueio');
+    assert.ok(r.stale, 'deve sinalizar que o índice está defasado');
+    assert.match(r.stale.message, /indexar-acervo/, 'a mensagem deve dizer como corrigir');
+    assert.ok(
+      r.stale.naoIndexados.includes('jurisprudencia/nao-indexado.md'),
+      `deve nomear o arquivo ausente do índice; veio: ${JSON.stringify(r.stale.naoIndexados)}`
+    );
+  } finally {
+    await rm(raiz, { recursive: true, force: true });
+  }
+});
+
+test('acervo-search não acusa staleness quando índice e disco batem', async () => {
+  const { mkdtemp, mkdir, writeFile, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const raiz = await mkdtemp(join(tmpdir(), 'acervo-fresh-'));
+
+  try {
+    await mkdir(join(raiz, 'acervo', 'jurisprudencia'), { recursive: true });
+    await writeFile(
+      join(raiz, 'acervo', '_index.yaml'),
+      'acervo:\n  - path: jurisprudencia/unico.md\n    tipo: jurisprudencia\n    tema: "tema demo unico"\n    tags: [demo]\n    confianca: DISCOVERY_ONLY\n'
+    );
+    await writeFile(join(raiz, 'acervo', 'jurisprudencia', 'unico.md'), '# unico\n\ntema demo unico\n');
+    // casos/ é sigiloso e NUNCA indexado — sua presença não pode acusar staleness
+    await mkdir(join(raiz, 'acervo', 'casos'), { recursive: true });
+    await writeFile(join(raiz, 'acervo', 'casos', 'cliente-sigiloso.md'), '# sigiloso\n');
+    // README.md e o próprio _index.yaml também ficam fora do índice por regra
+    await writeFile(join(raiz, 'acervo', 'README.md'), '# leia-me\n');
+
+    const r = searchAcervoCatalog('tema demo unico', raiz);
+
+    assert.equal(r.success, true);
+    assert.equal(r.stale, undefined, `índice coerente não deve acusar staleness; veio: ${JSON.stringify(r.stale)}`);
+  } finally {
+    await rm(raiz, { recursive: true, force: true });
+  }
+});

@@ -1,5 +1,5 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { extname, join, relative } from 'node:path';
 
 // Ranked search over the local acervo (acervo/_index.yaml), symmetric to
 // src/skill-search.js. Lets pesquisa-jurisprudencial consult the acervo BEFORE
@@ -156,12 +156,91 @@ export function searchAcervoCatalog(query, rootDir, options = {}) {
       verified: entry.confianca === 'VERIFIED_OFFICIAL',
     }));
 
+  const stale = detectarIndiceDefasado(join(rootDir, 'acervo'), entries);
+
   return {
     success: true,
     result_count: ranked.length,
     limit,
     results: ranked,
     error: null,
+    ...(stale ? { stale } : {}),
+  };
+}
+
+// Mesmas regras de scripts/indexar-acervo.js: casos/ é sigiloso e nunca entra;
+// só extensões conhecidas; _index.yaml e README.md ficam fora; e um binário com
+// irmão .md de mesmo nome cede a vez ao .md (que é o legível).
+const EXT_INDEXAVEL = new Set(['.md', '.pdf', '.txt', '.docx', '.rtf']);
+const DIRS_IGNORADOS = new Set(['casos']);
+
+function listarIndexaveis(acervoDir, dir = acervoDir, acc = []) {
+  let entradas;
+  try {
+    entradas = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return acc;
+  }
+
+  const temMdIrmao = new Set(
+    entradas
+      .filter((e) => e.isFile() && extname(e.name).toLowerCase() === '.md')
+      .map((e) => e.name.slice(0, -3))
+  );
+
+  for (const e of entradas) {
+    const full = join(dir, e.name);
+    if (e.isDirectory()) {
+      if (!DIRS_IGNORADOS.has(e.name)) listarIndexaveis(acervoDir, full, acc);
+      continue;
+    }
+    if (!e.isFile()) continue;
+
+    const ext = extname(e.name).toLowerCase();
+    if (!EXT_INDEXAVEL.has(ext)) continue;
+    if (e.name === '_index.yaml' || e.name === 'README.md') continue;
+    if (ext !== '.md' && temMdIrmao.has(e.name.slice(0, -ext.length))) continue;
+
+    acc.push(relative(acervoDir, full).split('\\').join('/'));
+  }
+  return acc;
+}
+
+/**
+ * Compara o índice com o disco e devolve o descompasso, se houver.
+ *
+ * O índice do acervo é o ÚNICO que a busca realmente consome (as skills são
+ * descobertas varrendo o disco). Sem esta checagem, um material adicionado e
+ * não reindexado fica invisível à pesquisa **sem erro nenhum** — o pior modo de
+ * falha para um acervo jurídico, porque a ausência de resultado é
+ * indistinguível de "não existe precedente sobre isso".
+ *
+ * É um AVISO, não um bloqueio: a busca segue com o que há (degradação
+ * graciosa), mas quem consome passa a saber que o resultado está incompleto.
+ */
+export function detectarIndiceDefasado(acervoDir, entries) {
+  if (!existsSync(acervoDir)) return null;
+
+  const noDisco = listarIndexaveis(acervoDir);
+  const noIndice = new Set((entries || []).map((e) => e.path));
+
+  const naoIndexados = noDisco.filter((p) => !noIndice.has(p)).sort();
+  const fantasmas = [...noIndice]
+    .filter((p) => !existsSync(join(acervoDir, p)))
+    .sort();
+
+  if (naoIndexados.length === 0 && fantasmas.length === 0) return null;
+
+  const partes = [];
+  if (naoIndexados.length) partes.push(`${naoIndexados.length} arquivo(s) fora do índice`);
+  if (fantasmas.length) partes.push(`${fantasmas.length} entrada(s) apontando para arquivo inexistente`);
+
+  return {
+    naoIndexados,
+    fantasmas,
+    message:
+      `acervo/_index.yaml está defasado (${partes.join(' e ')}) — ` +
+      'a busca pode estar incompleta; rode `indexar-acervo` para atualizar',
   };
 }
 
@@ -182,6 +261,16 @@ export function acervoSearchCli(query, targetDir, values = {}) {
   for (const item of result.results) {
     const selo = item.verified ? 'oficial-verificado' : 'descoberta';
     console.log(`  - ${item.path} [${selo}] — ${item.tema}`);
+  }
+  // O aviso vai para stderr e DEPOIS dos resultados: quem lê a saída não perde
+  // o achado, e quem só olha o fim vê que a busca pode estar incompleta.
+  if (result.stale) {
+    console.error(`BUSCA_ACERVO:DEFASADA — ${result.stale.message}`);
+    for (const p of result.stale.naoIndexados.slice(0, 5)) console.error(`  fora do índice: ${p}`);
+    if (result.stale.naoIndexados.length > 5) {
+      console.error(`  … e mais ${result.stale.naoIndexados.length - 5}`);
+    }
+    for (const p of result.stale.fantasmas.slice(0, 5)) console.error(`  indexado mas ausente: ${p}`);
   }
   return result;
 }
