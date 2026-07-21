@@ -14,6 +14,7 @@ export function useSquadSocket() {
   const setConnected = useSquadStore((s) => s.setConnected);
   const setSnapshot = useSquadStore((s) => s.setSnapshot);
   const updateSquadState = useSquadStore((s) => s.updateSquadState);
+  const setSquadInvalid = useSquadStore((s) => s.setSquadInvalid);
   const setSquadInactive = useSquadStore((s) => s.setSquadInactive);
 
   useEffect(() => {
@@ -26,10 +27,13 @@ export function useSquadSocket() {
       if (disposed) return;
       switch (msg.type) {
         case "SNAPSHOT":
-          setSnapshot(msg.squads, msg.activeStates);
+          setSnapshot(msg.squads, msg.activeStates, msg.invalidStates);
           break;
         case "SQUAD_UPDATE":
           updateSquadState(msg.squad, msg.state);
+          break;
+        case "SQUAD_INVALID":
+          setSquadInvalid(msg.squad, msg.error);
           break;
         case "SQUAD_INACTIVE":
           setSquadInactive(msg.squad);
@@ -131,5 +135,5 @@ export function useSquadSocket() {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [setConnected, setSnapshot, updateSquadState, setSquadInactive]);
+  }, [setConnected, setSnapshot, updateSquadState, setSquadInvalid, setSquadInactive]);
 }

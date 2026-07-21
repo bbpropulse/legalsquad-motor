@@ -21,7 +21,9 @@ export function extractFrontMatter(raw) {
   // considerado INEXISTENTE — e o efeito era grave: sem lifecycle lido, a
   // skill caía no default `active` e virava production-eligible mesmo estando
   // quarentenada. Fail-open no gate que é a tese do produto.
-  const content = String(raw || '').replace(/^﻿/, '').replace(/\r\n/g, '\n');
+  // Escrito como \uFEFF, não como o caractere literal: um BOM colado no fonte
+  // é invisível na revisão e o lint o rejeita (no-irregular-whitespace).
+  const content = String(raw || '').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   return match ? match[1] : null;
 }

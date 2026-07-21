@@ -363,7 +363,8 @@ export function mesclarCasosDeEval(catalogPath, generatedCases) {
       // esta função: um import faltando virou "catálogo vazio" em silêncio).
       throw new Error(
         `${catalogPath}: JSON inválido (${erro.message}). Corrija ou remova o arquivo antes de rodar contract-skills — ` +
-        'seguir sobrescreveria os casos de eval existentes.'
+        'seguir sobrescreveria os casos de eval existentes.',
+        { cause: erro }
       );
     }
     for (const caso of Array.isArray(atual?.cases) ? atual.cases : []) {

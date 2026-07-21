@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // Prazos com data fatal HOJE (lê o cache local; instantâneo, sem API).
+// "Hoje" é o dia no fuso do FORO, não o da máquina — ver _lib.mjs.
 // Uso: node scripts/orchestra/prazos-hoje.mjs [--json]
-import { readTracker, today, output, printFreshness } from './_lib.mjs';
+import { readTrackerResult, today, output } from './_lib.mjs';
 
 const t = today();
-const rows = readTracker()
+const { entries, ilegiveis } = readTrackerResult();
+const rows = entries
   .filter((e) => e.fatal === t)
   .sort((a, b) => (a.processo || '').localeCompare(b.processo || ''));
 
-printFreshness();
-output(rows, ['fatal', 'processo', 'tipo', 'cliente', 'teor']);
+output(rows, ['fatal', 'processo', 'tipo', 'cliente', 'teor'], { ilegiveis });

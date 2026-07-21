@@ -7,6 +7,8 @@ then Reads each frame path to see the video.
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -20,6 +22,61 @@ from download import download, fetch_captions, is_url  # noqa: E402
 from frames import MAX_FPS, auto_fps, auto_fps_focus, extract_at_timestamps, extract_keyframes, extract_scene_or_uniform, extract_uniform, format_time, get_metadata, merge_frames, parse_time, parse_timestamps  # noqa: E402
 from transcribe import filter_range, format_transcript, parse_vtt  # noqa: E402
 from providers import transcribe_video  # noqa: E402
+
+
+def _remove(path: Path) -> None:
+    """Apaga arquivo ou diretorio sem reclamar se ja nao existir."""
+    if path.is_dir():
+        shutil.rmtree(path, ignore_errors=True)
+    else:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+def _cleanup_work(
+    work: Path,
+    *,
+    is_temp: bool,
+    sigiloso: bool,
+    keep: bool,
+    produced_frames: bool,
+) -> None:
+    """Remove o material derivado do work dir — SEMPRE, inclusive em falha.
+
+    Copia derivada de audiencia (audio.mp3, pedacos, midia baixada) e prova
+    sigilosa fora do dossie: fica indexada por Spotlight/backup, sem inventario.
+    Por isso ela sai em qualquer caminho de saida. Os frames sao a entrega ao
+    leitor, entao sobrevivem — mas so quando o operador nao pediu sigilo, ou
+    quando escolheu explicitamente onde guardar (--out-dir).
+    """
+    if keep:
+        # Escape hatch de depuracao — recusado sob --sigiloso ja no parse.
+        return
+
+    for residue in ("download", "chunks", "audio.mp3"):
+        _remove(work / residue)
+
+    if not produced_frames:
+        # Nada a entregar ao leitor: o diretorio inteiro sai.
+        if is_temp:
+            shutil.rmtree(work, ignore_errors=True)
+        else:
+            try:
+                work.rmdir()  # so remove se ficou vazio; o dir e do operador
+            except OSError:
+                pass
+        return
+
+    if sigiloso:
+        # Frames sigilosos so existem em --out-dir escolhido pelo operador
+        # (garantido antes da extracao). Fecha a permissao do que fica.
+        for path in (work / "frames").glob("*.jpg"):
+            try:
+                os.chmod(path, 0o600)
+            except OSError:
+                pass
 
 
 def main() -> int:
@@ -49,6 +106,12 @@ def main() -> int:
     ap.add_argument("--start", type=str, default=None, help="Range start (SS, MM:SS, or HH:MM:SS)")
     ap.add_argument("--end", type=str, default=None, help="Range end (SS, MM:SS, or HH:MM:SS)")
     ap.add_argument("--out-dir", type=str, default=None, help="Working directory (default: tmp)")
+    ap.add_argument(
+        "--keep-work",
+        action="store_true",
+        help="Depuracao: NAO limpar o work dir ao final (audio extraido, midia baixada e "
+             "pedacos ficam em disco). Incompativel com --sigiloso.",
+    )
     ap.add_argument(
         "--no-transcribe",
         action="store_true",
@@ -91,7 +154,41 @@ def main() -> int:
     args = ap.parse_args()
     if args.every is not None and args.every <= 0:
         raise SystemExit("--every deve ser maior que zero (segundos entre frames)")
+    # Segredo de justica nao admite residuo "so para depurar".
+    if args.sigiloso and args.keep_work:
+        raise SystemExit(
+            "--keep-work nao e permitido com --sigiloso: material em segredo de justica nao "
+            "pode ficar residual em disco. Rode sem --keep-work."
+        )
 
+    work_is_temp = args.out_dir is None
+    if args.out_dir:
+        work = Path(args.out_dir).expanduser().resolve()
+    else:
+        work = Path(tempfile.mkdtemp(prefix="watch-"))
+    work.mkdir(parents=True, exist_ok=True)
+    if args.sigiloso:
+        # Cópia derivada de material sigiloso nao fica legivel para outros usuarios.
+        try:
+            os.chmod(work, 0o700)
+        except OSError as exc:
+            raise SystemExit(f"--sigiloso: nao foi possivel restringir {work} (0700): {exc}")
+    print(f"[watch] working dir: {work}", file=sys.stderr)
+
+    state: dict = {"frames": []}
+    try:
+        return _run(args, work, work_is_temp, state)
+    finally:
+        _cleanup_work(
+            work,
+            is_temp=work_is_temp,
+            sigiloso=args.sigiloso,
+            keep=args.keep_work,
+            produced_frames=bool(state["frames"]),
+        )
+
+
+def _run(args, work: Path, work_is_temp: bool, state: dict) -> int:
     config = get_config()
     detail = args.detail or str(config["detail"])
     configured_cap = frame_cap(detail)
@@ -103,13 +200,6 @@ def main() -> int:
         raise SystemExit("--max-frames must be greater than zero")
     budget_cap = max_frames if max_frames is not None else 100
     cue_timestamps = parse_timestamps(args.timestamps)
-
-    if args.out_dir:
-        work = Path(args.out_dir).expanduser().resolve()
-    else:
-        work = Path(tempfile.mkdtemp(prefix="watch-"))
-    work.mkdir(parents=True, exist_ok=True)
-    print(f"[watch] working dir: {work}", file=sys.stderr)
 
     url_source = is_url(args.source)
     dl: dict = {"subtitle_path": None, "info": {}, "downloaded": False}
@@ -160,6 +250,26 @@ def main() -> int:
         "has_audio": False,
     }
     full_duration = meta["duration_seconds"]
+    # Midia so-audio (mp3 de audiencia, gravacao telefonica): ha arquivo, mas nao
+    # ha faixa de video. Extrair frames dali aborta o ffmpeg e a transcricao — que
+    # e justamente o que se quer do audio — nunca acontecia. Degrada para
+    # transcricao e avisa, em vez de morrer.
+    has_video = bool(meta.get("width"))
+    frames_requested = args.every is not None or detail != "transcript" or bool(cue_timestamps)
+    if video_path and not has_video and frames_requested:
+        print(
+            "[watch] midia sem faixa de video — frames impossiveis, seguindo so com transcricao",
+            file=sys.stderr,
+        )
+
+    # Frames sigilosos no temp do sistema viram residuo indexado sem inventario.
+    # Fail-closed: o operador precisa dizer onde guardar (dentro do dossie do caso).
+    if args.sigiloso and has_video and frames_requested and work_is_temp:
+        raise SystemExit(
+            "--sigiloso com extracao de frames exige --out-dir explicito: os frames sao "
+            "copia derivada de material sob segredo e nao podem ficar no temp do sistema. "
+            "Aponte um diretorio dentro do dossie do caso (ou use --detail transcript)."
+        )
 
     start_sec = parse_time(args.start)
     end_sec = parse_time(args.end)
@@ -204,7 +314,7 @@ def main() -> int:
 
     # Transcript cues are pinned: extracted first and counted against the cap so
     # the detail engine never evicts the moments the user explicitly asked for.
-    if cue_timestamps and video_path:
+    if cue_timestamps and video_path and has_video:
         cue_frames, cue_meta = extract_at_timestamps(
             video_path,
             work / "frames",
@@ -222,7 +332,7 @@ def main() -> int:
             )
 
     detail_budget = max_frames if max_frames is None else max(0, max_frames - len(cue_frames))
-    if args.every is not None and video_path:
+    if args.every is not None and video_path and has_video:
         # Frame-a-frame forense: cadencia fixa por todo o intervalo, sem teto.
         print(f"[watch] frame-a-frame: 1 frame a cada {args.every:g}s sobre {scope} (sem teto)…", file=sys.stderr)
         frames, frame_meta = extract_uniform(
@@ -240,7 +350,7 @@ def main() -> int:
                 f"{frame_meta['interval_seconds']:g}s (fps maximo {MAX_FPS:g}).",
                 file=sys.stderr,
             )
-    elif detail != "transcript" and video_path and detail_budget != 0:
+    elif detail != "transcript" and video_path and has_video and detail_budget != 0:
         cap_label = "unlimited" if detail_budget is None else str(detail_budget)
         engine_label = "keyframes" if detail == "efficient" else "scene-aware frames"
         print(
@@ -273,6 +383,8 @@ def main() -> int:
 
     if cue_frames:
         frames = merge_frames(frames, cue_frames)
+    # A limpeza (finally em main) precisa saber se sobrou algo para o leitor ler.
+    state["frames"] = frames
 
     if not transcript_segments and dl.get("subtitle_path"):
         try:
@@ -315,6 +427,14 @@ def main() -> int:
     print("# watch: video report")
     print()
     print(f"- **Source:** {args.source}")
+    if args.sigiloso:
+        # Quem ler o relatorio precisa saber que o material e sigiloso — o selo
+        # acompanha a peca, nao fica so na linha de comando de quem rodou.
+        print(
+            "- **Sigilo:** ⚠ SIGILOSO (segredo de justiça) — transcrição LOCAL, nuvem bloqueada, "
+            "work dir 0700 e cópias derivadas removidas ao encerrar. Não colar este conteúdo "
+            "em serviço externo."
+        )
     if info.get("title"):
         print(f"- **Title:** {info['title']}")
     if info.get("uploader"):
@@ -330,7 +450,12 @@ def main() -> int:
     range_mode = "focused" if focused else "full"
     print(f"- **Detail:** {'frame-a-frame' if args.every is not None else detail}")
     detail_count = frame_meta.get("selected_count", 0)
-    if args.every is not None:
+    if video_path and not has_video and frames_requested:
+        print(
+            "- **Frames:** nenhum — mídia só-áudio, sem faixa de vídeo "
+            "(seguiu direto para transcrição)"
+        )
+    elif args.every is not None:
         interval = frame_meta.get("interval_seconds", args.every)
         deduped = frame_meta.get("deduped_count", 0)
         dedup_note = f", {deduped} quadro(s) idêntico(s) colapsado(s)" if deduped else ""
@@ -350,12 +475,19 @@ def main() -> int:
         )
     elif not cue_frames:
         print("- **Frames:** skipped (transcript detail)")
-    if cue_frames:
+    if cue_meta:
         dropped = cue_meta.get("dropped_out_of_window", 0)
-        drop_note = f", {dropped} dropped outside range" if dropped else ""
+        failed = cue_meta.get("failed_timestamps") or []
+        requested_count = cue_meta.get("candidate_count", len(cue_frames))
+        drop_note = f", {dropped} fora da janela de foco" if dropped else ""
+        # Pedido ≠ extraido: em pericia, calar uma falha de extracao faz o leitor
+        # concluir que aquele momento nunca foi marcado.
+        fail_note = (
+            f", ⚠ FALHOU em {', '.join(format_time(t) for t in failed)}" if failed else ""
+        )
         print(
-            f"- **Cue frames:** {len(cue_frames)} at transcript-flagged timestamps "
-            f"(transcript-cue{drop_note})"
+            f"- **Cue frames:** {len(cue_frames)} de {requested_count} timestamps pedidos "
+            f"(transcript-cue{drop_note}{fail_note})"
         )
     if frames:
         print(f"- **Frame size:** max {args.resolution}px wide, max 1998px tall")
@@ -474,7 +606,27 @@ def main() -> int:
 
     print()
     print("---")
-    print(f"_Work dir: `{work}` — delete when done._")
+    # Retencao: dizer exatamente o que fica em disco e o que ja saiu. Cópia
+    # derivada esquecida no temp é vazamento silencioso — o relatório é o único
+    # inventário que o operador tem.
+    if args.keep_work:
+        print(
+            f"_⚠ **--keep-work**: o work dir `{work}` FOI PRESERVADO — áudio extraído, mídia "
+            "baixada e pedaços continuam em disco. Apague manualmente quando terminar._"
+        )
+    elif frames and args.sigiloso:
+        print(
+            f"_⚠ **SIGILOSO**: {len(frames)} frame(s) derivados permanecem em `{work / 'frames'}` "
+            "(0700/0600) para leitura. Áudio e mídia baixada foram removidos. Apague os frames "
+            "assim que a análise terminar._"
+        )
+    elif frames:
+        print(
+            f"_Frames em `{work / 'frames'}` — apague quando terminar. As cópias intermediárias "
+            "(áudio extraído, mídia baixada, pedaços) são removidas ao encerrar._"
+        )
+    else:
+        print("_Nada retido em disco: o work dir é removido ao encerrar._")
 
     return 0
 

@@ -12,6 +12,14 @@ const asJson = process.argv.includes('--json');
 const casosDir = join(process.cwd(), 'acervo', 'casos');
 const m = metricasCarteira(casosDir);
 
+if (m.diretorio_ausente) {
+  // Fail-closed: relatório executivo não pode receber "0 casos" quando a verdade
+  // é "não encontrei o diretório". São situações opostas e exigem ações opostas.
+  if (asJson) console.log(JSON.stringify(m));
+  console.error(`CARTEIRA_METRICAS: diretório de casos não encontrado (${casosDir}) — nenhuma métrica apurada. Isto NÃO significa carteira vazia.`);
+  process.exit(1);
+}
+
 if (asJson) {
   console.log(JSON.stringify(m));
 } else {

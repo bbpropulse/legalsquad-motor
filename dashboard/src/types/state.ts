@@ -69,8 +69,26 @@ export interface SquadInfo {
   agents: string[]; // agent file paths
 }
 
+/**
+ * state.json existe mas não pôde ser lido (JSON quebrado ou fora do contrato).
+ * É o oposto de "não existe": ali há um squad que provavelmente está rodando,
+ * e o dashboard precisa dizer isso em vez de mostrá-lo como inativo.
+ */
+export interface SquadStateError {
+  /** Motivo legível — qual campo quebrou. */
+  reason: string;
+  /** ISO de quando o servidor detectou. */
+  at: string;
+}
+
 // WebSocket messages
 export type WsMessage =
-  | { type: "SNAPSHOT"; squads: SquadInfo[]; activeStates: Record<string, SquadState> }
+  | {
+      type: "SNAPSHOT";
+      squads: SquadInfo[];
+      activeStates: Record<string, SquadState>;
+      invalidStates: Record<string, SquadStateError>;
+    }
   | { type: "SQUAD_UPDATE"; squad: string; state: SquadState }
+  | { type: "SQUAD_INVALID"; squad: string; error: SquadStateError }
   | { type: "SQUAD_INACTIVE"; squad: string };

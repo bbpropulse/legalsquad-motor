@@ -4,12 +4,14 @@ import { StatusBadge } from "./StatusBadge";
 interface SquadCardProps {
   squad: SquadInfo;
   state: SquadState | undefined;
+  /** Preenchido quando o state.json existe mas não pôde ser lido. */
+  invalidReason?: string;
   isSelected: boolean;
   onSelect: () => void;
 }
 
-export function SquadCard({ squad, state, isSelected, onSelect }: SquadCardProps) {
-  const isActive = !!state;
+export function SquadCard({ squad, state, invalidReason, isSelected, onSelect }: SquadCardProps) {
+  const isActive = !!state || !!invalidReason;
   const status = state?.status ?? "inactive";
 
   return (
@@ -37,6 +39,14 @@ export function SquadCard({ squad, state, isSelected, onSelect }: SquadCardProps
       <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {squad.name}
       </span>
+      {invalidReason && (
+        <span
+          title={`state.json ilegível: ${invalidReason}`}
+          style={{ color: "var(--accent-red)", fontSize: 12, flexShrink: 0 }}
+        >
+          ⚠
+        </span>
+      )}
       {state?.step && (
         <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>
           {state.step.current}/{state.step.total}

@@ -357,6 +357,7 @@ def extract_at_timestamps(
         points = in_window
 
     out: list[dict] = []
+    failed: list[float] = []
     for t in points:
         path = out_dir / f"cue_{len(out):04d}.jpg"
         cmd = [
@@ -379,12 +380,23 @@ def extract_at_timestamps(
                 "path": str(path),
                 "reason": "transcript-cue",
             })
+        else:
+            # Uso forense: um cue pedido e nao extraido NAO pode sumir calado —
+            # o leitor concluiria que aquele momento nunca foi marcado.
+            failed.append(t)
+            detail = (result.stderr or "").strip().splitlines()[-1:] or ["sem saida do ffmpeg"]
+            print(
+                f"[frames] cue em {format_time(t)} NAO extraido: {detail[0]}",
+                file=sys.stderr,
+            )
 
     meta = {
         "engine": "timestamps",
         "candidate_count": len(requested),
         "selected_count": len(out),
         "dropped_out_of_window": dropped,
+        "failed_timestamps": failed,
+        "failed_count": len(failed),
         "fallback": False,
     }
     return out, meta

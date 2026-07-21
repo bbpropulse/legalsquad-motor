@@ -7,7 +7,9 @@ import fsp from "node:fs/promises";
 import { watch as chokidarWatch } from "chokidar";
 import path from "node:path";
 import { parse as parseYaml } from "yaml";
-import type { SquadInfo, SquadState, WsMessage } from "../types/state";
+import type { SquadInfo, SquadState, SquadStateError, WsMessage } from "../types/state";
+import { validateSquadState } from "../lib/validateState";
+import { isAllowedOrigin } from "./originGuard";
 
 function resolveSquadsDir(): string {
   const candidates = [
@@ -86,84 +88,66 @@ async function squadCodeForDir(squadsDir: string, dir: string): Promise<string> 
   return dir;
 }
 
-const SQUAD_STATUSES = new Set(["idle", "running", "completed", "checkpoint", "failed"]);
-const AGENT_STATUSES = new Set(["idle", "working", "delivering", "done", "checkpoint"]);
+// A validação completa do state.json vive em lib/validateState.ts — compartilhada
+// com o cliente e testável sem subir o dev server (tests/dashboard.test.js).
 
-// state.json is untrusted file content (hand-editable / partial writes), so we
-// validate the FULL shape — not just the top-level types. A structurally-valid
-// but incomplete state (e.g. step:{} or an agent without desk) would otherwise
-// propagate `undefined` into the feed and crash the Phaser scene (a.desk.col).
-// Contrato único (lado do ESCRITOR): _legalsquad/core/state.schema.json,
-// gravado por scripts/squad-state.mjs. Mantenha os enums abaixo em sincronia.
-function isValidState(data: unknown): data is SquadState {
-  if (!data || typeof data !== "object") return false;
-  const d = data as Record<string, unknown>;
-
-  if (typeof d.status !== "string" || !SQUAD_STATUSES.has(d.status)) return false;
-
-  const step = d.step as Record<string, unknown> | undefined;
-  if (
-    !step || typeof step !== "object" ||
-    typeof step.current !== "number" ||
-    typeof step.total !== "number" ||
-    typeof step.label !== "string"
-  ) {
-    return false;
-  }
-
-  if (!Array.isArray(d.agents)) return false;
-  for (const a of d.agents) {
-    if (!a || typeof a !== "object") return false;
-    const ag = a as Record<string, unknown>;
-    if (
-      typeof ag.id !== "string" ||
-      typeof ag.name !== "string" ||
-      typeof ag.status !== "string" ||
-      !AGENT_STATUSES.has(ag.status)
-    ) {
-      return false;
-    }
-    const desk = ag.desk as Record<string, unknown> | undefined;
-    if (!desk || typeof desk !== "object" || typeof desk.col !== "number" || typeof desk.row !== "number") {
-      return false;
-    }
-  }
-  return true;
+interface ScanResult {
+  states: Record<string, SquadState>;
+  /** state.json que EXISTE mas não pôde ser lido — não é o mesmo que ausente. */
+  invalid: Record<string, SquadStateError>;
 }
 
-async function readActiveStates(squadsDir: string): Promise<Record<string, SquadState>> {
-  const states: Record<string, SquadState> = {};
+async function scanStates(squadsDir: string): Promise<ScanResult> {
+  const result: ScanResult = { states: {}, invalid: {} };
 
   let entries;
   try {
     entries = await fsp.readdir(squadsDir, { withFileTypes: true });
   } catch {
-    return states;
+    return result;
   }
 
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     const statePath = path.join(squadsDir, entry.name, "state.json");
 
+    let raw: string;
     try {
-      const raw = await fsp.readFile(statePath, "utf-8");
-      const parsed = JSON.parse(raw);
-      if (isValidState(parsed)) {
-        states[await squadCodeForDir(squadsDir, entry.name)] = parsed;
-      }
+      raw = await fsp.readFile(statePath, "utf-8");
     } catch {
-      // Skip missing or invalid JSON
+      continue; // arquivo ausente = squad realmente inativo
+    }
+
+    const code = await squadCodeForDir(squadsDir, entry.name);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      result.invalid[code] = {
+        reason: `JSON inválido: ${(err as Error).message}`,
+        at: new Date().toISOString(),
+      };
+      continue;
+    }
+
+    const check = validateSquadState(parsed);
+    if (check.ok) {
+      result.states[code] = check.state;
+    } else {
+      result.invalid[code] = { reason: check.reason, at: new Date().toISOString() };
     }
   }
 
-  return states;
+  return result;
 }
 
 async function buildSnapshot(squadsDir: string): Promise<WsMessage> {
+  const [squads, scan] = await Promise.all([discoverSquads(squadsDir), scanStates(squadsDir)]);
   return {
     type: "SNAPSHOT",
-    squads: await discoverSquads(squadsDir),
-    activeStates: await readActiveStates(squadsDir),
+    squads,
+    activeStates: scan.states,
+    invalidStates: scan.invalid,
   };
 }
 
@@ -196,6 +180,18 @@ export function squadWatcherPlugin(): Plugin {
       const wss = new WebSocketServer({ noServer: true });
       (server.httpServer as Server).on("upgrade", (req: IncomingMessage, socket: Duplex, head: Buffer) => {
         if (req.url === "/__squads_ws") {
+          // O handshake de WebSocket não é barrado pela same-origin policy — sem
+          // esta checagem, qualquer aba de qualquer site leria o snapshot do
+          // escritório (squads, agentes, estado dos casos). Fail-closed.
+          if (!isAllowedOrigin(req.headers.origin, req.headers.host)) {
+            server.config.logger.warn(
+              `[squad-watcher] upgrade recusado — Origin ${req.headers.origin ?? "(ausente)"} ` +
+                `não confere com o host ${req.headers.host ?? "(ausente)"}`
+            );
+            socket.write("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+            socket.destroy();
+            return;
+          }
           wss.handleUpgrade(req, socket, head, (ws) => {
             wss.emit("connection", ws, req);
           });
@@ -250,12 +246,36 @@ export function squadWatcherPlugin(): Plugin {
 
         if (fileName === "state.json") {
           fsp.readFile(filePath, "utf-8").then(async (raw) => {
-            const parsed = JSON.parse(raw);
-            if (!isValidState(parsed)) return;
             const code = await squadCodeForDir(squadsDir, squadName);
-            broadcast(wss, { type: "SQUAD_UPDATE", squad: code, state: parsed });
+            // "Não sei ler" ≠ "não existe": um state.json quebrado significa um
+            // squad provavelmente RODANDO cujo estado não pôde ser lido. Some em
+            // silêncio ele viraria "inativo" na UI, sem erro em lugar nenhum.
+            const invalido = (reason: string) => {
+              server.config.logger.warn(`[squad-watcher] ${code}: state.json ilegível — ${reason}`);
+              broadcast(wss, {
+                type: "SQUAD_INVALID",
+                squad: code,
+                error: { reason, at: new Date().toISOString() },
+              });
+            };
+
+            let parsed: unknown;
+            try {
+              parsed = JSON.parse(raw);
+            } catch (err) {
+              invalido(`JSON inválido: ${(err as Error).message}`);
+              return;
+            }
+
+            const check = validateSquadState(parsed);
+            if (!check.ok) {
+              invalido(check.reason);
+              return;
+            }
+            broadcast(wss, { type: "SQUAD_UPDATE", squad: code, state: check.state });
           }).catch(() => {
-            // Invalid JSON — next change event will retry
+            // Falha de leitura do arquivo (removido no meio da escrita) — o
+            // próximo evento do watcher reprocessa.
           });
         } else if (fileName === "squad.yaml") {
           buildSnapshot(squadsDir).then((snap) => broadcast(wss, snap));

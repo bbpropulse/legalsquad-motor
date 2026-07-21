@@ -23,18 +23,16 @@ function assignCharacters(agents: Agent[]): Map<string, CharacterName> {
   return assignments;
 }
 
-const DEMO_AGENTS: Agent[] = [
-  { id: '1', name: 'Researcher', icon: '', status: 'working', desk: { col: 1, row: 1 } },
-  { id: '2', name: 'Writer', icon: '', status: 'idle', desk: { col: 2, row: 1 } },
-  { id: '3', name: 'Editor', icon: '', status: 'done', desk: { col: 3, row: 1 } },
-  { id: '4', name: 'Designer', icon: '', status: 'working', desk: { col: 1, row: 2 } },
-  { id: '5', name: 'Reviewer', icon: '', status: 'checkpoint', desk: { col: 2, row: 2 } },
-  { id: '6', name: 'Publisher', icon: '', status: 'idle', desk: { col: 3, row: 2 } },
-];
-
+// Sem agentes de demonstração: um escritório movimentado com "Researcher",
+// "Writer" e um agente em aprovação, renderizado quando NÃO há estado, é dado
+// inventado apresentado como real — e, junto com um state.json ilegível, faz o
+// usuário acreditar que há trabalho acontecendo. Sem estado, escritório vazio.
 export class OfficeScene extends Phaser.Scene {
   private agentSprites: Map<string, AgentSprite> = new Map();
   private roomBuilder!: RoomBuilder;
+  // A cena já foi montada ao menos uma vez? (com zero agentes não dá para inferir
+  // isso do tamanho de agentSprites)
+  private built = false;
   // Identity of the currently-rendered squad (squad code + agent-id set). When it
   // changes we do a full rebuild; otherwise we update sprites in place (no flicker).
   private currentKey: string | null = null;
@@ -83,11 +81,11 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private onStateUpdate(state: SquadState | null): void {
-    const agents = state?.agents?.length ? state.agents : DEMO_AGENTS;
-    const squad = state?.squad ?? '__demo__';
+    const agents = state?.agents ?? [];
+    const squad = state?.squad ?? '__vazio__';
     const key = `${squad}|${agents.map((a) => a.id).sort().join(',')}`;
 
-    if (key !== this.currentKey || this.agentSprites.size === 0) {
+    if (key !== this.currentKey || !this.built) {
       // Squad/agent set changed → full rebuild
       this.currentKey = key;
       this.lastHandoffKey = null;
@@ -123,6 +121,12 @@ export class OfficeScene extends Phaser.Scene {
   }
 
   private rebuildScene(agentsInput: Agent[]): void {
+    this.built = true;
+    if (agentsInput.length === 0) {
+      this.renderEmptyOffice();
+      return;
+    }
+
     // Auto-assign desk positions if all agents are at the same spot (default 1,1)
     let agents = agentsInput;
     const allSameDesk = agents.length > 1 &&
@@ -163,6 +167,42 @@ export class OfficeScene extends Phaser.Scene {
       this.agentSprites.set(agent.id, agentSprite);
     }
 
+    this.fitCamera(roomW, roomH);
+  }
+
+  // Estado vazio explícito: sala montada, nenhuma mesa ocupada e um aviso do
+  // porquê. É o oposto do escritório de demonstração — não sugere atividade.
+  private renderEmptyOffice(): void {
+    this.clearScene();
+
+    const roomW = 580;
+    const roomH = (CELL_H + 80) + MARGIN * 2 + WALL_H + CELL_H + 48;
+    this.roomBuilder.build(roomW, roomH);
+
+    this.add
+      .text(
+        roomW / 2,
+        roomH / 2,
+        'Nenhum squad ativo\nSelecione um squad com execução em andamento',
+        {
+          fontFamily: '"Segoe UI", "Helvetica Neue", Arial, sans-serif',
+          fontSize: '16px',
+          color: '#ffffff',
+          backgroundColor: '#2a2440',
+          padding: { x: 12, y: 8 },
+          align: 'center',
+          stroke: '#000000',
+          strokeThickness: 2,
+          resolution: 2,
+        }
+      )
+      .setOrigin(0.5)
+      .setDepth(900);
+
+    this.fitCamera(roomW, roomH);
+  }
+
+  private fitCamera(roomW: number, roomH: number): void {
     const cam = this.cameras.main;
     const scaleX = cam.width / (roomW + 32);
     const scaleY = cam.height / (roomH + 32);

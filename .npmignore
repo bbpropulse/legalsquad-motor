@@ -6,6 +6,11 @@ dashboard/test-results/
 docs/
 .github/
 
+# Bytecode Python dos scripts de captura: além de inútil no tarball, o .pyc
+# grava o caminho absoluto da máquina que compilou (vaza layout de disco do autor).
+__pycache__/
+*.pyc
+
 # Não distribuir a instância de memória do projeto-fonte
 # (o init re-semeia company.md a partir de _legalsquad/core/seeds/)
 /_legalsquad/_memory/

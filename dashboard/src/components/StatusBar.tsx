@@ -1,18 +1,27 @@
 import { useEffect, useState } from "react";
 import { useSquadStore } from "@/store/useSquadStore";
 import { formatElapsed } from "@/lib/formatTime";
+import { formatStaleAge, staleFor } from "@/lib/freshness";
 import { getWorkingAgents } from "@/lib/normalizeState";
 import { ProgressBar } from "./ProgressBar";
+
+const FRESHNESS_TICK_MS = 15000;
 
 export function StatusBar() {
   const selectedSquad = useSquadStore((s) => s.selectedSquad);
   const state = useSquadStore((s) =>
     s.selectedSquad ? s.activeStates.get(s.selectedSquad) : undefined
   );
+  const invalid = useSquadStore((s) =>
+    s.selectedSquad ? s.invalidStates.get(s.selectedSquad) : undefined
+  );
   const isConnected = useSquadStore((s) => s.isConnected);
 
   // Elapsed timer
   const [elapsed, setElapsed] = useState(0);
+  // Relógio de parede próprio para o aviso de frescor: sem ele, um estado que
+  // parou de ser atualizado nunca redispararia render e ficaria "running" eterno.
+  const [now, setNow] = useState(() => Date.now());
 
   const startedAt = state?.startedAt;
   // When the run is terminal (completed/failed) the runner keeps startedAt and sets
@@ -35,16 +44,38 @@ export function StatusBar() {
     return () => clearInterval(interval);
   }, [startedAt, endAt]);
 
-  if (!selectedSquad || !state) {
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), FRESHNESS_TICK_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!selectedSquad || (!state && !invalid)) {
     return (
       <footer style={footerStyle}>
         <span style={{ color: "var(--text-secondary)" }}>
-          Select an active squad to monitor
+          Selecione um squad ativo para acompanhar
         </span>
         <ConnectionDot connected={isConnected} />
       </footer>
     );
   }
+
+  // "Não sei ler" ≠ "não existe": o state.json está lá, mas quebrado. Sem este
+  // aviso o squad apareceria como inativo e o usuário não saberia de nada.
+  if (!state) {
+    return (
+      <footer style={{ ...footerStyle, background: "var(--accent-red)", color: "#fff" }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          ⚠ Estado ilegível — o state.json existe mas não pôde ser lido: {invalid?.reason}
+        </span>
+        <ConnectionDot connected={isConnected} />
+      </footer>
+    );
+  }
+
+  // Execução parada de verdade vs. execução morta: o runner reescreve updatedAt a
+  // cada passo, então silêncio prolongado em "running" sinaliza sessão caída.
+  const staleAge = state.status === "running" ? staleFor(state.updatedAt, now) : null;
 
   return (
     <footer style={footerStyle}>
@@ -55,8 +86,36 @@ export function StatusBar() {
         </span>
         <ProgressBar current={state.step.current} total={state.step.total} />
         {state.startedAt && (
-          <span style={{ color: "var(--text-secondary)" }}>
+          <span style={{ color: staleAge ? "var(--accent-red)" : "var(--text-secondary)" }}>
             {formatElapsed(elapsed)}
+          </span>
+        )}
+        {staleAge !== null && (
+          <span
+            title="O runner grava updatedAt a cada passo; este silêncio sugere que a sessão caiu."
+            style={{
+              color: "var(--accent-red)",
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            ⚠ sem atualização há {formatStaleAge(staleAge)}
+          </span>
+        )}
+        {invalid && (
+          <span
+            title={invalid.reason}
+            style={{
+              color: "var(--accent-red)",
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            ⚠ estado ilegível (mostrando a última leitura boa)
           </span>
         )}
         {getWorkingAgents(state).length > 1 && (
