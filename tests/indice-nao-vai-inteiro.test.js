@@ -61,6 +61,38 @@ for (const arquivo of FLUXO_DE_CRIACAO) {
   });
 }
 
+// A descoberta de skills na criação de squad (Phase 3.5) tem DUAS outras formas
+// de furar a escala, que o antipadrão do índice não cobre e que já escaparam:
+//   · varrer TODOS os SKILL.md um a um (O(n) na quantidade de skills), e
+//   · buscar o catálogo na REDE em runtime (viola "sincroniza, não serve").
+// Ambas devem ceder à busca compacta local. Este teste recorta a seção de
+// Skill Discovery do skills.engine.md e prende as três coisas de uma vez.
+test('Skill Discovery (Phase 3.5) descobre pela busca local, sem varrer nem ir à rede', () => {
+  const conteudo = readFileSync(join(ROOT, '_legalsquad/core/skills.engine.md'), 'utf8');
+  const secao = conteudo.match(/### 7\. Skill Discovery[\s\S]*/)?.[0] || '';
+  assert.ok(secao, 'a seção "### 7. Skill Discovery" precisa existir');
+
+  assert.match(secao, /search-skills/, 'a descoberta deve usar a busca compacta `search-skills`');
+
+  // Marcadores INEQUÍVOCOS do antipadrão: a URL de fetch e a instrução imperativa
+  // "Fetch the catalog". Frases que PROÍBEM a rede ("não busque catálogo na rede")
+  // não contêm nenhum dos dois — a versão anterior deste regex casava a própria
+  // proibição e reprovava a correção.
+  assert.doesNotMatch(
+    secao,
+    /raw\.githubusercontent|Fetch the catalog/i,
+    'a descoberta NÃO pode buscar o catálogo na rede — as skills chegam por sync (pacote local). ' +
+      '"Sincroniza, não serve" é princípio do motor.'
+  );
+
+  assert.doesNotMatch(
+    secao,
+    /Read all subdirectories in .skills|parse each SKILL\.md|todos os SKILL\.md/i,
+    'a descoberta NÃO pode varrer todos os SKILL.md — é O(n) e estoura o contexto com uma área grande. ' +
+      'Use `search-skills`, que lê o índice local e devolve só a shortlist.'
+  );
+});
+
 test('design.prompt.md não lista o índice em "Read these files before starting"', () => {
   const conteudo = readFileSync(join(ROOT, '_legalsquad/core/prompts/design.prompt.md'), 'utf8');
   // Recorta a seção de Context Loading (da chave até a próxima "## ").

@@ -96,6 +96,14 @@ For the full SKILL.md specification, see `skills/legalsquad-skill-creator/refere
 
 ### 2. Install a Skill
 
+> **Dívida pré-sync (a resolver no F3).** Os passos abaixo baixam a skill de um
+> repositório GitHub público por HTTP, sem assinatura — o modelo antigo, em que o
+> produto versionava as skills no próprio repo. Na arquitetura atual as skills
+> chegam por **sync**, como pacotes assinados verificados no cliente, e a
+> instalação lê do **cache de pacote local** (não da rede). Este fluxo será
+> substituído pelo `pack-apply` do F3; até lá, permanece como fallback e é a
+> única exceção conhecida ao princípio "nada em runtime".
+
 1. User provides a skill name (or selects from the catalog).
 
 2. **Fetch SKILL.md from GitHub**:
@@ -349,31 +357,30 @@ For each skill declared in an agent's `.agent.md` frontmatter `skills:` field:
 
 When the Architect reaches Phase 3.5 during squad creation:
 
-1. **List already-installed skills**:
-   Read all subdirectories in `skills/` and parse each SKILL.md frontmatter
-   to get name, description, type, and categories.
+1. **Descubra candidatos pela busca local — não varra o catálogo nem toque a rede.**
+   Reduza a necessidade do squad a termos de capability e rode
+   `npx legalsquad search-skills --query "<capability>" --limit 8 --json`. O motor
+   consulta o índice local (sincronizado) e devolve só os candidatos ranqueados —
+   com lifecycle, qualidade, risco, perfil, gatilhos e se já estão instalados.
+   NÃO leia todos os `SKILL.md` um a um e NÃO busque catálogo na rede: as skills
+   chegam por **sync** (pacote local assinado), varrer o catálogo inteiro estoura
+   o contexto com uma área grande, e "sincroniza, não serve" é princípio do motor.
+   Índice ausente/stale → sinalize `indexar-skills`/`check-skills`.
 
-2. **Fetch the catalog index**:
-   Fetch the catalog README from GitHub to see all available skills:
-   ```
-   https://raw.githubusercontent.com/bbpropulse/legalsquad/main/skills/README.md
-   ```
-   - If fetch fails → proceed with only installed skills (do not block squad creation).
-
-3. **Analyze squad requirements**:
+2. **Analyze squad requirements**:
    From the discovery phase answers (Phase 1), identify what the squad needs:
    - What platforms or services does it interact with?
    - What data sources does it need?
    - What output formats does it produce?
    - What automations would speed up the workflow?
 
-4. **Match skill categories against squad needs**:
+3. **Match skill categories against squad needs**:
    - Research/data squads → check for: scraping, data, analytics skills
    - Content squads → check for: design, social-media skills
    - Communication squads → check for: messaging, notification skills
    - Automation squads → check for: automation, integration skills
 
-5. **Only suggest skills when native skills are insufficient**:
+4. **Only suggest skills when native skills are insufficient**:
    `web_search` and `web_fetch` cover basic web research and data fetching.
    Only suggest additional skills when:
    - The squad needs structured data extraction (scraping)
@@ -381,7 +388,7 @@ When the Architect reaches Phase 3.5 during squad creation:
    - The squad requires local script execution (image processing, data transformation)
    - The squad benefits from specialized behavioral prompts
 
-6. **Apply evidence-first automatic selection**:
+5. **Apply evidence-first automatic selection**:
    Passe a shortlist ao gate com `npx legalsquad resolve-skills {candidatos...} --selection --json`.
    Recomende automaticamente somente o `selected` e outros candidatos `allowed: true` com
    `highPerformanceEligible: true`. Se nenhum existir, informe que não há candidato comprovado;
@@ -389,7 +396,7 @@ When the Architect reaches Phase 3.5 during squad creation:
    mas nunca auto-selecionada nem rotulada como alta performance. Depois da escolha do usuário,
    valide-a com `--explicit-selection --supervised --json` antes de instalar/injetar.
 
-7. **Present recommendations** (if any relevant skills found):
+6. **Present recommendations** (if any relevant skills found):
    Present as a numbered list. User can reply with one number or multiple numbers separated by spaces (e.g. "1 3").
    If only 1 skill is relevant,
    add "No thanks, skip" as a second option.
@@ -403,10 +410,10 @@ When the Architect reaches Phase 3.5 during squad creation:
    Reply with the numbers of skills you'd like to install (e.g. "1 3"), or press Enter to skip.
    ```
 
-8. **Install accepted skills**:
+7. **Install accepted skills**:
    For each skill the user selects → run Operation 2 (Install a Skill).
 
-9. **Track installed skills**:
+8. **Track installed skills**:
    Record which skills were installed during this phase. They will be added to the
    squad's `squad.yaml` in Phase 5 (Build), under the `skills:` section:
    ```yaml
@@ -417,5 +424,5 @@ When the Architect reaches Phase 3.5 during squad creation:
      - seo-guidelines  # installed during Phase 3.5
    ```
 
-10. **If no relevant skills found or user declines all** → proceed silently to Phase 4.
+9. **If no relevant skills found or user declines all** → proceed silently to Phase 4.
    Do not force skill installation — native skills are sufficient for many squads.
