@@ -16,10 +16,10 @@ Read these files before starting:
 - `_legalsquad/_memory/company.md` — Company context for personalization
 - `_legalsquad/_memory/preferences.md` — User preferences (especially Output Language)
 - `_legalsquad/core/best-practices/_catalog.yaml` — Best-practices catalog
-- `skills/_index.yaml` — fonte de verdade do catálogo de skills (lifecycle, aliases, relações e gatilhos)
-- `skills/_*-integration.yaml` — manifesto de canonicalização da área instalada (pontes semânticas e alvos canônicos), **quando existir**
 
-Não inicie pesquisa, não crie agente e não desenhe step antes de ler os dois últimos arquivos e reconciliá-los com `discovery.yaml.catalog_context`. Leia também, antes de qualquer pesquisa ou desenho, as best-practices que o `_catalog.yaml` da área marcar como **obrigatórias** para o tipo de trabalho em questão.
+**O catálogo de skills NÃO entra por leitura de arquivo.** `skills/_index.yaml` é a fonte que o motor consulta, mas ele cresce com o tamanho da área — uma área grande são centenas de milhares de tokens — e lê-lo inteiro estoura o contexto a cada Design. Descubra as skills pela **shortlist compacta**: a que o `catalog-scout`/Discovery já produziu, ou uma nova `npx legalsquad search-skills --query "<capability>" --limit 8 --json`. O manifesto de canonicalização da área (`skills/_*-integration.yaml`), **quando existir**, é consultado só por busca direcionada, para resolver um alvo canônico.
+
+Não inicie pesquisa, não crie agente e não desenhe step antes de reconciliar a shortlist de skills com `discovery.yaml.catalog_context`. Leia também, antes de qualquer pesquisa ou desenho, as best-practices que o `_catalog.yaml` da área marcar como **obrigatórias** para o tipo de trabalho em questão.
 
 > **Protocolo de ausência (motor sem área instalada):** se `_legalsquad/core/best-practices/_catalog.yaml`, `skills/_index.yaml`, o manifesto de integração **ou qualquer best-practice declarada obrigatória** (isto é, as demais leituras "obrigatórias"/"não opcionais" deste documento) **não existirem no disco**, não trate como erro nem bloqueie o Design: registre a ausência em `design.yaml` (`catalog_context.note: "sem catálogo — área não instalada"`; para protocolos de domínio, `area_protocol: not_installed`), pule as leituras correspondentes e prossiga em **modo GAPS** — todo papel sem correspondência de catálogo é desenhado do zero (Phase E), e nenhum agente ou step pode referenciar skill, best-practice ou especialista que não exista no disco.
 >

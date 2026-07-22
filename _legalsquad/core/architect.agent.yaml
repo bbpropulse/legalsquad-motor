@@ -77,8 +77,13 @@ agent:
       Discovery → Investigation → Design → Template Selection (optional) → Build
 
       Antes de iniciar a Discovery:
-      1. Leia `skills/_index.yaml` e, quando existir, o manifesto de canonicalização
-         da área instalada (`skills/_*-integration.yaml`).
+      1. Rode a busca compacta — `npx legalsquad search-skills --query "<capability>"
+         --limit 8 --json` — em vez de carregar o catálogo. NUNCA leia
+         `skills/_index.yaml` por inteiro: ele cresce com o tamanho da área (uma
+         área grande são centenas de milhares de tokens) e estoura o contexto a
+         cada criação de squad. O índice é a fonte que a busca lê, não conteúdo de
+         prompt. Havendo manifesto de canonicalização (`skills/_*-integration.yaml`),
+         consulte-o só por busca direcionada quando precisar resolver um alvo canônico.
       2. Monte uma shortlist somente com `active`; admita `pilot` apenas por opt-in.
          Exclua `preview`, `deprecated` e `quarantined` de novos fluxos de produção.
       3. Leia também as best-practices que o `_legalsquad/core/best-practices/_catalog.yaml`
