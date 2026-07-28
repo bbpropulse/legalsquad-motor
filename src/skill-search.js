@@ -2,31 +2,12 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { discoverSkillCatalog } from './skill-catalog.js';
 import { auditSkillCatalogQuality } from './skill-quality.js';
+import { queryTokens, rankSkills } from './skill-rank.js';
 
 const DEFAULT_LIMIT = 8;
 const MAX_LIMIT = 20;
 const DEFAULT_LIFECYCLES = new Set(['active', 'pilot']);
 const PREVIEW_LIFECYCLES = new Set(['active', 'pilot', 'preview']);
-const STOPWORDS = new Set([
-  'a', 'ao', 'aos', 'as', 'com', 'como', 'da', 'das', 'de', 'do', 'dos', 'e',
-  'em', 'na', 'nas', 'no', 'nos', 'o', 'os', 'ou', 'para', 'por', 'que', 'um',
-  'uma', 'the', 'to', 'of', 'and', 'for', 'with',
-]);
-
-function normalize(value) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function queryTokens(query) {
-  return [...new Set(normalize(query).split(' ')
-    .filter((token) => token.length >= 2 && !STOPWORDS.has(token)))];
-}
 
 function boundedLimit(value) {
   const parsed = Number.parseInt(String(value || DEFAULT_LIMIT), 10);
@@ -38,82 +19,6 @@ function clipped(value, max = 220) {
   const text = String(value || '').replace(/\s+/g, ' ').trim();
   if (text.length <= max) return text;
   return `${text.slice(0, max - 1).replace(/\s+\S*$/, '')}…`;
-}
-
-function includesToken(text, token) {
-  return text.split(' ').some((word) => word === token || word.startsWith(token));
-}
-
-function scoreEntry(entry, phrase, tokens) {
-  const meta = entry.metadata;
-  const id = normalize(entry.id);
-  const description = normalize(meta.description);
-  const group = normalize(entry.group);
-  const positive = (meta.positiveTriggers || []).map(normalize);
-  const aliases = (meta.aliases || []).map(normalize);
-  const categories = (meta.categories || []).map(normalize);
-  const reasons = new Set();
-  let score = 0;
-
-  if (id === phrase) {
-    score += 220;
-    reasons.add('nome-exato');
-  } else if (phrase && id.includes(phrase)) {
-    score += 110;
-    reasons.add('nome-frase');
-  }
-  if (positive.some((value) => value === phrase)) {
-    score += 100;
-    reasons.add('gatilho-exato');
-  } else if (phrase && positive.some((value) => value.includes(phrase))) {
-    score += 65;
-    reasons.add('gatilho-frase');
-  }
-  if (aliases.some((value) => value === phrase || (phrase && value.includes(phrase)))) {
-    score += 80;
-    reasons.add('alias');
-  }
-
-  let covered = 0;
-  for (const token of tokens) {
-    let tokenCovered = false;
-    if (includesToken(id, token)) {
-      score += 26;
-      tokenCovered = true;
-      reasons.add('nome');
-    }
-    if (positive.some((value) => includesToken(value, token))) {
-      score += 18;
-      tokenCovered = true;
-      reasons.add('gatilho');
-    }
-    if (aliases.some((value) => includesToken(value, token))) {
-      score += 16;
-      tokenCovered = true;
-      reasons.add('alias');
-    }
-    if (categories.some((value) => includesToken(value, token))) {
-      score += 8;
-      tokenCovered = true;
-      reasons.add('categoria');
-    }
-    if (includesToken(group, token)) {
-      score += 4;
-      tokenCovered = true;
-      reasons.add('dominio');
-    }
-    if (includesToken(description, token)) {
-      score += 3;
-      tokenCovered = true;
-      reasons.add('descricao');
-    }
-    if (tokenCovered) covered++;
-  }
-  if (tokens.length && covered === tokens.length) {
-    score += 35;
-    reasons.add('todos-os-termos');
-  }
-  return { score, reasons: [...reasons].sort() };
 }
 
 export function searchSkillCatalog(query, rootDir, options = {}) {
@@ -141,13 +46,28 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
   });
   const qualityById = new Map(audit.results.map((result) => [result.id, result]));
   const allowedLifecycles = options.includePreview ? PREVIEW_LIFECYCLES : DEFAULT_LIFECYCLES;
-  const phrase = normalize(query);
   const limit = boundedLimit(options.limit);
 
-  const ranked = catalog.entries
-    .filter((entry) => allowedLifecycles.has(entry.metadata.lifecycle))
-    .map((entry) => {
-      const match = scoreEntry(entry, phrase, tokens);
+  // O corpus do IDF é o conjunto ELEGÍVEL, não o catálogo inteiro: a raridade de
+  // um termo tem de ser medida entre as skills que podem ser escolhidas. Contar
+  // documentos que a busca nunca devolveria distorceria o peso.
+  const elegiveis = catalog.entries
+    .filter((entry) => allowedLifecycles.has(entry.metadata.lifecycle));
+  const entryById = new Map(elegiveis.map((entry) => [entry.id, entry]));
+
+  const ranked = rankSkills(
+    elegiveis.map((entry) => ({
+      id: entry.id,
+      description: entry.metadata.description,
+      group: entry.group,
+      positiveTriggers: entry.metadata.positiveTriggers,
+      aliases: entry.metadata.aliases,
+      categories: entry.metadata.categories,
+    })),
+    query
+  )
+    .map((match) => {
+      const entry = entryById.get(match.id);
       const quality = qualityById.get(entry.id);
       const maturityBonus = quality?.highPerformanceEligible
         ? (quality.qualityStatus === 'certified' ? 10 : 8)
@@ -155,7 +75,6 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
       const lifecycleBonus = entry.metadata.lifecycle === 'active' ? 4 : 0;
       return { entry, quality, match, rank: match.score + maturityBonus + lifecycleBonus };
     })
-    .filter((item) => item.match.score > 0)
     .sort((left, right) => right.rank - left.rank || left.entry.id.localeCompare(right.entry.id))
     .slice(0, limit)
     .map(({ entry, quality, match, rank }) => ({

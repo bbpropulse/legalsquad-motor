@@ -244,15 +244,37 @@ Se a intenção for "não existe camada gratuita nenhuma", é uma linha a mudar 
 
 ## 7. As buscas, concretamente
 
-### 7.1 Skills — falta IDF
+### 7.1 Skills — IDF ✅ feito
 
-[`src/skill-search.js:47`](../../../src/skill-search.js) pontua por soma de pesos fixos: um match no
-nome vale 26 pontos, seja o termo "recurso" (que aparece em centenas de skills) ou "dosimetria"
-(que aparece em três). Com 500 skills passa; com 5.000, **o termo comum afoga o raro** e a
-shortlist degrada exatamente quando mais importa.
+O ranking pontuava por soma de pesos fixos: um match no nome valia 26 pontos, fosse o termo
+"recurso" (que aparece em centenas de skills) ou "dosimetria" (que aparece em três). Com 500 skills
+passa; com 5.000, **o termo comum afogava o raro** e a shortlist degradava exatamente quando mais
+importa.
 
-**BM25 resolve isso**: ~80 linhas, zero dependência, melhoria estrita, testável hoje e independente
-de todo o resto. É o melhor custo/benefício da lista.
+O ranking virou [`src/skill-rank.js`](../../../src/skill-rank.js) — módulo **puro** (0 I/O, como o
+`review-loop.js`), o que permite testá-lo com corpus sintético em memória, sem fixture no disco. O
+peso de cada token passou a ser `peso-de-campo × peso-de-raridade`, com a raridade no formato IDF
+do BM25.
+
+**A normalização é a decisão de desenho que torna a mudança segura.** O peso de raridade é
+normalizado para `(0, 1]`: o teto é o termo que aparece em **um** documento, e nesse caso vale
+exatamente o que valia antes. Termo comum só **desconta** — nada infla. Duas consequências, ambas
+presas por teste:
+
+- os bônus de frase (`nome-exato` = 220) seguem dominando em **qualquer** tamanho de catálogo; se o
+  peso de token pudesse crescer com N, uma área grande afogaria o casamento exato de nome;
+- o peso nunca chega a zero (a forma `+0.5` do BM25, não o IDF clássico), então um termo presente em
+  todos os documentos **não some da shortlist**. Zerar seria degradação silenciosa: a busca diria
+  "nada encontrado" para o que existe — e "não encontrei" lido como "não há" é o erro que chega na
+  peça.
+
+Medido na fixture: para `demo peca alpha`, o alvo exato passou a marcar **454,88** contra **5,88**
+dos vizinhos — o token `demo`, que está em toda skill da fixture, perdeu quase todo o peso, que é
+precisamente o comportamento desejado.
+
+O que **não** foi implementado, de propósito: normalização por comprimento de documento (`b`/`k1`
+do BM25 completo). O motor já satura a frequência por construção — cada campo contribui **uma vez**
+por token, não por repetição —, então não há inflação por repetição a saturar.
 
 ### 7.2 Acervo — o que falta não é pontuação
 
@@ -269,7 +291,7 @@ de todo o resto. É o melhor custo/benefício da lista.
 | # | Passo | Urgência |
 |---|---|---|
 | 1 | **`build-area` (F1) emite catálogo + conteúdo separados** | **Tem prazo** — é formato assinado; retrofitar exige re-assinar e re-distribuir tudo |
-| 2 | **BM25 no `skill-search`** | Independente; melhora hoje |
+| 2 | ~~**IDF no ranking de skills**~~ ✅ **feito** (§7.1) | — |
 | 3 | **`sync` (F3)**: catálogo primeiro, conteúdo preguiçoso, prefetch por atuação | Depois de 1 |
 | 4 | `areas_de_atuacao` no perfil + `area:` no `squad.yaml` | Depois de 3 |
 | 5 | `squads catalog` / `squads install`, com `check-squad` obrigatório | Depois de 3 |

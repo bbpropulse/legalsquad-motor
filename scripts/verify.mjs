@@ -149,6 +149,7 @@ const checks = [
       if (!count(/^src\/skill-runtime-policy\.js$/)) problems.push('faltando resolvedor fail-closed de skills no tarball');
       if (!count(/^src\/skill-runtime-cli\.js$/)) problems.push('faltando CLI do resolvedor de skills no tarball');
       if (!count(/^src\/skill-search\.js$/)) problems.push('faltando busca compacta do catálogo no tarball');
+      if (!count(/^src\/skill-rank\.js$/)) problems.push('faltando motor de relevância da busca no tarball');
       // Relatório de qualidade só existe onde existe biblioteca de skills (área).
       // Ausente, nada a verificar; presente, não pode vazar caminho de máquina.
       const qualityReportPath = join(ROOT, 'skills', '_quality-report.json');
