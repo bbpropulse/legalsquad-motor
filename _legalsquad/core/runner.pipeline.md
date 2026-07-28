@@ -267,7 +267,15 @@ Apply this transformation consistently for every write in this step.
    ```bash
    test -s "{transformed inputFile path}" && echo "VALIDATION:PASS" || echo "VALIDATION:FAIL"
    ```
-   - Apply the Output Path Transformation (Step 1: run_id injection) to the `inputFile` path before running the check.
+   - **Resolva o `inputFile` do mesmo modo que o output foi gravado** — Step 1 (run_id) **e** Step 2 (pasta de versão). Aplicar só o Step 1 aqui é o erro que trava o pipeline inteiro: o step anterior gravou em `.../{run_id}/vN/arquivo.md` e a validação procura em `.../{run_id}/arquivo.md`, que não existe. Do segundo step em diante, **toda** validação de input falha.
+   - Depois do Step 1, descubra a **versão vigente** do grupo do input — a maior `vN` que existir — e valide contra ela:
+     ```bash
+     GRUPO="squads/{name}/output/{run_id}/{relative-group}"
+     V=$(ls -1 "$GRUPO" 2>/dev/null | grep -E '^v[0-9]+$' | sort -V | tail -1)
+     ALVO="${V:+$GRUPO/$V/}{filename}"; ALVO="${ALVO:-$GRUPO/{filename}}"
+     test -s "$ALVO" && echo "VALIDATION:PASS" || echo "VALIDATION:FAIL"
+     ```
+   - Se o grupo não tiver nenhuma pasta `vN` (step que grava direto no run_id), valide o caminho pós-Step 1, sem versão. **O caminho validado é o mesmo que o step vai ler** — nunca o caminho canônico do frontmatter.
    - If the Bash output contains `VALIDATION:PASS` → proceed to execute the step.
    - If the Bash output contains `VALIDATION:FAIL` → do NOT execute the step. Present to user:
      ```

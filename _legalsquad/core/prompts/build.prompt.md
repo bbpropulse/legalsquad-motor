@@ -386,16 +386,30 @@ type: checkpoint
 ---
 ```
 
-For **research focus checkpoints** (where the user's response is saved to a file), use extended frontmatter with `outputFile`:
+**Se a resposta do usuário precisa sobreviver ao step**, o `outputFile` é OBRIGATÓRIO no frontmatter:
 ```yaml
 ---
 type: checkpoint
 outputFile: squads/{code}/output/research-focus.md
 ---
 ```
-The Pipeline Runner writes the user's response to this file before proceeding.
-The next step (researcher) reads it as `inputFile: squads/{code}/output/research-focus.md`.
-Using `output/` ensures the path transformation applies and the file lands in the run_id folder.
+O Pipeline Runner grava a resposta do usuário nesse arquivo antes de prosseguir.
+O step seguinte a lê como `inputFile: squads/{code}/output/research-focus.md`.
+Usar `output/` garante que a transformação de caminho se aplique e o arquivo caia na pasta do run_id.
+
+> ⚠️ **CHECKPOINT NÃO EXECUTA TRABALHO — e sem `outputFile` no FRONTMATTER ele não grava nada.**
+> O runner apresenta a mensagem, espera a resposta e **só escreve em disco se o `outputFile` estiver
+> no frontmatter**. Prosa no corpo do step dizendo "salve a decisão em `output/decisao.md`" **não
+> produz arquivo algum** — o runner não lê instrução de gravação no corpo.
+>
+> A consequência é silenciosa e cara: o checkpoint em que o profissional **aprova a peça** passa,
+> o pipeline segue, e **a aprovação não existe em lugar nenhum**. Não há rastro de quem autorizou o
+> quê — exatamente o registro que a revisão humana obrigatória precisa deixar.
+>
+> Regra prática: **todo checkpoint cuja resposta é consumida por qualquer step posterior, ou que
+> registre uma decisão/aprovação humana, declara `outputFile` no frontmatter.** Checkpoint sem
+> `outputFile` é só uma pausa informativa — use-o apenas quando nada do que o usuário disser
+> precisar ser lido depois.
 
 Every pipeline step file MUST contain ALL of the following sections. Target 60-120 lines per step.
 
