@@ -1,8 +1,9 @@
 # Acervo-as-a-Service — Especificação Técnica
 
-> Status: **Rascunho para decisão** · Escopo: infraestrutura compartilhada de acervo jurídico
-> (legislação, jurisprudência, súmulas, teses) para **todos os squads** (CriminalSquad,
-> DTSquad, EJsquad e futuros). Companheiro: [PLAN.md](PLAN.md) (plano de implementação).
+> Status: **Rascunho para decisão** · Escopo: distribuição de acervo jurídico (legislação,
+> jurisprudência, súmulas, teses) e de áreas do Direito para o motor LegalSquad — **um produto,
+> N áreas** (§1.2). Companheiros: [PLAN.md](PLAN.md) (plano de implementação) e
+> [`DESCOBERTA.md`](../legalsquad/DESCOBERTA.md) (descoberta, licença e busca).
 
 Documento visual de arquitetura/modelagem que originou este spec:
 `scratchpad/acervo-server-design.html` (design doc).
@@ -32,7 +33,7 @@ profissional pesquisa, nada do caso, nada do cliente, e jamais a pasta `acervo/c
 gitignored). Isso mantém a postura LGPD de **distribuidor de conteúdo** (não operador de busca) e
 não trai o discurso "tudo local, nada vaza" que é o maior ativo dos produtos.
 
-### 1.2 Topologia multi-squad
+### 1.2 Topologia — um produto, N áreas
 
 ```
                          ┌─────────────────────────────┐
@@ -40,21 +41,27 @@ não trai o discurso "tudo local, nada vaza" que é o maior ativo dos produtos.
                          │   corpus + build + sign + CDN│
                          │   + endpoint de licença      │
                          └──────────────┬──────────────┘
-              pacotes assinados por domínio (saída)
+              pacotes assinados por área (saída)
+                                        ▼
+                              ┌───────────────────┐
+                              │    LegalSquad     │
+                              │  (motor único)    │
+                              └─────────┬─────────┘
         ┌───────────────────┬───────────┴───────────┬───────────────────┐
-        ▼                   ▼                       ▼                     ▼
-  CriminalSquad          DTSquad                 EJsquad             (futuros)
-  base: penal        base: trabalhista       base: registral/
-  packs: penal,      packs: trabalhista,     notarial, civil
-   proc. penal,       proc. do trabalho
-   execução
-        └── mesmo motor de sync (engine compartilhada) · busca local ──┘
+        ▼                   ▼                       ▼                   ▼
+   area.criminal      area.trabalhista        area.extrajudicial    (futuras)
+   penal, proc.       trabalhista, proc.      registral,
+   penal, execução    do trabalho             notarial, civil
+        └──────── transversal (acompanha todas) · busca local ────────┘
 ```
 
-O **motor de sync é core compartilhado** (os forks já compartilham o motor). Cada squad difere só
-em: (a) o **pacote-base** que vem no `main`, e (b) o **conjunto de packs** que sua licença libera.
-Os **schemas de dados são idênticos** entre domínios — jurisprudência trabalhista tem a mesma forma
-que criminal.
+**Um motor, um produto, N áreas.** Uma licença válida libera **todas** as áreas (§7.1) — não há
+entitlement por área nem tiers. As áreas diferem só no `pack_id`; os **schemas de dados são
+idênticos** entre elas — jurisprudência trabalhista tem a mesma forma que criminal.
+
+> Direito a tudo **não é** posse de tudo: o cliente sincroniza o **catálogo** de todas as áreas
+> (fino, sempre) e baixa **conteúdo** sob demanda (§9.2). Ver
+> [`DESCOBERTA §2`](../legalsquad/DESCOBERTA.md).
 
 ---
 
@@ -174,7 +181,7 @@ O campo que separa amador de profissional é `situacao`: o julgado **ainda é bo
 ### 4.6 Tese-modelo (autoral) — o diferencial do escritório
 
 Diferente da tese *do tribunal*: é o know-how, com gancho e fundamentos amarrados por URN. Vem no
-pacote-base (grátis). **Auto-auditável:** se um `fundamento` vira `superado`/`revogado` no sync, a
+pacote-base. **Auto-auditável:** se um `fundamento` vira `superado`/`revogado` no sync, a
 tese-modelo que o cita acende alerta de "revisar".
 
 ```jsonc
@@ -185,7 +192,7 @@ tese-modelo que o cita acende alerta de "revisar".
   "tese": "A ausência de documentação da cadeia de custódia (art. 158-A CPP) contamina…",
   "fundamentos": ["…;3689!art158A", "urn:lex:br:stj:habeas.corpus;653515"],
   "casos_de_uso": ["busca e apreensão", "interceptação"],
-  "tier": "base", "versao": "1.2.0" }
+  "versao": "1.2.0" }
 ```
 
 ### 4.7 Doutrina — **só metadados** (direito autoral)
@@ -234,8 +241,69 @@ sua ausência recusa o pacote (fail-closed; ver §6.7).
 ```
 <pack_id>@<versão>/
 ├── manifest.json          (metadados + hashes + assinatura)
-└── <payload>.jsonl.zst    (uma entidade por linha)   [1..N arquivos]
+├── catalog.jsonl.zst      (role: "catalog" — um registro de DESCOBERTA por item)  [exatamente 1]
+└── <payload>.jsonl.zst    (role: "content" — uma entidade por linha)              [1..N arquivos]
 ```
+
+**Catálogo e conteúdo são entidades separadas, baixáveis separadamente.** Essa é a decisão de
+formato que sustenta a descoberta local: o cliente sincroniza o `catalog.jsonl.zst` de **todos** os
+pacotes (fino, barato, sempre) e só baixa entidades de conteúdo quando alguma coisa é de fato
+usada. Ver [`DESCOBERTA §2`](../legalsquad/DESCOBERTA.md).
+
+Não é otimização: com licença completa (§7.1) **todas** as áreas estão liberadas, e um pacote de
+jurisprudência sozinho passa de 90 MB. Sem a separação, a primeira execução baixaria centenas de
+megas antes da primeira tela útil.
+
+Consequências normativas:
+
+- `catalog.jsonl.zst` é **obrigatório** e único. Sua ausência recusa o pacote (fail-closed, §6.7):
+  um pacote sem catálogo é invisível para a busca, e invisível é indistinguível de inexistente.
+- Ele entra em `entities` como qualquer outra, com `sha256` próprio, e portanto **participa do
+  `content_hash`** (§6.6) e da assinatura. Catálogo adulterado é pacote recusado.
+- Todo registro de catálogo aponta para o conteúdo por `sha256` **e** declara em que entidade ele
+  vive — é isso que permite ao cliente resolver "preciso desta skill" em "preciso desta entidade".
+- Um `sha256` presente no catálogo e ausente da entidade correspondente (ou vice-versa) é
+  **inconsistência de build**, verificada no empacotamento, não no cliente.
+
+```jsonc
+// uma linha de catalog.jsonl — pacote de área (payload_kind: "tree")
+{ "kind": "skill", "id": "habeas-corpus",
+  "entity": "skills.jsonl.zst",              // onde o conteúdo vive
+  "path": "skills/habeas-corpus/SKILL.md",
+  "sha256": "3c9a…", "bytes": 8431,          // do conteúdo, casa com §6.2
+  "description": "…recorte de até 220 caracteres…",
+  "triggers": ["…"], "aliases": ["…"], "categories": ["…"],
+  "lifecycle": "active", "quality_status": "certified",
+  "high_performance_eligible": true, "eval_case_ids": ["lsq-v5-…"] }
+
+// uma linha de catalog.jsonl — pacote de acervo (payload_kind: "records")
+{ "kind": "julgado", "urn": "urn:lex:br:stj:habeas.corpus;653515",
+  "entity": "decisoes.stj.penal.2020.jsonl.zst",
+  "sha256": "b71f…",
+  "tribunal": "STJ", "data": "2020-11-24", "relator": "…",
+  "ementa": "…recorte…", "situacao": "vigente" }        // ver §6.1.1
+```
+
+Os campos de skill são exatamente os que o `search-skills` já devolve e os que o Arquiteto já
+exige da shortlist — o catálogo não introduz conceito novo, só o desacopla do conteúdo.
+
+#### 6.1.1 Por que `situacao` viaja no catálogo
+
+Para `acervo.*`, o catálogo carrega **URN, ementa recortada e `situacao`** de cada julgado ou
+dispositivo. Com isso o `verificador-citacoes` confirma **existência + vigência/superação sem
+baixar inteiro teor nenhum** — local, offline, instantâneo. O inteiro teor desce só quando alguém
+vai de fato lê-lo.
+
+O Citation Gate fica **mais** rápido com a separação, não mais lento. Um precedente superado ou um
+dispositivo revogado é detectável com o catálogo apenas — que é justamente o caso em que o gate
+precisa bloquear.
+
+#### 6.1.2 Granularidade das entidades de conteúdo
+
+| Tipo | Granularidade | Por quê |
+|---|---|---|
+| `area.*`, `transversal` | uma entidade por classe (`skills`, `squads`, `best-practices`) | ~1,9 MB por área é barato de baixar inteiro; shardar aqui é complexidade sem ganho |
+| `acervo.*` | **shards por faceta** (`<tribunal>.<ramo>.<ano>`) | 90 MB não descem inteiros; e faceta é exatamente como se consulta (§4) |
 
 `.jsonl.zst` para os dois tipos. Para árvore isso foi **medido** contra a alternativa óbvia
 (`tar.zst`) sobre conteúdo real — 520 skills, 1671 arquivos, 13,8 MB crus, 0 binários:
@@ -275,14 +343,19 @@ em ferramenta comum; por isso o CLI precisa de um `pack inspect` para leitura hu
 
 ### 6.3 Namespace de `pack_id`
 
-O prefixo é o que decide o aplicador padrão, o alvo de extração e a política de licença. É
-**fechado** — um `pack_id` fora destes prefixos é recusado:
+O prefixo é o que decide o aplicador padrão e o alvo de extração. É **fechado** — um `pack_id` fora
+destes prefixos é recusado:
 
 | Prefixo | `payload_kind` | Conteúdo | Licença |
 |---|---|---|---|
-| `acervo.*` | `records` | corpus jurídico (o §4 inteiro) | por tier |
-| `area.<id>` | `tree` | skills, squads, best-practices e perfil de **uma** área | por licença de área |
-| `transversal` | `tree` | as ~19 skills que servem qualquer área (integrações, mídia, e-mail, OCR, publicação) | acompanha qualquer área |
+| `acervo.*` | `records` | corpus jurídico (o §4 inteiro) | completa (§7.1) |
+| `area.<id>` | `tree` | skills, squads, best-practices e perfil de **uma** área | completa (§7.1) |
+| `transversal` | `tree` | as ~19 skills que servem qualquer área (integrações, mídia, e-mail, OCR, publicação) | completa (§7.1) |
+
+**O namespace não tem prefixo para squad.** Squads prontos viajam dentro de `area.<id>`, junto das
+skills e best-practices — eles não são vendidos nem versionados separadamente. Abrir um `squad.*`
+só se justificaria com licenciamento individual, que foi descartado
+([`DESCOBERTA §6`](../legalsquad/DESCOBERTA.md), decisão 1).
 
 `transversal` é singular de propósito: existe **um** pacote transversal, não um por área — é
 exatamente a duplicação que a migração quer eliminar. Um `area.*` que contenha uma skill também
@@ -310,8 +383,7 @@ Campos comuns aos dois tipos, com os do pacote de árvore marcados:
   "area": { "id": "criminal", "titulo": "Direito Criminal",
             "curador": "…", "ramos": ["penal", "processual-penal", "execucao-penal"] },
   "requires": ["transversal@>=2026.07.1"],   // dependência entre pacotes
-  "requires_tier": "essencial",              // base | essencial | pro
-  "product_scope": ["legalsquad"],
+  "product_scope": ["legalsquad"],           // um produto só (§1.2)
 
   "normalization": {                         // §6.8 — o que o build traduziu na fronteira
     "contract_marker": { "from": "CRIMINALSQUAD:", "to": "LEGALSQUAD:" },
@@ -322,10 +394,11 @@ Campos comuns aos dois tipos, com os do pacote de árvore marcados:
   },
 
   "counts": { "files": 1671, "skills": 520, "squads": 9, "best_practices": 24 },
-  "entities": [
-    { "file": "skills.jsonl.zst",         "sha256": "4e11…", "bytes": 1802044 },
-    { "file": "squads.jsonl.zst",         "sha256": "9ab3…", "bytes":   96117 },
-    { "file": "best-practices.jsonl.zst", "sha256": "c027…", "bytes":   31880 }
+  "entities": [                              // "catalog" é obrigatório e único (§6.1)
+    { "file": "catalog.jsonl.zst",        "role": "catalog", "sha256": "1f8d…", "bytes":   44902 },
+    { "file": "skills.jsonl.zst",         "role": "content", "sha256": "4e11…", "bytes": 1802044 },
+    { "file": "squads.jsonl.zst",         "role": "content", "sha256": "9ab3…", "bytes":   96117 },
+    { "file": "best-practices.jsonl.zst", "role": "content", "sha256": "c027…", "bytes":   31880 }
   ],
   "removed_paths": [                         // §6.7 — só em delta; vazio no pacote completo
     "skills/skill-aposentada/SKILL.md"
@@ -408,9 +481,9 @@ verificação recusa.
 
 ### 6.8 Normalização de identificadores na fronteira (requisito do F1)
 
-O `build-area` lê repositórios de conteúdo que nasceram antes deste motor. As skills do
-`criminalsquad` (520) e do `dtsquad` (405) trazem gravados identificadores do fork de origem, e o
-motor de hoje só reconhece os seus:
+O `build-area` empacota diretórios de conteúdo que podem ter sido autorados **antes deste motor**.
+Conteúdo dessa geração traz gravados identificadores do fork de origem, e o motor de hoje só
+reconhece os seus:
 
 | O que | No repo de conteúdo | No motor | Onde o motor checa |
 |---|---|---|---|
@@ -465,34 +538,49 @@ Como a busca é local, o servidor expõe **dois** contratos apenas.
 
 ### 7.1 Catálogo / entitlement
 
+**A licença é binária.** Válida → **todas** as áreas e todo o acervo. Não há entitlement por área,
+não há tiers, não há `403` de "sem direito a este pack". Ver
+[`DESCOBERTA §6`](../legalsquad/DESCOBERTA.md), decisão 3.
+
 ```
-GET /v1/catalog?license=CS-XXXX-XXXX&product=legalsquad
+GET /v1/catalog?license=LS-XXXX-XXXX&product=legalsquad
     &have=acervo.jurisprudencia.stj.penal@2026.07.1,area.criminal@2026.06.2
 
 200 →
 {
-  "tier": "pro",
+  "status": "active",                         // active | expired
   "expires": "2026-08-01",
-  "packs": [
+  "packs": [                                  // TODOS os pacotes — sempre
     { "pack_id": "acervo.jurisprudencia.stj.penal", "payload_kind": "records",
       "latest": "2026.07.2",
-      "url": "https://cdn…/…?exp=…&sig=…",   // URL assinada e expirável
-      "sha256": "9f2c…", "bytes": 91223344, "delta_from": "2026.07.1" },
+      "catalog": {                            // baixado SEMPRE (fino, §6.1)
+        "url": "https://cdn…/…?exp=…&sig=…",  // URL assinada e expirável
+        "sha256": "1f8d…", "bytes": 210433 },
+      "content": {                            // baixado SOB DEMANDA (§9.2)
+        "url": "https://cdn…/…?exp=…&sig=…",
+        "sha256": "9f2c…", "bytes": 91223344, "delta_from": "2026.07.1" } },
     { "pack_id": "area.criminal", "payload_kind": "tree", "latest": "2026.07.1",
-      "url": "https://cdn…/…?exp=…&sig=…",
-      "sha256": "4e11…", "bytes": 1930244, "delta_from": "2026.06.2",
+      "catalog": { "url": "https://cdn…/…?exp=…&sig=…",
+                   "sha256": "1f8d…", "bytes": 44902 },
+      "content": { "url": "https://cdn…/…?exp=…&sig=…",
+                   "sha256": "4e11…", "bytes": 1930244, "delta_from": "2026.06.2" },
       "requires": ["transversal@>=2026.07.1"] }
   ],
   "revoked": []                               // packs que devem ser apagados do cache
 }
-401 → licença inválida     403 → produto/tier sem direito ao pack
+401 → licença inválida
 ```
 
+- **`catalog` e `content` têm URLs separadas** — é o que torna a §6.1 operável. O cliente busca
+  todos os `catalog` no `sync` e só o `content` do que for usado.
 - `have` permite ao servidor devolver **só o que mudou** e URLs de delta quando existirem.
 - O `payload_kind` da resposta é **dica de planejamento, não autoridade**: a resposta do catálogo não
   é assinada. Quem escolhe o aplicador é o `payload_kind` do `manifest.json` verificado (§6.4).
   Divergência entre os dois recusa o pacote — é sinal de catálogo comprometido, não de erro de digitação.
-- Sem `license` (ou tier `base`): devolve só os packs livres. O free tier funciona sem conta.
+- **Sem `license`:** vale o pacote-base que já vem no `main` (assinado, offline, sem conta). O
+  endpoint devolve `{"status": "none", "packs": []}` — não há o que sincronizar sem licença.
+- **`status: "expired"`:** ainda devolve `packs`, mas o cliente **não atualiza** (§9.4). Licença
+  vencida degrada para o cache; nunca vira tijolo.
 
 ### 7.2 Chave pública (rotação)
 
@@ -532,22 +620,27 @@ Componentes (todos fora do caminho de busca do usuário):
 | STJ | Acórdãos, súmulas, recursos repetitivos | portal + dados abertos |
 | CNJ DataJud | Metadados processuais (capa, movimentos) — não o mérito | API pública |
 | DJEN | Publicações/intimações **(já integrado no core)** | API oficial |
-| (trabalhista) TST, (extrajudicial) CNJ Provimentos, CGJs | Domínios dos outros squads | mesmas técnicas |
+| TST, CNJ Provimentos, CGJs, TJs/TRFs/TRTs | Fontes das demais áreas | mesmas técnicas |
 
 ---
 
 ## 9. Especificação do cliente (motor compartilhado)
 
-Vive na engine compartilhada → presente em CriminalSquad, DTSquad, EJsquad automaticamente.
+Vive no motor — uma implementação, todas as áreas (§1.2).
 
 ### 9.1 Comando
 
 ```
-legalsquad acervo sync            # sincroniza os packs com direito
+legalsquad acervo sync            # sincroniza os CATÁLOGOS de todos os packs (§6.1)
+legalsquad acervo sync --content  # força baixar também o conteúdo (uso offline planejado)
 legalsquad acervo sync --check    # só relata o que está desatualizado (exit != 0 se há update)
-legalsquad acervo status          # tiers, versões instaladas, frescor por pack
-legalsquad acervo packs           # lista packs disponíveis vs instalados
+legalsquad acervo status          # licença, versões instaladas, frescor por pack
+legalsquad acervo packs           # packs disponíveis · catálogo instalado · conteúdo em cache
 ```
+
+O `sync` sem flag **não baixa conteúdo** — baixa o catálogo de tudo e para. Conteúdo desce sob
+demanda (§9.2) ou por prefetch das áreas de atuação declaradas no perfil. `--content` existe para
+quem vai ficar sem rede de propósito e quer pagar o download antes.
 
 Wiring idêntico ao dos comandos existentes (`bin/legalsquad.js` + `src/acervo-cli.js`),
 espelhando o padrão de `search-acervo`/`contract-skills`.
@@ -555,23 +648,28 @@ espelhando o padrão de `search-acervo`/`contract-skills`.
 ### 9.2 Fluxo do `sync`
 
 1. Lê `acervo/_packs/_manifest.json` (o que está instalado; produto + versões).
-2. `GET /v1/catalog?license&product&have=…` → lista de packs/URLs (ou, sem licença, só os livres).
-3. Para cada pack novo/atualizado: baixa (delta quando houver) → **verifica sha256 + assinatura
-   Ed25519** com a chave embarcada → **só então** grava.
-4. Extrai o payload conforme o `payload_kind` do manifesto (§6): pacote de **acervo**
+2. `GET /v1/catalog?license&product&have=…` → lista de packs, com URLs de `catalog` e `content`
+   separadas (§7.1). Sem licença não há o que sincronizar — vale o pacote-base do `main`.
+3. **Baixa o `catalog.jsonl.zst` de TODOS os packs** (fino, §6.1) → verifica sha256 + assinatura
+   Ed25519 com a chave embarcada → **só então** grava. É este passo que deixa a busca local
+   enxergar o servidor inteiro sem nunca mandar uma consulta para lá.
+4. **Conteúdo não desce aqui.** Uma entidade de conteúdo é baixada quando (a) algo do catálogo dela
+   é de fato selecionado, (b) o prefetch das áreas de atuação a alcança, ou (c) veio `--content`.
+   A verificação é a mesma: sha256 + assinatura antes de gravar, sempre.
+5. Extrai o payload conforme o `payload_kind` do manifesto (§6): pacote de **acervo**
    (`payload_kind: "records"`) vai para `acervo/_packs/<pack_id>/` (área **gerenciada**); pacote de
    **área** (`area.*`, `transversal`, `payload_kind: "tree"`) materializa as subárvores declaradas em
    `applies_to` — `skills/`, `squads/`, `core/best-practices/` — sob as regras de contenção e
    atomicidade da §6.5, e aplicando `removed_paths` quando for delta.
-5. **Reindexa o que foi tocado** — e só o que foi tocado:
+6. **Reindexa o que foi tocado** — e só o que foi tocado:
    - pacote de acervo → `indexar-acervo` (as entidades entram como `VERIFIED_OFFICIAL` +
      proveniência);
    - pacote de área → `indexar-skills`.
-6. Aplica `revoked`: apaga do cache packs revogados — **e reindexa de novo**, senão o índice passa a
+7. Aplica `revoked`: apaga do cache packs revogados — **e reindexa de novo**, senão o índice passa a
    listar o que foi apagado.
-7. Relata: baixados, tamanho, frescor, e avisa packs vencidos.
+8. Relata: catálogos atualizados, conteúdo baixado, tamanho, frescor, e avisa packs vencidos.
 
-> **Por que o passo 5 distingue os dois índices.** Eles têm criticidade oposta, e confundi-los custa
+> **Por que o passo 6 distingue os dois índices.** Eles têm criticidade oposta, e confundi-los custa
 > caro:
 >
 > - **`acervo/_index.yaml` é consumido pela busca** (`src/acervo-search.js`). Desatualizado, a
@@ -601,15 +699,22 @@ omitido do índice.
 - **Offline:** sem rede, `sync` falha graciosamente; a busca segue no cache. Tudo funciona.
 - **Licença expirada:** mantém o último cache (somente leitura) com banner "desatualizado"; nunca
   apaga nem bloqueia a busca. Só para de **atualizar**.
-- **Base tier no `main`:** cada squad embarca seu pack-base assinado; funciona sem nenhuma conta.
+- **Pacote-base no `main`:** o motor embarca um pacote-base assinado; funciona sem nenhuma conta.
+- **Conteúdo ausente ≠ conteúdo inexistente.** Com fetch preguiçoso (§9.2), o catálogo conhece
+  itens cujo conteúdo ainda não foi baixado. Sem rede para buscá-lo, a resposta é
+  **"conhecido, não baixado — sincronize"**, jamais "não existe". Confundir os dois é a degradação
+  silenciosa que este motor já pagou caro para eliminar: num acervo jurídico, "não encontrei" lido
+  como "não há precedente" é o erro que chega à peça.
 
-### 9.5 Tiers
+### 9.5 Estados de licença
 
-| Tier | Conteúdo | Atualização | Entrega |
-|---|---|---|---|
-| **Base** | Teses-modelos + leis essenciais do domínio + súmulas STF/STJ | a cada release | vem no `main` · offline |
-| **Essencial** | + jurisprudência do domínio (STF/STJ) curada + estado do precedente | semanal | sync |
-| **Pro** | + TJs/TRTs + inteiro teor + repositório de teses expandido | diária | sync |
+Não há tiers. A licença tem **dois** estados, e o pacote-base cobre o terceiro caso:
+
+| Estado | Alcance | Atualização |
+|---|---|---|
+| **Sem licença** | pacote-base embarcado no `main` (assinado, offline, sem conta) | a cada release do npm |
+| **Válida** | **tudo** — todas as áreas, todo o acervo | sync (catálogo sempre; conteúdo sob demanda) |
+| **Vencida** | último cache, somente leitura, com selo "desatualizado há N dias" | nenhuma |
 
 ---
 
@@ -628,7 +733,10 @@ omitido do índice.
 
 - **Frescor:** cadência por fonte (súmula/tese: semanal; grandes decisões: sob demanda; legislação:
   ao publicar). `updated_at` por pack; aviso de "desatualizado" acima de N dias (configurável).
-- **Tamanho:** pacote-base < ~15 MB; ementa+tese sempre no pack, inteiro teor por referência/Pro.
+- **Tamanho:** pacote-base < ~15 MB; ementa+tese sempre no pack, inteiro teor por referência.
+- **Catálogo:** o `sync` de catálogos de **todos** os packs deve caber em um download único de
+  poucas centenas de KB. É o requisito que sustenta a descoberta local (§6.1).
+- **Busca local:** shortlist sobre o catálogo completo em < 100 ms, sem rede.
 - **Verificação:** assinatura de um pack em < 1 s no cliente.
 - **Determinismo do build:** mesmo input → mesmo `content_hash` (reprodutível, auditável).
 - **Cobertura de citação:** todo dispositivo/precedente citável tem URN resolvível e `situacao`.
@@ -637,8 +745,10 @@ omitido do índice.
 
 ## 12. Fora de escopo (v1)
 
-- Busca semântica/embeddings no cliente (v1 é lexical, como o `search-acervo` atual).
-- Full inteiro teor de todos os tribunais empacotado (fica por referência/Pro).
+- Busca semântica/embeddings no cliente (v1 é lexical, como o `search-acervo` atual). A alternativa
+  concreta — léxico de sinônimos curado, distribuído no pacote — e a condição de reabertura estão em
+  [`DESCOBERTA §3`](../legalsquad/DESCOBERTA.md).
+- Full inteiro teor de todos os tribunais empacotado (fica por referência).
 - Anotações colaborativas entre alunos (é local/privado).
 - Redistribuição de doutrina (proibido — só metadados).
 
@@ -651,6 +761,9 @@ omitido do índice.
   `payload_kind: tree`).
 - **`payload_kind`:** o que é uma linha do payload — `records` (registro jurídico) ou `tree`
   (um arquivo). Escolhe o aplicador.
+- **Catálogo × conteúdo:** as duas metades de um pack (§6.1). O **catálogo** (`role: "catalog"`) é
+  fino, sincronizado sempre, e é sobre ele que a busca local roda. O **conteúdo**
+  (`role: "content"`) é gordo e desce sob demanda. Direito a tudo não é posse de tudo.
 - **`applies_to`:** lista de subárvores em que um pacote de árvore pode escrever. Contrato de
   contenção, verificado como whitelist pelo cliente.
 - **Normalização de fronteira:** tradução de identificadores do fork de origem
@@ -660,4 +773,5 @@ omitido do índice.
 - **Dispositivo × Versão:** a casca estável (Art. X) vs o texto por intervalo de vigência.
 - **Situação:** estado temporal (vigente/revogado; vigente/superado).
 - **VERIFIED_OFFICIAL:** nível de confiança do índice para conteúdo de pack assinado.
-- **Tier:** base (grátis, no `main`) · essencial · pro.
+- **Licença:** binária — válida libera **tudo** (todas as áreas, todo o acervo). Não há tiers nem
+  entitlement por área. Sem licença vale o pacote-base do `main`; vencida, o cache read-only (§9.5).

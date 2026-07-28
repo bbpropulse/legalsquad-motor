@@ -33,17 +33,25 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
 ## Princípios inegociáveis
 
 1. **Sincroniza, não serve.** Nada é buscado em runtime — preserva offline, sigilo (a query nunca
-   sai da máquina) e latência. Pacote assinado (Ed25519) + cache local.
+   sai da máquina) e latência. Pacote assinado (Ed25519) + cache local. **A busca é local sobre o
+   catálogo sincronizado**; o servidor distribui dados e nunca recebe consulta.
 2. **Local-first.** Depois de baixado, tudo funciona sem rede.
 3. **Degradação graciosa.** Licença vencida nunca vira tijolo: cache segue read-only com selo
-   *"desatualizado há N dias"*.
+   *"desatualizado há N dias"*. Da mesma família: **"não baixado" nunca se apresenta como "não
+   existe"** — o catálogo conhece o que o conteúdo ainda não trouxe.
 4. **Uma área só vira pacote com curador de verdade.** Arquitetura ampla, vitrine estreita.
-5. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
+5. **Licença completa.** Válida libera **todas** as áreas — não há tier nem entitlement por área.
+   Direito a tudo ≠ posse de tudo: catálogo de tudo desce sempre, conteúdo desce sob demanda.
+6. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
 
 ## Documentação
 
 - [`docs/specs/legalsquad/ARQUITETURA.md`](docs/specs/legalsquad/ARQUITETURA.md) — a decisão, tipos de
-  pacote, licença/tiers, camada vertical, nome/comando.
+  pacote, camada vertical, nome/comando.
+- [`docs/specs/legalsquad/DESCOBERTA.md`](docs/specs/legalsquad/DESCOBERTA.md) — **como o Arquiteto
+  acha skills e o squad acha jurisprudência**: os três relógios (sync × criação × execução),
+  catálogo fino × conteúdo sob demanda, o veredito sobre embeddings, e as três decisões de licença
+  já fechadas.
 - [`docs/specs/legalsquad/MIGRACAO.md`](docs/specs/legalsquad/MIGRACAO.md) — plano F0–F5.
 - [`docs/specs/legalsquad/F0-SANEAMENTO.md`](docs/specs/legalsquad/F0-SANEAMENTO.md) — o saneamento da
   suíte e da fronteira: por que 20 falhas eram regressão, o que virou fixture sintética, e a dívida de
@@ -131,6 +139,13 @@ de `area.*`; produz o pacote assinado.
 aceite. Ele empacota o que apontarem — de um checkout, de um diretório exportado, de um tarball
 extraído. Se um dia precisar saber *de quem* é o conteúdo, o desenho está errado.
 
+**Ele emite duas metades, não uma.** Todo pacote leva um `catalog.jsonl.zst` fino (um registro de
+descoberta por item) **separado** das entidades de conteúdo — é o que permite ao cliente
+sincronizar o catálogo de tudo e baixar conteúdo só do que usa. Isso **tem prazo**: é formato
+assinado, e retrofitar depois obriga a re-assinar e re-distribuir tudo. Ver
+[`SPEC §6.1`](docs/specs/acervo-server/SPEC.md) e
+[`DESCOBERTA §2`](docs/specs/legalsquad/DESCOBERTA.md).
+
 **Aceite do F1**, verificável no CI, sem depender de máquina nenhuma:
 1. Empacotar `tests/fixtures/area-demo/` produz um pacote assinado válido, e a contagem de skills
    bate com a fixture.
@@ -138,6 +153,12 @@ extraído. Se um dia precisar saber *de quem* é o conteúdo, o desenho está er
    provada por hash da árvore antes e depois — não por `git status` de um repo externo).
 3. Empacotar duas vezes dá o **mesmo `content_hash`** (determinismo).
 4. Um pacote com um byte adulterado é **recusado** na verificação.
+5. O pacote tem **exatamente um** `catalog.jsonl.zst` (`role: "catalog"`), e todo `sha256` que ele
+   referencia existe na entidade de conteúdo declarada — e vice-versa. Divergência é erro de build.
+6. Um pacote **sem** catálogo é **recusado** (fail-closed): sem ele a área é invisível para a
+   busca, e invisível é indistinguível de inexistente.
+7. O catálogo é **ordens de grandeza menor** que o conteúdo do mesmo pacote — a razão medida entra
+   no relatório do build, para que a regressão de tamanho apareça antes de virar problema de campo.
 
 **Aceite do F2 (paridade):** instalação limpa `legalsquad` + `transversal` + `area.criminal`
 reproduz a experiência atual do LegalSquad — 9 squads, gates verdes, resolvedor e Citation Gate
