@@ -622,6 +622,27 @@ conteúdo jurídico — fixture da área demo.
   },
 ];
 
+// Corte `transversal` × `area.*` que o `build-area` lê (SPEC §6.3). É AUTORADO,
+// não derivado: o empacotador é cego e não adivinha que uma skill serve qualquer
+// área — quem sabe é o curador. Na fixture, as quatro de ferramenta (conector,
+// geradores, criador de skill) são transversais; as `demo-*` são matéria da área.
+async function gerarCorteDePacotes() {
+  const corte = [
+    '# Corte de pacotes desta área — lido por `tools/build-area.mjs` (SPEC §6.3).',
+    '# Autorado pelo curador: o empacotador não adivinha o corte.',
+    'area_id: demo',
+    'area_titulo: "Área Demo"',
+    'area_curador: "Curadoria Fictícia — fixture sintética, sem matéria jurídica real"',
+    'area_ramos: [alfa, beta]',
+    '',
+    '# Skills que servem QUALQUER área. Lista explícita: vazia é válida, ausente não.',
+    'transversal_skills: [conector-mcp, gerador-imagem, gerador-imagem-env, legalsquad-skill-creator]',
+    '',
+  ].join('\n');
+  await writeFile(join(RAIZ, '_packs.yaml'), corte);
+  console.log(`corte de pacotes gerado em ${join(RAIZ, '_packs.yaml')}`);
+}
+
 async function gerarBestPractices() {
   const dir = join(RAIZ, 'core', 'best-practices');
   await mkdir(dir, { recursive: true });
@@ -866,6 +887,7 @@ async function main() {
   await gerarAutoridade();
   await gerarBestPractices();
   await gerarSquad();
+  await gerarCorteDePacotes();
 }
 
 await main();

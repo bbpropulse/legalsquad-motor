@@ -129,11 +129,21 @@ Commit inicial: `19e29be`.
   `_legalsquad/core/authorities/execucao-penal-art-112.json`. Continuará vermelho até o `build-area`
   (F1) produzir um pacote de área para alimentar o tarball.
 
-## Próximo passo: F1 — o empacotador
+## F1 — o empacotador: **concluído**
 
-`tools/build-area.mjs <diretorio-de-conteudo> <area-id>` → lê `skills/`, `squads/`,
-`core/best-practices/` e o perfil **do diretório que receber por argumento**; separa `transversal`
-de `area.*`; produz o pacote assinado.
+```bash
+node tools/build-area.mjs <diretorio-de-conteudo> <area-id> --key <chave.pem> [--out <dir>]
+```
+
+Lê `skills/`, `squads/`, `core/best-practices/` e o `_packs.yaml` **do diretório que receber por
+argumento**; separa `transversal` de `area.*`; produz os pacotes assinados. Cinco módulos, todos com
+teste: [`pack-format`](src/pack-format.js) (container, selo, verificação) ·
+[`pack-tree`](src/pack-tree.js) (árvore → entidades-arquivo) · [`pack-split`](src/pack-split.js)
+(corte) · [`pack-catalog`](src/pack-catalog.js) (registro de descoberta) ·
+[`pack-build`](src/pack-build.js) (orquestração).
+
+Zero dependência: `node:zlib` traz zstd nativo e `node:crypto` traz Ed25519 — confirmado no Node 26
+**antes** de escrever a primeira linha. Verificar assinatura não pode depender de instalar nada.
 
 **Genérico e cego por definição:** nenhum caminho de repositório aparece no código, no teste ou no
 aceite. Ele empacota o que apontarem — de um checkout, de um diretório exportado, de um tarball
@@ -146,19 +156,58 @@ assinado, e retrofitar depois obriga a re-assinar e re-distribuir tudo. Ver
 [`SPEC §6.1`](docs/specs/acervo-server/SPEC.md) e
 [`DESCOBERTA §2`](docs/specs/legalsquad/DESCOBERTA.md).
 
-**Aceite do F1**, verificável no CI, sem depender de máquina nenhuma:
-1. Empacotar `tests/fixtures/area-demo/` produz um pacote assinado válido, e a contagem de skills
-   bate com a fixture.
-2. O diretório de origem fica **byte a byte idêntico** depois do build (a invariante read-only,
+**Aceite do F1 — todos verdes**, no CI, sem depender de máquina nenhuma
+([`tests/pack-*.test.js`](tests/pack-build.test.js)):
+1. ✅ Empacotar `tests/fixtures/area-demo/` produz pacotes assinados válidos, e a contagem de skills
+   bate com a fixture — nenhuma perdida, nenhuma nos dois pacotes.
+2. ✅ O diretório de origem fica **byte a byte idêntico** depois do build (invariante read-only,
    provada por hash da árvore antes e depois — não por `git status` de um repo externo).
-3. Empacotar duas vezes dá o **mesmo `content_hash`** (determinismo).
-4. Um pacote com um byte adulterado é **recusado** na verificação.
-5. O pacote tem **exatamente um** `catalog.jsonl.zst` (`role: "catalog"`), e todo `sha256` que ele
-   referencia existe na entidade de conteúdo declarada — e vice-versa. Divergência é erro de build.
-6. Um pacote **sem** catálogo é **recusado** (fail-closed): sem ele a área é invisível para a
+3. ✅ Empacotar duas vezes dá o **mesmo `content_hash`** (determinismo).
+4. ✅ Um pacote com um byte adulterado é **recusado**, e o motivo nomeia a entidade.
+5. ✅ O pacote tem **exatamente um** `catalog.jsonl.zst` (`role: "catalog"`), e todo `sha256` que ele
+   referencia existe na entidade de conteúdo declarada — e vice-versa.
+6. ✅ Um pacote **sem** catálogo é **recusado** (fail-closed): sem ele a área é invisível para a
    busca, e invisível é indistinguível de inexistente.
-7. O catálogo é **ordens de grandeza menor** que o conteúdo do mesmo pacote — a razão medida entra
-   no relatório do build, para que a regressão de tamanho apareça antes de virar problema de campo.
+7. ✅ A razão catálogo/conteúdo **medida** entra no relatório do build.
+
+> **Correção de redação no aceite 7.** A versão anterior deste documento exigia catálogo "ordens de
+> grandeza menor", e isso **não é verificável na fixture sintética**: medido, dá `transversal` 2,5× e
+> `area.demo` 9,9×, porque as skills da fixture têm corpo curto e a metadata pesa quase tanto quanto
+> o conteúdo. A razão cresce com arquivos de apoio por item; o conteúdo medido no
+> [`SPEC §6.1`](docs/specs/acervo-server/SPEC.md) (520 skills, 1671 arquivos, 1,93 MB) projeta ~27×.
+>
+> Um limiar em bytes calibrado numa fixture seria número arbitrário. O que sustenta a razão em
+> **qualquer** escala é estrutural, e é isso que o teste prende: o catálogo **não carrega corpo**
+> (`text`/`b64` ausentes) e traz **um registro por item descobrível, não por arquivo**. Acrescentar
+> `text` ao registro passaria por qualquer limiar folgado e destruiria a economia inteira em campo.
+
+**Como o corte `transversal` × `area.*` é declarado.** O empacotador é cego: não adivinha que uma
+skill serve qualquer área. O curador declara num `_packs.yaml` na raiz do conteúdo (YAML plano,
+lido pelo `parseScalar`/`parseList` que já existe — cinco chaves não justificam dependência):
+
+```yaml
+area_id: criminal
+area_titulo: "Direito Criminal"
+transversal_skills: [conector-mcp, gerador-imagem, publicacao-web]
+```
+
+Três portas fail-closed fecham **o mesmo** modo de falha: arquivo ausente, chave `transversal_skills`
+ausente, e id declarado que não casa com skill nenhuma. Se qualquer uma tolerasse, as ~19 skills
+transversais cairiam no pacote de área **em silêncio** — duplicadas em toda área instalada, que é o
+que a migração existe para eliminar. `transversal_skills: []` é aceito; a omissão não.
+
+**Promoção não viaja no pacote.** A evidência comportamental mora em `skills/_evals/results/`, que é
+user-owned e não é empacotado ([`SPEC §6.5`](docs/specs/acervo-server/SPEC.md)). Então o catálogo
+**capa em `contracted`** toda skill que se declare `verified`/`certified`, e registra o motivo em
+`promotion_blocked_by`. O pacote leva o **contrato** e os **casos** de eval; a **prova** é local, por
+construção. Um pacote saindo com 520 skills `verified` cuja prova ninguém pode conferir seria o motor
+voltando a mentir na única dimensão em que acabou de parar.
+
+**Bytes de origem preservados** ([`SPEC §6.8`](docs/specs/acervo-server/SPEC.md), opção A): marcador
+de contrato legado **identifica** o contrato e nunca promove — capa em `contracted` com o motivo, em
+vez de reescrever. Reescrever mudaria os bytes que `skill_binding.skill_sha256` amarra; o manifesto
+declara `normalization.rewritten_bytes: false` e `rebound_evidence: false` para que a decisão seja
+auditável no artefato.
 
 **Aceite do F2 (paridade):** instalação limpa `legalsquad` + `transversal` + `area.criminal`
 reproduz a experiência atual do LegalSquad — 9 squads, gates verdes, resolvedor e Citation Gate
