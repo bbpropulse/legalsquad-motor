@@ -63,6 +63,31 @@ test('empacotar a fixture produz pacotes assinados válidos', () => {
   }
 });
 
+test('a EVIDÊNCIA de promoção não viaja no pacote, só o contrato e os casos', () => {
+  // `skills/_evals/results/` é user-owned (§6.5): é a prova comportamental
+  // DAQUELA instalação. Empacotá-la mandaria a evidência de uma máquina para
+  // dentro de outra, onde ela não significa nada — e faria o destino acreditar
+  // numa promoção que ninguém rodou ali.
+  //
+  // Este teste nasceu de um bug real: o build empacotava `results/` e só o teste
+  // de ida e volta (`pack-apply.test.js`) percebeu, porque o applier recusou.
+  // O guarda focado fica aqui para o diagnóstico não depender da integração.
+  const { pacotes } = construir();
+
+  for (const pacote of pacotes) {
+    const caminhos = pacote.entidades
+      .filter((e) => e.role === 'content')
+      .flatMap((e) => decodeEntity(e.buffer))
+      .map((a) => a.path);
+
+    assert.deepEqual(
+      caminhos.filter((p) => p.startsWith('skills/_evals/results/')),
+      [],
+      `${pacote.packId}: evidência de promoção viajando no pacote`
+    );
+  }
+});
+
 test('a contagem de skills bate com a fixture, sem perder nem duplicar nenhuma', () => {
   const { pacotes } = construir();
 

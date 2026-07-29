@@ -14,6 +14,43 @@ export const FORMAT_VERSION = '1.1';
 /** Nível fixo e DECLARADO (§6.6): nível variável quebraria o determinismo. */
 export const NIVEL_ZSTD = 19;
 
+/**
+ * Subárvores que pertencem ao USUÁRIO. Nenhum pacote as escreve, e nenhum build
+ * as empacota — a regra é do FORMATO, não de um dos lados, e por isso mora aqui.
+ *
+ * Vale nos dois pontos de propósito, e não é redundância: o build exclui para
+ * não produzir um pacote inválido, e o apply recusa porque `applies_to` vem de
+ * dentro do pacote — um pacote hostil declara o que quiser. Se a checagem no
+ * apply fosse a única, bastaria declarar `casos/` para escrever em cima do dado
+ * sigiloso do cliente; se fosse só no build, um pacote de outra origem passaria.
+ */
+const USER_OWNED = [
+  'casos/',                 // dado de cliente — sagrado, nem entra no índice
+  'output/',                // o que o squad produziu
+  'skills/_evals/results/', // evidência comportamental DAQUELA instalação (§6.5)
+  '_legalsquad/_memory/',   // contexto da instituição
+  'acervo/',                // curadoria do usuário — exceto a subárvore gerenciada
+];
+
+/** A única subárvore gerenciada dentro de uma área user-owned. */
+const EXCECOES_GERENCIADAS = ['acervo/_packs/'];
+
+/** Arquivos que nenhum pacote toca, em qualquer lugar da árvore. */
+export const ARQUIVOS_PROIBIDOS = new Set(['.env']);
+
+/**
+ * O caminho pertence ao usuário?
+ *
+ * `skills/_evals/results/` é o caso que mais engana: o pacote leva o CONTRATO e
+ * os CASOS de eval (`skills/_evals/catalog-v5.json`, os cases), mas nunca a
+ * PROVA. Empacotar `results/` mandaria a evidência de uma instalação para dentro
+ * de outra, onde ela não significa nada.
+ */
+export function ehUserOwned(caminho) {
+  if (EXCECOES_GERENCIADAS.some((prefixo) => caminho.startsWith(prefixo))) return false;
+  return USER_OWNED.some((prefixo) => caminho.startsWith(prefixo));
+}
+
 /** Ordena por byte-order — nunca `localeCompare`, que depende de locale (§6.6). */
 function porBytes(a, b) {
   return Buffer.compare(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'));

@@ -9,6 +9,7 @@
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, posix, relative, sep } from 'node:path';
+import { ehUserOwned } from './pack-format.js';
 
 /** Nunca é conteúdo: artefato de sistema operacional ou diretório de máquina. */
 const NOMES_IGNORADOS = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini']);
@@ -63,8 +64,15 @@ export function lerArvore(raiz, subarvores) {
       }
       if (!entrada.isFile()) continue;
 
-      const buffer = readFileSync(alvo);
       const caminho = relative(raiz, alvo).split(sep).join(posix.sep);
+      // Subárvore do usuário nunca entra no pacote. O caso que engana é
+      // `skills/_evals/results/`: o pacote leva o contrato e os CASOS de eval,
+      // nunca a PROVA — empacotá-la mandaria a evidência de uma instalação para
+      // dentro de outra, onde ela não significa nada. O applier também recusa
+      // (defesa em profundidade), mas produzir o pacote inválido já é o erro.
+      if (ehUserOwned(caminho)) continue;
+
+      const buffer = readFileSync(alvo);
       const executavel = (statSync(alvo).mode & 0o111) !== 0;
 
       entidades.push({
