@@ -20,15 +20,20 @@ import { converterRegistro } from '../src/content-import.js';
 const USO = `Uso:
   node tools/import-content.mjs <export.jsonl> --out <dir> [opções]
 
-Obrigatórias:
-  --risk <r1|r2|r3|r4>       nível de risco do LOTE (o export não traz)
-  --delivery <tipo>          delivery_type do LOTE (advisory, external-mutation, …)
-
 Opcionais:
   --area <slug>              converte só os registros desta área
   --tipo <content_type>      converte só este content_type (padrão: skill)
   --origem "<texto>"         proveniência gravada em cada SKILL.md
   --limite <n>               para depois de n registros (piloto)
+
+Override de curadoria — use SÓ se conhecer o instituto:
+  --risk <r1|r2|r3|r4>       SUPRIME a classificação de risco do motor
+  --delivery <tipo>          SUPRIME a derivação de delivery_type
+
+  Sem estes, os campos saem AUSENTES e o \`contract-skills\` classifica pela
+  função da skill. É o caminho recomendado: declaração explícita vence a
+  inferência, então um default de lote silencia o motor. Medido em 4521 skills:
+  \`--risk r3\` rebaixou 1489 que o motor classificaria como r4.
 `;
 
 function falhar(mensagem) {
@@ -52,9 +57,6 @@ const { values, positionals } = parseArgs({
 const [entrada] = positionals;
 if (!entrada) falhar('informe o arquivo JSONL de entrada');
 if (!values.out) falhar('--out é obrigatório');
-if (!values.risk || !values.delivery) {
-  falhar('--risk e --delivery são obrigatórios: o export não traz esses campos e eu não os invento');
-}
 
 const defaults = { risk_level: values.risk, delivery_type: values.delivery, origem: values.origem };
 const tipoAlvo = values.tipo || 'skill';
@@ -102,7 +104,14 @@ for await (const linha of rl) {
 
 console.log(`import-content: ${escritos} skills escritas em ${values.out}`);
 console.log(`  lidos: ${lidos} · filtro: area=${values.area || 'todas'} tipo=${tipoAlvo}`);
-console.log(`  risk_level="${values.risk}" delivery_type="${values.delivery}" — DEFAULTS DE LOTE, não curados por skill`);
+if (values.risk || values.delivery) {
+  console.log(
+    `  ATENÇÃO: risk_level="${values.risk || '(motor)'}" delivery_type="${values.delivery || '(motor)'}" ` +
+      '— override de lote SUPRIME a classificação do motor. Rode sem as flags se não conhece o instituto.'
+  );
+} else {
+  console.log('  risk_level/delivery_type/quality_profile em aberto — `contract-skills` classifica por função.');
+}
 
 if (recusados.length) {
   console.log(`\n  ${recusados.length} recusado(s):`);

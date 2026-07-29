@@ -25,8 +25,26 @@
 //   instructions_markdown*  → corpo
 //   version, area           → metadata informativa
 
-/** Os dois campos que o conversor se recusa a adivinhar. */
-const EXIGE_DECISAO = ['risk_level', 'delivery_type'];
+// ── Por que este módulo NÃO exige `risk_level` nem `delivery_type` ─────────
+//
+// A primeira versão exigia os dois, "para não inventar". Estava errada, e o erro
+// foi medido em 4521 skills reais.
+//
+// O motor JÁ os deriva por regra (`src/skill-contract.js`): `delivery_type` sai
+// do `quality_profile` 1:1, e `risk_level` sai da função da skill mais um
+// vocabulário de estrago (prazo, prescrição, cálculo, liminar, protocolo,
+// assinatura, envio…). E `skill-contract.js:135` faz a **declaração explícita
+// vencer a inferência**.
+//
+// Ou seja: exigir um default de lote não evitava a invenção — OBRIGAVA a ela, e
+// a invenção silenciava a classificação do motor. Medido: com `r3` carimbado nas
+// 4521, **1489** que o motor classificaria como `r4` ficaram `r3`. A barra de
+// promoção caiu de 12 casos e 2 revisores humanos para 8 e 1, em um terço do
+// acervo, justamente nas skills de redigir, calcular e agir.
+//
+// Omitir é mais seguro que qualquer default: quem não sabe não atrapalha quem
+// sabe. O override continua disponível para o curador que conhece o instituto —
+// só deixou de ser obrigatório.
 
 function limpar(texto) {
   return String(texto || '').replace(/\s+/g, ' ').trim();
@@ -39,20 +57,12 @@ function listaYaml(valores) {
 
 /**
  * Converte um registro em `{ path, conteudo }`.
- * `defaults` precisa trazer `risk_level` e `delivery_type` — sem eles, lança.
+ *
+ * `defaults.risk_level` e `defaults.delivery_type` são OPCIONAIS e só devem ser
+ * passados por quem conhece o instituto. Ausentes, o campo é omitido e o motor
+ * classifica — ver o bloco no topo deste arquivo para o porquê, com o número.
  */
 export function converterRegistro(registro, defaults = {}) {
-  const faltando = EXIGE_DECISAO.filter((campo) => !defaults[campo]);
-  if (faltando.length) {
-    throw new Error(
-      `content-import: recuso converter sem ${faltando.join(' e ')} declarados. ` +
-        'Estes campos governam os gates fail-closed (quanta evidência a promoção exige, e se a ' +
-        'skill mexe no mundo externo) e o export não os traz. Deduzi-los de texto livre seria ' +
-        'fabricar metadata de segurança plausível — que é a pior espécie, porque ninguém revisa. ' +
-        'Declare-os por lote, depois de olhar o lote.'
-    );
-  }
-
   const slug = limpar(registro.slug);
   if (!slug) throw new Error('content-import: registro sem `slug` — não há como nomear a skill');
 
@@ -79,20 +89,29 @@ export function converterRegistro(registro, defaults = {}) {
     '  quality_status: "contracted"',
     `  categories: ${listaYaml(tags.length ? tags : [registro.area || 'importada'])}`,
     `  positive_triggers: ${listaYaml(gatilhos)}`,
-    `  risk_level: "${defaults.risk_level}"`,
-    `  delivery_type: "${defaults.delivery_type}"`,
+    // Os três campos abaixo ficam AUSENTES quando não declarados, de propósito.
+    // `quality_profile` sai de `classifySkillQualityProfile` (função da skill),
+    // `delivery_type` sai do perfil 1:1, e `risk_level` sai da função mais o
+    // vocabulário de estrago. Declarar qualquer um aqui SUPRIME a regra do motor,
+    // porque a declaração explícita vence a inferência.
+    ...(defaults.risk_level ? [`  risk_level: "${limpar(defaults.risk_level)}"`] : []),
+    ...(defaults.delivery_type ? [`  delivery_type: "${limpar(defaults.delivery_type)}"`] : []),
     ...(registro.version ? [`  version: "${limpar(registro.version)}"`] : []),
     ...(registro.area ? [`  source_area: "${limpar(registro.area)}"`] : []),
-    // `quality_profile` fica AUSENTE de propósito: `classifySkillQualityProfile`
-    // deriva o perfil da função da skill (id + categorias) e a declaração
-    // explícita tem precedência. Declarar aqui seria sobrepor a regra do motor
-    // com um palpite do importador.
     '---',
     '',
     '<!-- PROVENIÊNCIA DA IMPORTAÇÃO',
-    `  risk_level e delivery_type NÃO vieram desta skill: foram herdados de um`,
-    `  default de lote — ${limpar(defaults.origem) || 'origem não declarada'}.`,
-    '  São valores de lote, não curados por skill. Reveja antes de promover.',
+    `  Origem: ${limpar(defaults.origem) || 'não declarada'}.`,
+    ...(defaults.risk_level || defaults.delivery_type
+      ? [
+        '  ATENÇÃO: risk_level/delivery_type foram HERDADOS de um default de lote,',
+        '  não analisados por skill — e default explícito SUPRIME a classificação',
+        '  do motor. Reveja antes de promover, ou remova para o motor classificar.',
+      ]
+      : [
+        '  risk_level, delivery_type e quality_profile foram deixados em aberto',
+        '  de propósito: o motor os classifica pela função da skill no contract-skills.',
+      ]),
     '-->',
     '',
   ].join('\n');

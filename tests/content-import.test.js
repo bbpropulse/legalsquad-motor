@@ -25,19 +25,37 @@ const REGISTRO = {
   instructions_markdown: '# Papel\n\nAtue na notificação extrajudicial.\n',
 };
 
-const DEFAULTS = { risk_level: 'r3', delivery_type: 'advisory', origem: 'lote advocacia-extrajudicial, revisado por curador' };
+const DEFAULTS = { origem: 'lote advocacia-extrajudicial' };
 
-test('sem defaults declarados, a conversão RECUSA e nomeia os campos', () => {
-  // O teste que sustenta o módulo. Se ele passar a converter sem defaults, o
-  // importador vira uma máquina de fabricar metadata de segurança plausível.
-  assert.throws(
-    () => converterRegistro(REGISTRO, {}),
-    /risk_level.*delivery_type|delivery_type.*risk_level/s,
-    'a mensagem precisa nomear EXATAMENTE os campos que ele se recusa a adivinhar'
-  );
+test('sem risk_level e delivery_type, OMITE — para o motor classificar', () => {
+  // Correção de um erro medido em produção. A versão anterior deste módulo EXIGIA
+  // os dois campos, "para não inventar". Só que o motor já os deriva por regra
+  // (`skill-contract.js`): perfil → delivery_type 1:1, e risco por função +
+  // vocabulário crítico (prazo, prescrição, cálculo, liminar, protocolo…).
+  //
+  // Pior: `skill-contract.js:135` faz a DECLARAÇÃO EXPLÍCITA VENCER a inferência.
+  // Exigir um default de lote não evitava a invenção — obrigava a ela, e a
+  // invenção SUPRIMIA a classificação do motor. Medido em 4521 skills reais: com
+  // `r3` carimbado, 1489 que o motor classificaria como `r4` ficaram `r3` — barra
+  // de promoção de 12 casos e 2 revisores humanos rebaixada para 8 e 1, em um
+  // terço do acervo, justamente nas skills de redigir, calcular e agir.
+  //
+  // Omitir é mais seguro que qualquer default: quem não sabe não atrapalha quem sabe.
+  const { conteudo } = converterRegistro(REGISTRO, {});
+
+  assert.doesNotMatch(conteudo, /risk_level:/, 'omitido — o motor classifica por função');
+  assert.doesNotMatch(conteudo, /delivery_type:/, 'omitido — o motor deriva do perfil');
 });
 
-test('com defaults declarados, mapeia o que tem origem e marca o que foi herdado', () => {
+test('valor declarado pelo curador é respeitado e marcado como herdado', () => {
+  // O override continua existindo para quem SABE — só deixou de ser obrigatório.
+  const { conteudo } = converterRegistro(REGISTRO, { ...DEFAULTS, risk_level: 'r4' });
+
+  assert.match(conteudo, /risk_level: "r4"/);
+  assert.match(conteudo, /herdad|default de lote|não curad/i, 'a origem do valor fica visível');
+});
+
+test('mapeia o que tem origem no registro', () => {
   const { path, conteudo } = converterRegistro(REGISTRO, DEFAULTS);
 
   assert.equal(path, 'skills/notificacao-extrajudicial-estrategica/SKILL.md');
@@ -46,17 +64,6 @@ test('com defaults declarados, mapeia o que tem origem e marca o que foi herdado
   assert.match(conteudo, /Estrutura notificação extrajudicial/, 'o resumo vira descrição');
   assert.match(conteudo, /categories: \[notificação, inadimplemento, acordo\]/, 'tags viram categorias');
   assert.match(conteudo, /# Papel/, 'o corpo original é preservado');
-  assert.match(conteudo, /risk_level: "r3"/);
-  assert.match(conteudo, /delivery_type: "advisory"/);
-
-  // Proveniência: quem ler o arquivo tem de saber que estes dois vieram de um
-  // default de lote, não de análise da skill. Sem isso, um campo herdado fica
-  // indistinguível de um campo curado.
-  assert.match(
-    conteudo,
-    /herdad|default de lote|não curad/i,
-    'o arquivo precisa dizer que risk_level e delivery_type vieram de default'
-  );
 });
 
 test('a conversão nunca produz skill promovida', () => {
