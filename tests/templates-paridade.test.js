@@ -196,6 +196,43 @@ test('configurações distribuídas do Citation Gate são portáveis e não vaza
   assert.match(codexTemplate, /node \\"[.]Codex\/hooks\/verifica-citacoes[.]mjs\\"/);
 });
 
+test('Redação Gate permanece idêntico em Claude, Codex e templates distribuídos', async () => {
+  // Mesma classe de guarda do Citation Gate — o commit que introduziu o
+  // Redação Gate ligou só o Claude Code e deixou o Codex sem o hook. É a
+  // mesma inconsistência silenciosa que este arquivo existe para prender.
+  const canonical = await readFile(join(ROOT, '.claude', 'hooks', 'verifica-redacao.mjs'), 'utf8');
+  const mirrors = [
+    join(ROOT, '.Codex', 'hooks', 'verifica-redacao.mjs'),
+    join(ROOT, 'templates', 'ide-templates', 'claude-code', '.claude', 'hooks', 'verifica-redacao.mjs'),
+    join(ROOT, 'templates', 'ide-templates', 'codex', '.Codex', 'hooks', 'verifica-redacao.mjs'),
+  ];
+  for (const mirror of mirrors) {
+    assert.equal(await readFile(mirror, 'utf8'), canonical, `Redação Gate fora de sincronia: ${mirror}`);
+  }
+});
+
+test('configurações distribuídas do Redação Gate são portáveis e citam os DOIS hooks', async () => {
+  const claudeRepo = await readFile(join(ROOT, '.claude', 'settings.json'), 'utf8');
+  const claudeTemplate = await readFile(
+    join(ROOT, 'templates', 'ide-templates', 'claude-code', '.claude', 'settings.json'),
+    'utf8',
+  );
+  const codexRepo = await readFile(join(ROOT, '.Codex', 'hooks.json'), 'utf8');
+  const codexTemplate = await readFile(
+    join(ROOT, 'templates', 'ide-templates', 'codex', '.Codex', 'hooks.json'),
+    'utf8',
+  );
+  assert.equal(claudeTemplate, claudeRepo);
+  assert.equal(codexTemplate, codexRepo);
+  assert.doesNotMatch(`${claudeTemplate}\n${codexTemplate}`, /\/Users\/|[A-Za-z]:\\\\/);
+  // Os dois hooks precisam coexistir — um não substitui o outro, cada um cobre
+  // um defeito diferente (citação inventada × peça rasa).
+  for (const config of [claudeTemplate, codexTemplate]) {
+    assert.match(config, /verifica-citacoes/);
+    assert.match(config, /verifica-redacao/);
+  }
+});
+
 test('catalog-scout Claude permanece idêntico ao template distribuído', async () => {
   const repo = join(ROOT, '.claude', 'agents', 'catalog-scout.md');
   const template = join(ROOT, 'templates', 'ide-templates', 'claude-code', '.claude', 'agents', 'catalog-scout.md');

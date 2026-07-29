@@ -482,12 +482,42 @@ For reference, the complete execution order for each pipeline step is:
 2. Read step file
 3. Check execution mode and execute (subagent / inline / checkpoint)
 4. Post-Step Output Validation (bash gate)
+4.4 Redação Gate (peças redigidas de skill — checagem determinística; REJECT sem gastar ciclo do revisor)
 4.5 Citation Gate (peças com citações — subagente verificador-citacoes + hook; loop até verificar, teto 3)
 5. Veto Condition Enforcement
 6. Dashboard Handoff (to next step)
 ```
 
 Steps 1 and 4 are binary bash gates. If either fails, the pipeline does NOT advance — the user is consulted.
+
+### Redação Gate (Passo 4.4) — peças redigidas a partir de skill
+
+`skills:` no `squad.yaml`/frontmatter do agente é **declaração** — o `check-squad` confere que a skill existe e está elegível (§ desenho), mas existir não é ter sido lida nem aplicada na redação. Este gate mede isso, **mecanicamente**, ANTES do revisor gastar um ciclo com uma peça que já se sabe rasa.
+
+Quando o step redige peça/parecer/minuta a partir de skill(s) declarada(s), execute IMEDIATAMENTE após o step produzir o output, ANTES do Citation Gate:
+
+1. **Checar (determinístico — é mecânica, não mérito; não desperdice um subagente nisto).**
+   ```bash
+   node .claude/hooks/verifica-redacao.mjs --check {output do step} --json
+   ```
+   Devolve `{ok, problemas[], sinais}`, sem custo de LLM. Três sinais, cada um `aprovado`, `reprovado` ou `nao-avaliado`:
+   - **`ancoragem`** — a peça cita os identificadores do caso (nº de processo, data, valor, parte)? É o único sinal que mede profundidade: peça rasa é genérica por construção e não cita âncora nenhuma.
+   - **`cobertura`** — contempla o `## Contrato de saída` que a(s) skill(s) declarada(s) exige(m)? Lido do contrato v5 da própria skill, não de lista fixa do motor.
+   - **`andaime`** — template do pipeline vazou para a entrega (`(tese N)`, `Agente:`, `{{placeholder}}`)?
+
+   `nao-avaliado` **nunca** é aprovação — é limite de verificação (material de entrada sem identificadores; skill sem contrato v5) e não reprova a peça sozinho.
+
+2. **`ok: false` → REJECT, sem gastar ciclo do revisor.** Se há loop de revisão aberto (`on_reject` do step, ver Review Loops), registre esta voz determinística no MESMO ciclo do(s) revisor(es):
+   ```bash
+   node scripts/squad-state.mjs review-verdict squads/{name} \
+     --reviewer redacao-gate --verdict REJECT --fix "{problemas[0]}" --fix "{problemas[1]}" ... --expect {N}
+   ```
+   `--expect N` inclui esta voz junto do(s) revisor(es) LLM deste ciclo — usa o **mesmo combinador** do Review Loop (qualquer REJECT derruba os APPROVEs). Ancoragem e andaime são fatos verificáveis, não interpretação: não há razão para o revisor humano/LLM gastar um ciclo julgando peça que já se sabe rasa por checagem mecânica.
+   - **Sem loop de revisão aberto** (squad sem `on_reject` no step de redação — deveria ter, por exigência da Constitution para squad que gera peça, mas nem todo squad hand-crafted tem): devolva ao redator os `problemas` como correção específica e reexecute este passo (teto `max_redacao_cycles`, default 3 — mesmo padrão do `max_citation_cycles`). Ao atingir o teto, **escale ao usuário**; não force o avanço.
+3. **`ok: true` → segue para o Citation Gate e o revisor.** `sinais` fica disponível como contexto para o revisor — este gate mede forma e ancoragem ao caso, não qualidade de argumentação; isso continua sendo julgamento humano/LLM.
+4. **Rede determinística (hook).** O hook `verifica-redacao` (PostToolUse, Write/Edit) bloqueia a gravação de artefato identificado como peça final enquanto ancoragem, cobertura ou andaime reprovarem — mesmo desenho de backstop do Citation Gate, para o gate não ser "esquecido" se o passo acima for pulado por algum motivo.
+
+A responsabilidade final é **humana**: como o Citation Gate, o Redação Gate é insumo, não substitui a conferência do(a) profissional.
 
 ### Citation Gate (Passo 4.5) — peças com citações
 

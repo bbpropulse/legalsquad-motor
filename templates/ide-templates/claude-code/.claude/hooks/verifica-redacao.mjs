@@ -112,23 +112,41 @@ async function carregarAvaliador() {
   block('não consegui carregar src/redacao-gate.js — o gate não roda desarmado');
 }
 
-async function rodar(filePath) {
-  const alvo = normalize(filePath);
-  const ctx = contexto(alvo);
-  if (!ctx) return;
+/**
+ * Avalia um arquivo, SEM a heurística de "é artefato final?". Usado tanto pelo
+ * modo passivo (que aplica a heurística por cima) quanto pelo `--json` — o
+ * runner que chama `--json` já sabe que este é o output do step de redação; a
+ * heurística de nome existe só para escopar o hook automático, que dispara sem
+ * ninguém ter dito "isto é uma peça".
+ *
+ * Devolve `null` quando não há como avaliar (fora de squads/*​/output/, ou
+ * ilegível) — distinto de `{ok: true}` ou `{ok: false}`.
+ */
+async function avaliarArquivo(filePath) {
+  const ctx = contexto(filePath);
+  if (!ctx) return null;
 
   let texto = '';
-  try { texto = readFileSync(alvo, 'utf8'); } catch { return; }
-  if (!ehArtefatoFinal(alvo, texto)) return;
+  try { texto = readFileSync(filePath, 'utf8'); } catch { return null; }
 
   const squadDir = join(ctx.raiz, 'squads', ctx.squad);
   const avaliarRedacao = await carregarAvaliador();
-  const veredito = avaliarRedacao({
+  return avaliarRedacao({
     artefato: texto,
-    entrada: entradaDoCaso(dirname(alvo), alvo),
+    entrada: entradaDoCaso(dirname(filePath), filePath),
     contratos: contratosDasSkills(ctx.raiz, squadDir),
   });
+}
 
+/** Modo PASSIVO (PostToolUse) — só age sobre o que parece artefato final. */
+async function rodar(filePath) {
+  const alvo = normalize(filePath);
+  let texto = '';
+  try { texto = readFileSync(alvo, 'utf8'); } catch { return; }
+  if (!contexto(alvo) || !ehArtefatoFinal(alvo, texto)) return;
+
+  const veredito = await avaliarArquivo(alvo);
+  if (!veredito) return;
   if (!veredito.ok) block(`${basename(alvo)}\n  · ${veredito.problemas.join('\n  · ')}`);
   for (const aviso of veredito.problemas) process.stderr.write(`REDAÇÃO GATE — aviso: ${aviso}\n`);
 }
@@ -136,8 +154,19 @@ async function rodar(filePath) {
 const checkIndex = process.argv.indexOf('--check');
 if (checkIndex >= 0) {
   const pedido = process.argv[checkIndex + 1];
-  if (!pedido) block('uso: verifica-redacao.mjs --check <artefato>');
-  await rodar(isAbsolute(pedido) ? normalize(pedido) : normalize(resolve(pedido)));
+  if (!pedido) block('uso: verifica-redacao.mjs --check <artefato> [--json]');
+  const alvo = isAbsolute(pedido) ? normalize(pedido) : normalize(resolve(pedido));
+
+  if (process.argv.includes('--json')) {
+    // Consulta, não enforcement. O runner usa isto para saber COMO está a
+    // minuta e decidir REJECT/ADVANCE dentro do loop de revisão — nunca sai
+    // com erro aqui, mesmo reprovado: quem decide o que fazer é quem chamou.
+    const veredito = await avaliarArquivo(alvo);
+    process.stdout.write(JSON.stringify(veredito ?? { ok: null, problemas: ['fora de squads/*/output/ ou ilegível'], sinais: {} }));
+    process.exit(0);
+  }
+
+  await rodar(alvo);
   process.exit(0);
 }
 
