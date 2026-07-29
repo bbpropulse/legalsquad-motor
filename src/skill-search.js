@@ -41,10 +41,6 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
 
   const catalog = discoverSkillCatalog(skillsDir);
   const profilesPath = join(rootDir, '_legalsquad', 'core', 'skill-quality-profiles.json');
-  const audit = auditSkillCatalogQuality(catalog, {
-    profilesPath: existsSync(profilesPath) ? profilesPath : undefined,
-  });
-  const qualityById = new Map(audit.results.map((result) => [result.id, result]));
   const allowedLifecycles = options.includePreview ? PREVIEW_LIFECYCLES : DEFAULT_LIFECYCLES;
   const limit = boundedLimit(options.limit);
 
@@ -55,7 +51,7 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
     .filter((entry) => allowedLifecycles.has(entry.metadata.lifecycle));
   const entryById = new Map(elegiveis.map((entry) => [entry.id, entry]));
 
-  const ranked = rankSkills(
+  const candidatos = rankSkills(
     elegiveis.map((entry) => ({
       id: entry.id,
       description: entry.metadata.description,
@@ -65,7 +61,24 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
       categories: entry.metadata.categories,
     })),
     query
-  )
+  );
+
+  // Audita SÓ quem casou a consulta. `evaluateSkillQuality` é por skill — só
+  // compartilha contexto, sem estado cruzado —, então o resultado é idêntico ao
+  // de auditar o catálogo inteiro. Medido em 4521 skills importadas: auditar
+  // todas custava 516 ms de uma busca de 2,4 s, para exibir 8 resultados; um
+  // termo real casa 1–15% do catálogo.
+  //
+  // O corte tem de ser exatamente ESTE. Auditar só os `limit` finais seria
+  // errado: o `maturityBonus` abaixo entra no rank, então a auditoria decide
+  // QUEM chega ao topo — cortar antes mudaria a ordem, em silêncio.
+  const audit = auditSkillCatalogQuality(
+    { ...catalog, entries: candidatos.map((match) => entryById.get(match.id)) },
+    { profilesPath: existsSync(profilesPath) ? profilesPath : undefined }
+  );
+  const qualityById = new Map(audit.results.map((result) => [result.id, result]));
+
+  const ranked = candidatos
     .map((match) => {
       const entry = entryById.get(match.id);
       const quality = qualityById.get(entry.id);
@@ -107,6 +120,11 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
   return {
     success: true,
     result_count: ranked.length,
+    // Quantas skills foram auditadas para produzir esta shortlist. É diagnóstico
+    // de ESCALA: se um dia voltar a crescer com o tamanho do catálogo em vez de
+    // com o número de candidatos, a regressão aparece aqui antes de aparecer no
+    // relógio de quem usa.
+    audited: audit.results.length,
     limit,
     include_preview: options.includePreview === true,
     results: ranked,
