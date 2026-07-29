@@ -13,10 +13,11 @@
 // depois — não por `git status` de um repositório externo.
 
 import { createPrivateKey } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { construirPacotes } from '../src/pack-build.js';
+import { gravarPacote } from '../src/pack-io.js';
 
 const USO = `Uso:
   node tools/build-area.mjs <diretorio-de-conteudo> <area-id> --key <chave.pem> [opções]
@@ -73,12 +74,7 @@ const { pacotes, relatorio } = construirPacotes({
 });
 
 for (const pacote of pacotes) {
-  const dir = join(destino, `${pacote.packId}@${versao}`);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'manifest.json'), `${JSON.stringify(pacote.manifesto, null, 2)}\n`);
-  for (const entidade of pacote.entidades) {
-    writeFileSync(join(dir, entidade.file), entidade.buffer);
-  }
+  gravarPacote(destino, pacote);
 }
 
 console.log(`build-area: ${pacotes.length} pacote(s) em ${destino}\n`);
