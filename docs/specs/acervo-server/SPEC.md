@@ -55,14 +55,13 @@ não trai o discurso "tudo local, nada vaza" que é o maior ativo dos produtos.
         └──────── transversal (acompanha todas) · busca local ────────┘
 ```
 
-**Um motor, um produto, N áreas.** O direito é um **conjunto de áreas**, agrupado em pacotes de
-acesso e resolvido pelo servidor (§7.1). As áreas diferem só no `pack_id`; os **schemas de dados são
-idênticos** entre elas — jurisprudência trabalhista tem a mesma forma que criminal.
+**Um motor, um produto, N áreas.** Quem compra leva **tudo**: licença válida libera todas as áreas
+(§7.1). As áreas diferem só no `pack_id`; os **schemas de dados são idênticos** entre elas —
+jurisprudência trabalhista tem a mesma forma que criminal.
 
 > **Direito não é posse, e catálogo não é direito.** O cliente sincroniza o **catálogo** de todas as
-> áreas (fino, sempre — inclusive das que não tem direito) e baixa **conteúdo** só do que tem
-> direito e vai usar (§9.2). Ver [`DESCOBERTA §2`](../legalsquad/DESCOBERTA.md) e
-> [`§4`](../legalsquad/DESCOBERTA.md).
+> áreas (fino, sempre — mesmo sem licença) e baixa **conteúdo** só do que vai usar (§9.2). Ver
+> [`DESCOBERTA §2`](../legalsquad/DESCOBERTA.md) e [`§4`](../legalsquad/DESCOBERTA.md).
 
 ---
 
@@ -350,9 +349,9 @@ destes prefixos é recusado:
 
 | Prefixo | `payload_kind` | Conteúdo | Licença |
 |---|---|---|---|
-| `acervo.*` | `records` | corpus jurídico (o §4 inteiro) | por `access_package` (§7.1) |
-| `area.<id>` | `tree` | skills, squads, best-practices e perfil de **uma** área | por `access_package` (§7.1) |
-| `transversal` | `tree` | as ~19 skills que servem qualquer área (integrações, mídia, e-mail, OCR, publicação) | acompanha qualquer área com direito |
+| `acervo.*` | `records` | corpus jurídico (o §4 inteiro) | completa (§7.1) |
+| `area.<id>` | `tree` | skills, squads, best-practices e perfil de **uma** área | completa (§7.1) |
+| `transversal` | `tree` | as ~19 skills que servem qualquer área (integrações, mídia, e-mail, OCR, publicação) | acompanha qualquer área |
 
 **O namespace não tem prefixo para squad.** Squads prontos viajam dentro de `area.<id>`, junto das
 skills e best-practices — eles não são vendidos nem versionados separadamente. Abrir um `squad.*`
@@ -540,17 +539,21 @@ Como a busca é local, o servidor expõe **dois** contratos apenas.
 
 ### 7.1 Catálogo / entitlement
 
-**O direito é um conjunto de áreas, resolvido pelo servidor** — não uma flag binária. O modelo é o
-que o servidor em produção já implementa: `access_packages` agrupam áreas, `entitlements` e
-`user_packages` ligam usuário a pacote. "Leva tudo" é representável como **um** `access_package` com
-todas as áreas; o inverso não seria. Ver
-[`DESCOBERTA §6.1`](../legalsquad/DESCOBERTA.md) para por que a versão anterior desta seção (licença
-binária) estava errada.
+**A licença é completa** — válida libera todas as áreas e todo o acervo. Não há entitlement por
+área nem tiers ([`DESCOBERTA §6`](../legalsquad/DESCOBERTA.md), decisão 3; o §6.1 registra um vaivém
+nesta decisão e por que ela voltou ao original).
 
-**O catálogo não é filtrado pelo direito.** O cliente recebe o registro de descoberta de **todos** os
-pacotes e o campo `entitled` dizendo quais pode baixar. Filtrar o catálogo faria a busca local
-responder "não existe" para o que existe e o usuário poderia comprar — a mesma confusão entre
-*ausência* e *inexistência* que o resto deste documento persegue.
+**O catálogo não é filtrado pelo direito, em nenhum estado de licença.** O cliente recebe o registro
+de descoberta de **todos** os pacotes e o campo `entitled` dizendo quais pode baixar. Com licença
+válida, `entitled` é verdadeiro em todos; sem licença ou com ela vencida, é falso — e o item
+**continua aparecendo**. Filtrar o catálogo faria a busca local responder "não existe" para o que
+existe e o usuário poderia comprar: a mesma confusão entre *ausência* e *inexistência* que o resto
+deste documento persegue.
+
+> **Este servidor ainda não existe.** A §7 é contrato a implementar, não descrição de sistema em
+> operação. Se algum dia um sistema com schema parecido for encontrado, isso **não** o torna este
+> servidor — schemas convergem porque os problemas convergem, e confundir os dois já custou uma
+> reversão indevida desta seção ([`DESCOBERTA §6.1`](../legalsquad/DESCOBERTA.md)).
 
 ```
 GET /v1/catalog?license=LS-XXXX-XXXX&product=legalsquad
@@ -558,42 +561,54 @@ GET /v1/catalog?license=LS-XXXX-XXXX&product=legalsquad
 
 200 →
 {
-  "status": "active",                         // active | expired
+  "status": "active",                         // active | expired | none
   "expires": "2026-08-01",
-  "packages": ["biblioteca-completa"],        // access_packages do usuário
-  "packs": [                                  // TODOS os packs — o catálogo não é filtrado
+  "packs": [                                  // TODOS os packs — o catálogo nunca é filtrado
     { "pack_id": "acervo.jurisprudencia.stj.penal", "payload_kind": "records",
       "latest": "2026.07.2",
-      "entitled": true,                       // este o usuário pode baixar
+      "entitled": true,                       // licença válida → true em TODOS (§7.1)
       "catalog": {                            // baixado SEMPRE (fino, §6.1)
         "url": "https://cdn…/…?exp=…&sig=…",  // URL assinada e expirável
         "sha256": "1f8d…", "bytes": 210433 },
       "content": {                            // baixado SOB DEMANDA (§9.2)
         "url": "https://cdn…/…?exp=…&sig=…",
-        "sha256": "9f2c…", "bytes": 91223344, "delta_from": "2026.07.1" } },
-    { "pack_id": "area.tributario", "payload_kind": "tree", "latest": "2026.07.1",
-      "entitled": false,                      // aparece na busca, não baixa (§4)
-      "catalog": { "url": "https://cdn…/…?exp=…&sig=…",
-                   "sha256": "77ac…", "bytes": 51203 } }
-                                              // sem `content`: não há direito
+        "sha256": "9f2c…", "bytes": 91223344, "delta_from": "2026.07.1" } }
   ],
   "revoked": []                               // packs que devem ser apagados do cache
 }
-401 → licença inválida
+
+// Sem licença — `status: "none"`. O catálogo continua descendo INTEIRO; o que
+// falta é o `content`. É assim que a busca local diz "existe, sua licença não
+// cobre" em vez de "não existe":
+200 →
+{
+  "status": "none",
+  "packs": [
+    { "pack_id": "area.criminal", "payload_kind": "tree", "latest": "2026.07.1",
+      "entitled": false,
+      "catalog": { "url": "https://cdn…/…?exp=…&sig=…",
+                   "sha256": "77ac…", "bytes": 51203 } }
+                                              // sem `content`: não há licença
+  ],
+  "revoked": []
+}
+401 → licença inválida (malformada ou revogada — diferente de ausente)
 ```
 
 - **`catalog` e `content` têm URLs separadas** — é o que torna a §6.1 operável. O cliente busca
   todos os `catalog` no `sync` e só o `content` do que for usado.
 - **`entitled: false` vem com `catalog` e SEM `content`.** É a forma normativa de "existe, você não
-  tem direito": a skill aparece na busca local com o selo correto, e o motor responde *"existe, sua
+  tem licença": o item aparece na busca local com o selo correto, e o motor responde *"existe, sua
   licença não cobre"*. Omitir o pack inteiro faria a busca dizer "não existe" para o que existe e o
-  usuário poderia comprar.
+  usuário poderia comprar. Com licença completa, `entitled` só é falso **sem** licença ou com ela
+  vencida — mas o campo existe porque é nesses estados que a mentira seria mais fácil.
 - `have` permite ao servidor devolver **só o que mudou** e URLs de delta quando existirem.
 - O `payload_kind` da resposta é **dica de planejamento, não autoridade**: a resposta do catálogo não
   é assinada. Quem escolhe o aplicador é o `payload_kind` do `manifest.json` verificado (§6.4).
   Divergência entre os dois recusa o pacote — é sinal de catálogo comprometido, não de erro de digitação.
-- **Sem `license`:** vale o pacote-base que já vem no `main` (assinado, offline, sem conta). O
-  endpoint devolve `{"status": "none", "packs": []}` — não há o que sincronizar sem licença.
+- **Sem `license`:** vale o pacote-base que já vem no `main` (assinado, offline, sem conta), e o
+  catálogo desce mesmo assim, com `entitled: false`. **Não** devolver `packs: []` — lista vazia é
+  indistinguível de "não há nada", que é exatamente a mentira que este contrato evita.
 - **`status: "expired"`:** ainda devolve `packs`, mas o cliente **não atualiza** (§9.4). Licença
   vencida degrada para o cache; nunca vira tijolo.
 
@@ -723,12 +738,12 @@ omitido do índice.
 
 ### 9.5 Estados de licença
 
-Não há tiers — há **pacotes de acesso**, e o alcance é o conjunto de áreas que eles somam (§7.1):
+Não há tiers nem entitlement por área. **Quem compra leva tudo** (§7.1):
 
 | Estado | Alcance | Atualização |
 |---|---|---|
-| **Sem licença** | pacote-base embarcado no `main` (assinado, offline, sem conta) + catálogo público | a cada release do npm |
-| **Válida** | as áreas dos seus `access_packages` | sync (catálogo de tudo sempre; conteúdo do que tem direito, sob demanda) |
+| **Sem licença** | pacote-base embarcado no `main` (assinado, offline, sem conta) + catálogo de tudo | a cada release do npm |
+| **Válida** | **tudo** — todas as áreas, todo o acervo | sync (catálogo sempre; conteúdo sob demanda) |
 | **Vencida** | último cache, somente leitura, com selo "desatualizado há N dias" | nenhuma |
 
 Em **qualquer** estado o catálogo cobre o corpus inteiro. É isso que permite a resposta *"existe, sua
@@ -792,7 +807,8 @@ comprar.
 - **Dispositivo × Versão:** a casca estável (Art. X) vs o texto por intervalo de vigência.
 - **Situação:** estado temporal (vigente/revogado; vigente/superado).
 - **VERIFIED_OFFICIAL:** nível de confiança do índice para conteúdo de pack assinado.
-- **`access_package`:** unidade de venda — agrupa áreas. O direito de um usuário é a soma das áreas
-  dos seus pacotes. "Leva tudo" é um pacote com todas; não há tiers (§7.1, §9.5).
+- **Licença:** completa — quem compra leva **tudo** (todas as áreas, todo o acervo). Não há tiers nem
+  entitlement por área. Sem licença vale o pacote-base do `main`; vencida, o cache read-only (§9.5).
 - **`entitled`:** campo por pack na resposta do catálogo. `false` vem com `catalog` e sem `content` —
-  o item aparece na busca e não baixa. É a forma de dizer "existe, sua licença não cobre".
+  o item aparece na busca e não baixa. É a forma de dizer "existe, sua licença não cobre", e com
+  licença completa só ocorre sem licença ou com ela vencida (§7.1).

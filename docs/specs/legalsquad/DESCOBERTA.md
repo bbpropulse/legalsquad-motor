@@ -169,12 +169,15 @@ continua sem ver consulta nenhuma, jamais. É **aditivo** — não invalida nada
 
 ## 4. Área: atuação declarada × direito
 
-A área tem **dois papéis distintos**, e confundi-los foi o erro da versão anterior deste documento:
+A área tem **dois papéis distintos**, e vale separá-los mesmo com licença completa:
 
-- **Direito** — quais áreas a licença libera. Resolvido pelo servidor, por `access_package` (§6.1).
-  O cliente não decide isso e não tenta adivinhar.
+- **Direito** — o que a licença libera. Com "quem compra leva tudo" (§6), é *tudo* ou *nada*, e quem
+  decide é o servidor. O cliente não adivinha.
 - **Atuação** — em que áreas o escritório trabalha. Declarado pelo usuário, e vale só como **dica de
   desempenho e relevância**.
+
+A distinção sobrevive à decisão 3 porque atuação **nunca** foi fronteira de direito: mesmo com tudo
+liberado, um escritório criminal não quer a shortlist dominada por previdenciário.
 
 A atuação, concretamente:
 
@@ -225,44 +228,47 @@ deixar conteúdo não-assinado entrar no nível de confiança máxima (`VERIFIED
 |---|---|---|
 | 1 | **Squads não são vendidos separadamente** | Namespace de `pack_id` continua fechado em `acervo.*` / `area.*` / `transversal`. Squads viajam dentro de `area.*`. |
 | 2 | **Catálogo fino cobre todas as áreas** | Uma busca só, sobre tudo. Sem "área não instalada" na descoberta. |
-| 3 | **Licença por pacote de acesso** (corrigida — ver §6.1) | O direito é um conjunto de áreas, resolvido pelo servidor. Fetch preguiçoso continua **requisito** (§2.1). |
+| 3 | **Licença completa — comprou leva tudo** | Não há entitlement por área nem tiers. Fetch preguiçoso continua **requisito** (§2.1). |
 
-### 6.1 Correção da decisão 3 — o servidor já existia
+### 6.1 Um vaivém, e o que sobrou dele
 
-A versão anterior deste documento fechava a decisão 3 como *"licença completa — comprou leva tudo,
-sem entitlement por área"*. **Isso estava errado, e o erro foi de contexto, não de julgamento:** a
-recomendação foi feita sem saber que **o acervo-server já existe e está em produção**.
+A decisão 3 foi tomada, revertida e restaurada. O registro fica porque a lição é
+reaproveitável.
 
-O `JusSkills` (Railway) serve `alunos.advocacia100x.com.br` com o schema que este documento passou
-páginas especificando: `skills`, `legal_areas`, `access_packages`, `package_areas`, `entitlements`,
-`user_packages`, `orders`, `skill_downloads`. `GET /api/catalog/areas` responde 200 sem login (a
-vitrine, 27 áreas); `GET /api/me/library` responde 401. É exatamente a separação catálogo-público ×
-conteúdo-licenciado da `SPEC §7.1` — construída antes da spec que a descreve.
+**O que aconteceu.** Ao importar conteúdo de um projeto chamado `JusSkills`, encontrei um schema que
+parecia ser este servidor pronto — `skills`, `legal_areas`, `access_packages`, `entitlements`,
+`user_packages`, `orders` — com API pública de catálogo e conteúdo atrás de login. Concluí que "o
+acervo-server já existe" e reverti a decisão 3 para entitlement por pacote, argumentando que uma
+spec não deve contradizer um sistema que já fatura.
 
-**Uma especificação que contradiz um sistema que já fatura deve ceder.** E o modelo real é
-**estritamente mais expressivo**: "leva tudo" é um `access_package` que contém todas as áreas; o
-inverso não é representável. Adotar entitlement por pacote não fecha nenhuma porta — abre.
+**A conclusão estava errada.** O `JusSkills` é uma **biblioteca de conteúdo**, usada uma vez para
+exportar o pacote básico. Ele **não é** e não será o servidor de distribuição deste motor. A
+semelhança do schema é convergência de desenho, não identidade de papel.
 
-**Consequência sobre o F3, que encolhe:** o `sync` fala com o JusSkills, não com um servidor novo. O
-que falta não é infraestrutura, é **um endpoint que entregue pacote assinado** em vez de JSON solto:
-o corpus, a autenticação, o licenciamento e a telemetria de entrega já existem.
+**Então a decisão 3 volta a ser a original**, que foi explícita e direta: licença completa, sem
+entitlement por área, sem tiers.
 
-**O que a correção NÃO muda:** decisões 1 e 2 seguem de pé, e todo o §2 (catálogo fino sincronizado,
-conteúdo sob demanda) idem — aliás fica mais necessário, porque o corpus real medido é maior que o
-projetado (§6.3).
+**A lição:** encontrar um sistema com o schema parecido não prova que ele ocupa o mesmo papel. Eu
+inferi arquitetura de um formato de tabela, e formato de tabela é a evidência mais fraca que existe
+para papel de sistema — schemas convergem porque os problemas convergem.
+
+**O que sobrou da reversão, porque se sustenta sozinho:** o campo `entitled` no contrato de catálogo
+(§`SPEC 7.1`). Mesmo com licença completa ele tem uso — é o que distingue *"você não tem licença"* de
+*"isto não existe"* para quem está sem licença ou com licença vencida. Nunca omitir o item é a regra;
+`entitled` é como ela se escreve.
 
 ### 6.2 Camada gratuita
 
-Fica como o JusSkills já opera, e não como este documento supunha: **o catálogo de áreas é público**
-(`/api/catalog/areas` sem login) e **o conteúdo exige direito**. O pacote-base embarcado no `main`
-continua funcionando offline, sem conta.
+**Sem licença** o catálogo continua descendo (é ele que permite dizer "existe, sua licença não
+cobre") e o pacote-base embarcado no `main` funciona offline, sem conta. **Com licença válida**, tudo.
 
 ### 6.3 O corpus real, medido
 
-O dimensionamento deste documento usava 520 skills (a medição do `SPEC §6.1`). O corpus em produção
-é **~9× maior**:
+O dimensionamento deste documento usava 520 skills (a medição do `SPEC §6.1`). O primeiro corpus
+real importado é **~9× maior** — e isto vale independentemente de onde o servidor venha a ficar,
+porque é medida do **conteúdo**, não da infraestrutura:
 
-| | medido em produção |
+| | medido na importação |
 |---|---:|
 | Itens | **4701** (4521 `skill`, 160 `prompt`, 20 `agent`) |
 | Markdown | **74,5 MB** · média 16,6 KB por item |

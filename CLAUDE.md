@@ -40,10 +40,10 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
    *"desatualizado há N dias"*. Da mesma família, e valendo para as **três** ausências: **"não
    baixado", "não tenho direito" e "não sei ler" nunca se apresentam como "não existe"**.
 4. **Uma área só vira pacote com curador de verdade.** Arquitetura ampla, vitrine estreita.
-5. **O catálogo cobre tudo; o direito é por pacote de acesso.** O servidor resolve quais áreas a
-   licença libera (`access_packages`); o catálogo desce inteiro de qualquer jeito, com `entitled`
-   por pack. Assim a busca acha o que existe e diz *"sua licença não cobre"* em vez de mentir.
-   Direito ≠ posse: conteúdo desce sob demanda, só do que tem direito.
+5. **Quem compra leva tudo.** Licença válida libera **todas** as áreas — sem tier, sem entitlement
+   por área. Mas o **catálogo desce inteiro em qualquer estado de licença**, com `entitled` por
+   pack: é assim que a busca diz *"existe, sua licença não cobre"* em vez de mentir. Direito ≠ posse
+   — conteúdo desce sob demanda.
 6. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
 
 ## Documentação
