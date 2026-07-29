@@ -45,3 +45,20 @@ test-results/
 # Python bytecode (scripts embarcados)
 __pycache__/
 *.pyc
+
+# ── Artefatos do empacotador (F1) — NUNCA versionados ──────────────────────
+# O `--out` padrão do build-area é ./dist/packs, DENTRO do repo. Sem estas
+# linhas, um `git add -A` depois de empacotar publicaria o conteúdo jurídico
+# da área inteira — e este repositório é público.
+dist/
+*.jsonl.zst
+
+# Chave privada de assinatura. Publicá-la permitiria a qualquer um forjar um
+# pacote que o motor aceitaria como legítimo — o pior vazamento possível deste
+# projeto, pior que o conteúdo, porque quebra a confiança de todo mundo que já
+# instalou. Em produção ela vive num KMS e nem existe em disco (SPEC §10).
+*.pem
+*.key
+# A PÚBLICA é o oposto: o cliente precisa embarcá-la para verificar assinatura
+# sem depender de rede (SPEC §7.2). Ela é feita para ser distribuída.
+!*.pub.pem
