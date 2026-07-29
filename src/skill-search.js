@@ -84,7 +84,17 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
       lifecycle: entry.metadata.lifecycle,
       quality_status: quality?.qualityStatus || entry.metadata.qualityStatus,
       high_performance_eligible: quality?.highPerformanceEligible === true,
-      supervision_required: (quality?.qualityStatus || entry.metadata.qualityStatus) === 'contracted',
+      // Supervisão é o PADRÃO; promoção comprovada é a exceção que a dispensa.
+      //
+      // Antes isto era `status === 'contracted'`, e o buraco só aparece com uma
+      // skill posta à mão num projeto instalado — fluxo real e suportado. A
+      // evidência comportamental é local e user-owned (`skills/_evals/results/`),
+      // então qualquer frontmatter pode ALEGAR `certified` sem prova nenhuma.
+      // Com a regra antiga, essa skill saía da shortlist como `certified` e
+      // `supervision_required: false`: alegar promoção rendia MENOS cuidado que
+      // ser honesto e declarar `contracted`. Quem paga é quem confia na
+      // shortlist para escolher a skill de uma peça.
+      supervision_required: quality?.highPerformanceEligible !== true,
       pilot_opt_in_required: entry.metadata.lifecycle === 'pilot',
       risk: entry.metadata.riskLevel,
       quality_profile: entry.metadata.qualityProfile,
@@ -119,9 +129,15 @@ export function skillSearchCli(query, targetDir, values = {}) {
   }
   console.log(`BUSCA_SKILLS:${result.result_count}`);
   for (const item of result.results) {
+    // Só dois estados agora: comprovada, ou supervisionada. Não há terceiro —
+    // era ele que deixava a skill "promovida sem prova" passar por dispensada.
+    // Quando o frontmatter ALEGA promoção sem evidência, a alegação aparece
+    // junto: a discrepância é informação, e esconder foi o defeito.
+    const alegaSemProva = !item.high_performance_eligible
+      && ['verified', 'certified'].includes(item.quality_status);
     const gate = item.high_performance_eligible
       ? 'alta-performance-elegível'
-      : item.supervision_required ? 'supervisão-obrigatória' : 'não-promovida';
+      : `supervisão-obrigatória${alegaSemProva ? ` (alega ${item.quality_status} sem evidência)` : ''}`;
     const pilot = item.pilot_opt_in_required ? '; pilot-opt-in' : '';
     console.log(`  - ${item.id} — ${gate}${pilot} — ${item.description}`);
   }
