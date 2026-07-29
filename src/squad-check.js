@@ -13,11 +13,100 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getSkillLifecyclePolicy, parseSkillMetadata } from './frontmatter.js';
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 export function squadsDirPadrao() {
   return join(PACKAGE_ROOT, 'squads');
+}
+
+/** `skills/` é irmão de `squads/` na raiz do projeto do usuário. */
+function skillsDirPadrao(squadsDir) {
+  return join(dirname(squadsDir), 'skills');
+}
+
+/**
+ * Ids declarados numa chave `skills:` — cobre as duas formas que o motor gera:
+ * lista de bloco (`squad.yaml`) e inline (`skills: [a, b]`, frontmatter dos agentes).
+ */
+function skillsDeclaradas(texto) {
+  const inline = texto.match(/^\s*skills:\s*\[([^\]]*)\]\s*$/m);
+  if (inline) {
+    return inline[1].split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+  }
+  const bloco = texto.match(/^skills:\s*\n((?:\s+-\s+.+\n?)+)/m);
+  if (!bloco) return [];
+  return bloco[1]
+    .split('\n')
+    .map((linha) => linha.match(/^\s*-\s+(.+?)\s*$/)?.[1])
+    .filter(Boolean)
+    .map((s) => s.replace(/^["']|["']$/g, ''));
+}
+
+/**
+ * Confere que toda skill declarada existe e pode entrar em produção.
+ *
+ * `skills:` é DECLARAÇÃO — o runner a usa para injetar instrução, e até aqui
+ * ninguém verificava que o alvo existe. Skill inexistente faz o step rodar com
+ * menos instrução do que o squad promete; skill `quarantined` faz o resolvedor
+ * bloquear só na hora em que o advogado está rodando a peça.
+ *
+ * **Sem `skills/` no disco, degrada com UM aviso.** Área não instalada é estado
+ * normal deste motor (ele é content-free); cuspir um erro por skill declarada
+ * transformaria "área ausente" em "squad quebrado" — a confusão entre ausência
+ * e defeito que o motor não comete em nenhum outro lugar.
+ */
+/** Arquivos de agente do squad. Ausência do diretório é normal (squad sem agentes próprios). */
+function arquivosDeAgente(dir) {
+  const agentsDir = join(dir, 'agents');
+  if (!existsSync(agentsDir)) return [];
+  return readdirSync(agentsDir).filter((f) => f.endsWith('.md')).map((f) => join(agentsDir, f));
+}
+
+function checarSkillsDeclaradas(dir, skillsDir, issues) {
+  const declaradas = new Set();
+  const fontes = [join(dir, 'squad.yaml'), ...arquivosDeAgente(dir)];
+  for (const arquivo of fontes) {
+    if (!existsSync(arquivo)) continue;
+    for (const id of skillsDeclaradas(readFileSync(arquivo, 'utf8'))) declaradas.add(id);
+  }
+  if (declaradas.size === 0) return;
+
+  if (!existsSync(skillsDir)) {
+    issues.push(issue(
+      'warn',
+      'skills-nao-instaladas',
+      `${declaradas.size} skill(s) declarada(s) e nenhum diretório skills/ em ${skillsDir} — `
+        + 'área não instalada; não dá para verificar existência nem lifecycle'
+    ));
+    return;
+  }
+
+  for (const id of [...declaradas].sort()) {
+    const skillPath = join(skillsDir, id, 'SKILL.md');
+    if (!existsSync(skillPath)) {
+      issues.push(issue('error', 'skill-declarada-inexistente', `skill "${id}" declarada e ausente de ${skillsDir}`));
+      continue;
+    }
+    const metadata = parseSkillMetadata(readFileSync(skillPath, 'utf8'), { fallbackName: id });
+    const politica = getSkillLifecyclePolicy(metadata.lifecycle);
+    if (!politica.productionEligible) {
+      issues.push(issue(
+        'error',
+        'skill-lifecycle-proibido',
+        `skill "${id}" está ${politica.lifecycle} (${politica.selection}) — não entra em squad de produção`
+      ));
+    } else if (politica.selection === 'explicit') {
+      // `pilot` é escolha consciente com fallback, não erro. Tratá-la como erro
+      // impediria o uso legítimo; tratá-la como `active` esconderia a escolha.
+      issues.push(issue(
+        'warn',
+        'skill-pilot-sem-opt-in',
+        `skill "${id}" é pilot — exige escolha explícita e fallback declarado`
+      ));
+    }
+  }
 }
 
 function issue(severity, code, detail) {
@@ -154,6 +243,7 @@ function parseCheckpoints(pipeline) {
  */
 export function checkSquad(squad, options = {}) {
   const squadsDir = options.squadsDir || squadsDirPadrao();
+  const skillsDir = options.skillsDir || skillsDirPadrao(squadsDir);
   const dir = join(squadsDir, squad);
   const issues = [];
   const resultado = () => ({
@@ -352,6 +442,9 @@ export function checkSquad(squad, options = {}) {
     // por isso o alerta existe.
     issues.push(issue('warn', 'sem-checkpoint', 'nenhum checkpoint humano declarado — confirme que é intencional'));
   }
+
+  // --- skills declaradas: promessa que ninguém conferia ---
+  checarSkillsDeclaradas(dir, skillsDir, issues);
 
   return resultado();
 }
