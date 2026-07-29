@@ -627,6 +627,9 @@ Nenhuma lógica de busca no servidor.
 
 ## 8. Especificação do servidor
 
+**Serviço novo, no Railway.** Não reaproveita nada existente — nenhum sistema atual ocupa este
+papel, e schema parecido não é o mesmo papel (§7.1).
+
 Componentes (todos fora do caminho de busca do usuário):
 
 | Componente | Responsabilidade | Notas |
@@ -635,10 +638,28 @@ Componentes (todos fora do caminho de busca do usuário):
 | **Normalizador** | Canoniza URN, extrai dispositivos/ementa/tese, classifica ramo/matéria, resolve vínculos temporais e de superação. | O trabalho mais pesado. |
 | **Dedup/merge** | Mesma URN de fontes diferentes vira uma entidade. | Chave = URN. |
 | **Curadoria (painel interno)** | Humano revisa/aprova o que entra em cada pack antes de assinar. | A assinatura é o selo de curadoria. |
-| **Builder** | Agrupa por `pack_id`, versiona, comprime `.jsonl.zst`, computa hashes. | Determinístico → mesmo input, mesmo hash. |
-| **Signer** | Assina `content_hash` com a chave privada (HSM/KMS). | Chave privada **nunca** sai do KMS. |
-| **Distribuição** | Publica tarballs no CDN; atualiza o índice de catálogo. | Estático. |
-| **Entitlement API** | `/v1/catalog`, `/v1/signing-keys`. Minúsculo, stateless quanto a conteúdo. | Serverless basta. |
+| **Builder** | Agrupa por `pack_id`, versiona, comprime `.jsonl.zst`, computa hashes. | É o `build-area`, que já existe e é testado — o servidor o executa, não o reimplementa. |
+| **Signer** | Assina `content_hash` com a chave privada. | Chave privada **nunca** em disco do build host. |
+| **Distribuição** | Publica os pacotes em object storage; emite URLs assinadas e expiráveis. | Estático. |
+| **Entitlement API** | `/v1/catalog`, `/v1/signing-keys`. Minúsculo, stateless quanto a conteúdo. | Só isto precisa ser serviço de verdade. |
+
+### 8.0 Modelo comercial: assinatura com validade
+
+A licença é **assinatura**, não compra perpétua. O `expires` do `/v1/catalog` é a data real de fim do
+período pago, e `status: "expired"` é estado esperado, não anomalia.
+
+**Vencer degrada, nunca revoga.** O que foi baixado durante a vigência **continua funcionando**,
+somente leitura, com selo de desatualizado (§9.4/§9.5). O que para é a **atualização**.
+
+Isto não é generosidade, são três coisas ao mesmo tempo:
+
+- **Correção jurídica** — apagar conteúdo que alguém pagou para usar, no meio de um caso em
+  andamento, é problema com o cliente e potencialmente com a OAB. O advogado precisa poder reabrir
+  em dois anos a peça que fez hoje.
+- **Coerência com o princípio 3** — licença vencida nunca vira tijolo.
+- **Consequência técnica** — `revoked` (§6.7) existe para conteúdo **errado** (precedente adulterado,
+  norma mal parseada), não para cobrança. Usar revogação como instrumento comercial destruiria a
+  única alavanca que existe para consertar conteúdo defeituoso em campo.
 
 ### 8.1 Fontes de ingestão
 
@@ -749,6 +770,11 @@ Não há tiers nem entitlement por área. **Quem compra leva tudo** (§7.1):
 Em **qualquer** estado o catálogo cobre o corpus inteiro. É isso que permite a resposta *"existe, sua
 licença não cobre"* — e o que impede o motor de dizer "não existe" para o que o usuário poderia
 comprar.
+
+**Vencida ≠ revogada.** Sendo assinatura (§8.0), vencer é rotina e o cache baixado durante a
+vigência continua servindo, somente leitura. O advogado precisa poder reabrir daqui a dois anos a
+peça que fez hoje — e apagar conteúdo pago no meio de um caso é problema com o cliente, não decisão
+de produto. Revogação (`revoked`, §6.7) existe para conteúdo **errado**, jamais para cobrança.
 
 ---
 
