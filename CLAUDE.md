@@ -37,11 +37,13 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
    catálogo sincronizado**; o servidor distribui dados e nunca recebe consulta.
 2. **Local-first.** Depois de baixado, tudo funciona sem rede.
 3. **Degradação graciosa.** Licença vencida nunca vira tijolo: cache segue read-only com selo
-   *"desatualizado há N dias"*. Da mesma família: **"não baixado" nunca se apresenta como "não
-   existe"** — o catálogo conhece o que o conteúdo ainda não trouxe.
+   *"desatualizado há N dias"*. Da mesma família, e valendo para as **três** ausências: **"não
+   baixado", "não tenho direito" e "não sei ler" nunca se apresentam como "não existe"**.
 4. **Uma área só vira pacote com curador de verdade.** Arquitetura ampla, vitrine estreita.
-5. **Licença completa.** Válida libera **todas** as áreas — não há tier nem entitlement por área.
-   Direito a tudo ≠ posse de tudo: catálogo de tudo desce sempre, conteúdo desce sob demanda.
+5. **O catálogo cobre tudo; o direito é por pacote de acesso.** O servidor resolve quais áreas a
+   licença libera (`access_packages`); o catálogo desce inteiro de qualquer jeito, com `entitled`
+   por pack. Assim a busca acha o que existe e diz *"sua licença não cobre"* em vez de mentir.
+   Direito ≠ posse: conteúdo desce sob demanda, só do que tem direito.
 6. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
 
 ## Documentação

@@ -167,19 +167,30 @@ continua sem ver consulta nenhuma, jamais. É **aditivo** — não invalida nada
 
 ---
 
-## 4. Área: atuação declarada, não licença
+## 4. Área: atuação declarada × direito
 
-Com licença completa (§6), a área **deixa de ser fronteira de direito** e passa a ser **dica de
-desempenho e relevância**:
+A área tem **dois papéis distintos**, e confundi-los foi o erro da versão anterior deste documento:
+
+- **Direito** — quais áreas a licença libera. Resolvido pelo servidor, por `access_package` (§6.1).
+  O cliente não decide isso e não tenta adivinhar.
+- **Atuação** — em que áreas o escritório trabalha. Declarado pelo usuário, e vale só como **dica de
+  desempenho e relevância**.
+
+A atuação, concretamente:
 
 - **`areas_de_atuacao` no perfil**, coletado no `init` junto com tipo de instituição e polo.
   **Multivalorado** — escritório criminal que também faz trabalhista declara os dois.
-- Usada para: ordem do **prefetch** (§2.4) e *boost* de ranking na busca. **Nunca** para filtrar:
-  o usuário sempre alcança qualquer área.
+- Usada para: ordem do **prefetch** (§2.4) e *boost* de ranking na busca. **Nunca** para filtrar
+  dentro do que a licença já libera.
 - **`area:` opcional no `squad.yaml`**, para o squad que foge da atuação declarada.
 
 Perguntar a área a cada criação de squad é atrito. Perguntar uma vez, no `init`, e deixar o squad
 sobrescrever quando precisar, não é.
+
+**Área sem direito aparece, mas não baixa.** O catálogo cobre tudo (decisão 2), então a busca
+enxerga skills de áreas que a licença não libera — e a resposta certa é *"existe, sua licença não
+cobre"*, nunca omitir. Omitir devolveria o motor à confusão que o princípio 3 do `CLAUDE.md` proíbe:
+"não tenho direito" se apresentando como "não existe".
 
 ---
 
@@ -208,37 +219,60 @@ deixar conteúdo não-assinado entrar no nível de confiança máxima (`VERIFIED
 
 ---
 
-## 6. As três decisões, fechadas
+## 6. As decisões, fechadas
 
 | # | Decisão | Consequência |
 |---|---|---|
 | 1 | **Squads não são vendidos separadamente** | Namespace de `pack_id` continua fechado em `acervo.*` / `area.*` / `transversal`. Squads viajam dentro de `area.*`. |
 | 2 | **Catálogo fino cobre todas as áreas** | Uma busca só, sobre tudo. Sem "área não instalada" na descoberta. |
-| 3 | **Licença completa — comprou leva tudo** | Some o entitlement por pacote; some `requires_tier`; some a tabela de tiers. A licença vira **binária**. Fetch preguiçoso vira **requisito** (§2.1). |
+| 3 | **Licença por pacote de acesso** (corrigida — ver §6.1) | O direito é um conjunto de áreas, resolvido pelo servidor. Fetch preguiçoso continua **requisito** (§2.1). |
 
-### 6.1 Duas consequências que não estavam na pergunta
+### 6.1 Correção da decisão 3 — o servidor já existia
 
-**Um produto, não N.** A [`SPEC §1.2`](../acervo-server/SPEC.md) desenhava topologia multi-produto
-(CriminalSquad / DTSquad / EJsquad, cada um com seu conjunto de packs). Com pacote completo isso
-vira **um produto com N áreas**. Isso também resolve a pendência aberta do `SPEC:469`
-(`product=legalsquad` com licença de exemplo `CS-XXXX-XXXX`): `product` identifica **o motor**, e o
-exemplo de licença passa a `LS-XXXX-XXXX`.
+A versão anterior deste documento fechava a decisão 3 como *"licença completa — comprou leva tudo,
+sem entitlement por área"*. **Isso estava errado, e o erro foi de contexto, não de julgamento:** a
+recomendação foi feita sem saber que **o acervo-server já existe e está em produção**.
 
-**Raio de exposição.** Uma licença = o corpus inteiro; uma licença vazada expõe tudo, onde o
-licenciamento por área limitava o estrago. Mitigação já prevista no formato e barata: as URLs de
-CDN são assinadas e expiráveis ([`SPEC §7.1`](../acervo-server/SPEC.md)), e o `/v1/catalog` é o
-ponto natural de rate-limit e detecção de anomalia. Vale registrar como risco conhecido, não como
-objeção — é decisão de produto, já tomada.
+O `JusSkills` (Railway) serve `alunos.advocacia100x.com.br` com o schema que este documento passou
+páginas especificando: `skills`, `legal_areas`, `access_packages`, `package_areas`, `entitlements`,
+`user_packages`, `orders`, `skill_downloads`. `GET /api/catalog/areas` responde 200 sem login (a
+vitrine, 27 áreas); `GET /api/me/library` responde 401. É exatamente a separação catálogo-público ×
+conteúdo-licenciado da `SPEC §7.1` — construída antes da spec que a descreve.
 
-### 6.2 Assunção a confirmar
+**Uma especificação que contradiz um sistema que já fatura deve ceder.** E o modelo real é
+**estritamente mais expressivo**: "leva tudo" é um `access_package` que contém todas as áreas; o
+inverso não é representável. Adotar entitlement por pacote não fecha nenhuma porta — abre.
 
-A decisão 3 tratou de licenciamento **por área**, não da existência de **camada gratuita**. Este
-documento assume o modelo **binário** que o `SPEC §9.4` já insinuava:
+**Consequência sobre o F3, que encolhe:** o `sync` fala com o JusSkills, não com um servidor novo. O
+que falta não é infraestrutura, é **um endpoint que entregue pacote assinado** em vez de JSON solto:
+o corpus, a autenticação, o licenciamento e a telemetria de entrega já existem.
 
-- **sem licença** → o pacote-base que vem no `main` funciona, offline, sem conta;
-- **com licença válida** → tudo, sem distinção de área.
+**O que a correção NÃO muda:** decisões 1 e 2 seguem de pé, e todo o §2 (catálogo fino sincronizado,
+conteúdo sob demanda) idem — aliás fica mais necessário, porque o corpus real medido é maior que o
+projetado (§6.3).
 
-Se a intenção for "não existe camada gratuita nenhuma", é uma linha a mudar no `SPEC §7.1`.
+### 6.2 Camada gratuita
+
+Fica como o JusSkills já opera, e não como este documento supunha: **o catálogo de áreas é público**
+(`/api/catalog/areas` sem login) e **o conteúdo exige direito**. O pacote-base embarcado no `main`
+continua funcionando offline, sem conta.
+
+### 6.3 O corpus real, medido
+
+O dimensionamento deste documento usava 520 skills (a medição do `SPEC §6.1`). O corpus em produção
+é **~9× maior**:
+
+| | medido em produção |
+|---|---:|
+| Itens | **4701** (4521 `skill`, 160 `prompt`, 20 `agent`) |
+| Markdown | **74,5 MB** · média 16,6 KB por item |
+| Áreas povoadas | 11 de 27 declaradas |
+| Maior área | `direito-administrativo`, 1505 skills |
+
+Isso reforça o §2 em vez de contradizê-lo: baixar tudo de uma vez nunca foi opção, e a razão
+catálogo/conteúdo medida na importação real ficou entre **2,6× e 12,3×** por área — menor que a
+projeção de ~27×, porque estas skills têm corpo curto e metadata rica. O ganho estrutural (catálogo
+sem corpo, um registro por item) continua valendo; o multiplicador não.
 
 ---
 
