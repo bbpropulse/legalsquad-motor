@@ -107,12 +107,34 @@ function registroDeBestPractice(entidade, nomeDaEntidade, id) {
 }
 
 /**
+ * Agente reutilizável de área — subagente especialista que várias skills/squads
+ * da mesma área podem delegar, distinto do agente amarrado a UM squad (esse
+ * viaja dentro de `squads/<nome>/agents/` e não passa por aqui). Frontmatter no
+ * mesmo formato dos agentes que já vivem no motor (`.claude/agents/*.md`):
+ * `description:` de linha única, como em `catalog-scout.md`.
+ */
+function registroDeAgente(entidade, nomeDaEntidade, id) {
+  const descricao = entidade.text?.match(/^description:\s*(.+)$/m)?.[1] || '';
+  return {
+    kind: 'agent',
+    id,
+    entity: nomeDaEntidade,
+    path: entidade.path,
+    sha256: entidade.sha256,
+    bytes: entidade.bytes,
+    description: recortar(descricao.replace(/^["']|["']$/g, '')),
+  };
+}
+
+/**
  * Deriva o catálogo a partir das entidades de conteúdo.
  *
  * Só arquivos que são ITENS DESCOBRÍVEIS viram registro: `SKILL.md`,
- * `squad.yaml`, e cada best-practice. Arquivos de apoio (`references/`,
- * `agents/`, assets) viajam no conteúdo e não poluem o catálogo — é justamente
- * essa razão de tamanho que torna a descoberta local viável.
+ * `squad.yaml`, cada best-practice, e cada agente REUTILIZÁVEL de área
+ * (`.claude/agents/<id>.md`). Arquivos de apoio (`references/` de uma skill,
+ * `agents/*.custom.md` amarrado a UM squad dentro de `squads/<nome>/agents/`,
+ * assets) viajam no conteúdo e não poluem o catálogo — é justamente essa razão
+ * de tamanho que torna a descoberta local viável.
  *
  * Não muta nada do que recebe: o conteúdo sai daqui byte a byte como entrou.
  */
@@ -130,9 +152,17 @@ export function extrairCatalogo(entidades, nomeDaEntidade) {
       registros.push(registroDeSquad(entidade, nomeDaEntidade, squad[1]));
       continue;
     }
-    const bp = entidade.path.match(/^core\/best-practices\/([^/]+)\.md$/);
+    // Caminho de INSTALAÇÃO (§ pack-build.js SUBARVORES), não o de autoria: o
+    // catálogo descreve o que existirá depois de aplicado, não como o curador
+    // organizou o diretório de conteúdo.
+    const bp = entidade.path.match(/^_legalsquad\/core\/best-practices\/([^/]+)\.md$/);
     if (bp && !bp[1].startsWith('_')) {
       registros.push(registroDeBestPractice(entidade, nomeDaEntidade, bp[1]));
+      continue;
+    }
+    const agente = entidade.path.match(/^\.claude\/agents\/([^/]+)\.md$/);
+    if (agente) {
+      registros.push(registroDeAgente(entidade, nomeDaEntidade, agente[1]));
     }
   }
 

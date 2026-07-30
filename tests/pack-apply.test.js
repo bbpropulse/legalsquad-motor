@@ -192,10 +192,26 @@ test('arquivo user-owned já existente no destino não é tocado', () => {
 
 // ── Ida e volta: o que o build produz, o apply reconstrói ──────────────────
 
+// Caminho de INSTALAÇÃO (o que `conteudo[].path` traz, depois do remapeamento em
+// `pack-build.js`) → caminho de AUTORIA na fixture (`AREA_DEMO`). Só existe
+// porque best-practices e agentes de área instalam num lugar diferente de onde o
+// curador escreve — ver `src/pack-build.js` SUBARVORES para o porquê.
+const INSTALACAO_PARA_AUTORIA = [
+  ['_legalsquad/core/best-practices/', 'core/best-practices/'],
+  ['.claude/agents/', 'core/agents/'],
+];
+function caminhoDeAutoria(caminhoInstalado) {
+  for (const [instalacao, autoria] of INSTALACAO_PARA_AUTORIA) {
+    if (caminhoInstalado.startsWith(instalacao)) return autoria + caminhoInstalado.slice(instalacao.length);
+  }
+  return caminhoInstalado;
+}
+
 test('construir e aplicar reconstrói a árvore de origem byte a byte', () => {
   // O teste que prova que as duas metades se encaixam. Cada uma passar sozinha
   // não diz nada sobre a outra: o formato só vale se o que sai do empacotador
-  // volta a ser o mesmo conteúdo do outro lado.
+  // volta a ser o mesmo conteúdo do outro lado — no caminho de INSTALAÇÃO, que
+  // pode diferir do de autoria (best-practices, agentes de área).
   const chaves = generateKeyPairSync('ed25519');
   const { pacotes } = construirPacotes({
     raizConteudo: AREA_DEMO,
@@ -225,7 +241,7 @@ test('construir e aplicar reconstrói a árvore de origem byte a byte', () => {
     for (const arquivoOriginal of conteudo) {
       assert.deepEqual(
         readFileSync(join(destino, ...arquivoOriginal.path.split('/'))),
-        readFileSync(join(AREA_DEMO, ...arquivoOriginal.path.split('/'))),
+        readFileSync(join(AREA_DEMO, ...caminhoDeAutoria(arquivoOriginal.path).split('/'))),
         `${arquivoOriginal.path} chegou diferente do que saiu`
       );
     }

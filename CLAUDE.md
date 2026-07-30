@@ -1,8 +1,8 @@
 # LegalSquad — Instruções do Projeto
 
 Este repositório é o **motor** de orquestração multi-agente para o Direito. **Áreas do Direito não
-vivem aqui** — chegam como **pacotes assinados** (skills + squads + best-practices + acervo)
-baixados por `sync` e liberados por licença.
+vivem aqui** — chegam como **pacotes assinados** (skills + squads + best-practices + agentes de área +
+acervo) baixados por `sync` e liberados por licença.
 
 ## Escopo do repositório (leia primeiro)
 
@@ -24,9 +24,9 @@ foi baixado — e, quando pedido, **empacota um diretório qualquer** que lhe ap
 resolvedor fail-closed (lifecycle/evidência) · Citation Gate · CLI · `sync` · `captura` (áudio/vídeo)
 · OCR · indexadores · integrações (DJEN, e-mail, agenda) · dashboard.
 
-**Vira pacote:** skills de matéria · squads · best-practices jurídicas · acervo · perfil/ética de
-instituição · **calculadoras específicas de área** (dosimetria, prescrição, remição são criminais) ·
-`core/authorities/`.
+**Vira pacote:** skills de matéria · squads · best-practices jurídicas · agentes especialistas
+reutilizáveis de área · acervo · perfil/ética de instituição · **calculadoras específicas de área**
+(dosimetria, prescrição, remição são criminais) · `core/authorities/`.
 
 Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, é núcleo.**
 
@@ -137,8 +137,10 @@ Commit inicial: `19e29be`.
 node tools/build-area.mjs <diretorio-de-conteudo> <area-id> --key <chave.pem> [--out <dir>]
 ```
 
-Lê `skills/`, `squads/`, `core/best-practices/` e o `_packs.yaml` **do diretório que receber por
-argumento**; separa `transversal` de `area.*`; produz os pacotes assinados. Cinco módulos, todos com
+Lê `skills/`, `squads/`, `core/best-practices/`, `core/agents/` e o `_packs.yaml` **do diretório que
+receber por argumento**; separa `transversal` de `area.*`; remapeia caminho de autoria para caminho
+de instalação onde os dois divergem (`_legalsquad/core/best-practices/`, `.claude/agents/` — §6.2.1
+da SPEC); produz os pacotes assinados. Cinco módulos, todos com
 teste: [`pack-format`](src/pack-format.js) (container, selo, verificação) ·
 [`pack-tree`](src/pack-tree.js) (árvore → entidades-arquivo) · [`pack-split`](src/pack-split.js)
 (corte) · [`pack-catalog`](src/pack-catalog.js) (registro de descoberta) ·

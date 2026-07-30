@@ -663,6 +663,31 @@ async function gerarBestPractices() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
+// Agente REUTILIZÁVEL de área (distinto do agente amarrado a UM squad, que
+// vive em squads/demo-squad/agents/). Frontmatter no formato real dos agentes
+// que já vivem no motor (.claude/agents/catalog-scout.md): description de
+// linha única. Exercita o `kind: 'agent'` do catálogo e o remapeamento
+// `core/agents/` (autoria) → `.claude/agents/` (instalação).
+async function gerarAgenteDeArea() {
+  const dir = join(RAIZ, 'core', 'agents');
+  await mkdir(dir, { recursive: true });
+  const conteudo = `---
+name: analista-demo
+description: Agente sintético READ-ONLY que analisa o material bruto da área fictícia demo e devolve um resumo estruturado. Não redige peça, não decide, não acessa rede. Use como especialista reutilizável por qualquer squad da área demo que precise deste tipo de análise — cenário sintético, sem matéria jurídica real.
+tools: Read, Grep, Glob
+model: inherit
+---
+
+Você é o analista sintético da área demo. Leia o material fornecido e devolva um
+resumo estruturado (fatos, lacunas, próximos passos). Read-only: nunca edita
+nem grava nada. Este agente existe só para exercitar o motor — não decide caso
+real, não é matéria jurídica.
+`;
+  await writeFile(join(dir, 'analista-demo.md'), conteudo);
+  console.log(`1 agente de área gerado em ${dir}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
 // Passo 4 (Task 6): squad "demo-squad" — squad.yaml, squad-party.csv, agentes
 // e pipeline.yaml exercitando TODAS as construções de mecanismo do Pipeline
 // Runner que a Task 4 removeu sem sucessor (ver task-6-brief.md, bloco
@@ -886,6 +911,7 @@ async function main() {
   await gerarAcervo();
   await gerarAutoridade();
   await gerarBestPractices();
+  await gerarAgenteDeArea();
   await gerarSquad();
   await gerarCorteDePacotes();
 }

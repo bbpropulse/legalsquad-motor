@@ -95,7 +95,7 @@ if (!resultado.ok) {
   process.exit(1);
 }
 
-const { skills = 0, squads = 0, best_practices: bp = 0 } = manifesto.counts || {};
+const { skills = 0, squads = 0, best_practices: bp = 0, agents = 0 } = manifesto.counts || {};
 console.log(`apply-pack: ${manifesto.pack_id}@${manifesto.version} instalado em ${destino}`);
-console.log(`  ${resultado.escritos.length} arquivos · ${skills} skills · ${squads} squads · ${bp} best-practices`);
+console.log(`  ${resultado.escritos.length} arquivos · ${skills} skills · ${squads} squads · ${bp} best-practices · ${agents} agentes`);
 console.log('\nRode `npx legalsquad check-skills` para reindexar e conferir o catálogo.');

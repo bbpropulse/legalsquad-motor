@@ -11,20 +11,46 @@ import { extrairCatalogo } from './pack-catalog.js';
 import { lerCorteDePacotes, separarEntidades } from './pack-split.js';
 import { lerArvore } from './pack-tree.js';
 
-/** Subárvores de conteúdo de uma área, e a entidade em que cada uma viaja. */
+/**
+ * Subárvores de conteúdo de uma área. `prefixo` é onde o CURADOR escreve, no
+ * diretório de conteúdo; `destino` é onde o motor de fato PROCURA em runtime —
+ * e os dois nem sempre coincidem. Best-practices é o caso que provou isso:
+ * curador escreve em `core/best-practices/`, o motor procura em
+ * `_legalsquad/core/best-practices/` (confirmado em `src/skill-catalog.js:584`
+ * e três citações em `runner.pipeline.md`). Empacotar no caminho de autoria
+ * materializava conteúdo que o motor nunca via — em silêncio, porque a injeção
+ * degrada com um WARNING e segue sem a régua, então lia como "área sem essa
+ * best-practice" em vez de "pacote materializou no lugar errado".
+ */
 const SUBARVORES = [
-  { prefixo: 'skills/', entidade: 'skills.jsonl.zst' },
-  { prefixo: 'squads/', entidade: 'squads.jsonl.zst' },
-  { prefixo: 'core/best-practices/', entidade: 'best-practices.jsonl.zst' },
+  { prefixo: 'skills/', destino: 'skills/', entidade: 'skills.jsonl.zst' },
+  { prefixo: 'squads/', destino: 'squads/', entidade: 'squads.jsonl.zst' },
+  { prefixo: 'core/best-practices/', destino: '_legalsquad/core/best-practices/', entidade: 'best-practices.jsonl.zst' },
+  { prefixo: 'core/agents/', destino: '.claude/agents/', entidade: 'agents.jsonl.zst' },
 ];
 
 const CATALOGO = 'catalog.jsonl.zst';
+
+/**
+ * Reescreve `path` do caminho de autoria para o de instalação. Roda uma vez,
+ * logo após a leitura da árvore — tudo depois disto (agrupamento, corte,
+ * catálogo, `applies_to`) opera sobre o caminho de INSTALAÇÃO, porque é esse
+ * que precisa bater com o que `pack-apply` vai escrever e com o que o motor
+ * vai procurar.
+ */
+function remapearParaInstalacao(arquivos) {
+  return arquivos.map((arquivo) => {
+    const subarvore = SUBARVORES.find((s) => arquivo.path.startsWith(s.prefixo));
+    if (!subarvore || subarvore.destino === subarvore.prefixo) return arquivo;
+    return { ...arquivo, path: subarvore.destino + arquivo.path.slice(subarvore.prefixo.length) };
+  });
+}
 
 /** Agrupa as entidades-arquivo por entidade de conteúdo, preservando a ordem. */
 function porEntidade(arquivos) {
   const grupos = new Map();
   for (const arquivo of arquivos) {
-    const alvo = SUBARVORES.find((s) => arquivo.path.startsWith(s.prefixo));
+    const alvo = SUBARVORES.find((s) => arquivo.path.startsWith(s.destino));
     if (!alvo) continue;
     if (!grupos.has(alvo.entidade)) grupos.set(alvo.entidade, []);
     grupos.get(alvo.entidade).push(arquivo);
@@ -54,12 +80,16 @@ function montarPacote({ packId, arquivos, base, chavePrivada, criadoEm, signingK
       ...base,
       pack_id: packId,
       payload_kind: 'tree',
-      applies_to: SUBARVORES.filter((s) => grupos.has(s.entidade)).map((s) => s.prefixo),
+      // O caminho de INSTALAÇÃO, não o de autoria — é contra `path` (já
+      // remapeado) que o `pack-apply` checa a contenção (§6.5). Declarar o
+      // caminho de autoria faria a contenção rejeitar o próprio pacote.
+      applies_to: SUBARVORES.filter((s) => grupos.has(s.entidade)).map((s) => s.destino),
       counts: {
         files: arquivos.length,
         skills: registros.filter((r) => r.kind === 'skill').length,
         squads: registros.filter((r) => r.kind === 'squad').length,
         best_practices: registros.filter((r) => r.kind === 'best-practice').length,
+        agents: registros.filter((r) => r.kind === 'agent').length,
       },
       // §6.8, opção A: os bytes de origem são preservados. O marcador legado
       // identifica o contrato e nunca promove — o catálogo capa em `contracted`
@@ -97,8 +127,13 @@ export function construirPacotes({
     );
   }
 
-  const arquivos = lerArvore(raizConteudo, SUBARVORES.map((s) => s.prefixo));
-  const { transversal, area } = separarEntidades(arquivos, corte.transversalSkills);
+  const lidos = lerArvore(raizConteudo, SUBARVORES.map((s) => s.prefixo));
+  // O corte (`transversal_skills`) opera sobre id de SKILL, que não muda de
+  // caminho — por isso remapeia DEPOIS de cortar, não antes: mais simples, e a
+  // ordem não afeta o resultado porque só `skills/` participa do corte, e
+  // `skills/` não é remapeado (destino === prefixo).
+  const { transversal, area } = separarEntidades(lidos, corte.transversalSkills);
+  const arquivos = { transversal: remapearParaInstalacao(transversal), area: remapearParaInstalacao(area) };
 
   const base = { version: versao };
   const pacotes = [];
@@ -106,7 +141,7 @@ export function construirPacotes({
   if (transversal.length) {
     pacotes.push(montarPacote({
       packId: 'transversal',
-      arquivos: transversal,
+      arquivos: arquivos.transversal,
       base,
       chavePrivada,
       criadoEm,
@@ -115,7 +150,7 @@ export function construirPacotes({
   }
   pacotes.push(montarPacote({
     packId: `area.${areaId}`,
-    arquivos: area,
+    arquivos: arquivos.area,
     base: {
       ...base,
       area: { id: areaId, titulo: corte.titulo, curador: corte.curador, ramos: corte.ramos },

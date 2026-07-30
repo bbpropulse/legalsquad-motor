@@ -375,10 +375,11 @@ Campos comuns aos dois tipos, com os do pacote de árvore marcados:
   "created_at": "2026-07-14T03:00:00Z",      // só no manifesto — nunca no payload (§6.6)
 
   "payload_kind": "tree",                    // "tree" | "records" — escolhe o aplicador
-  "applies_to": [                            // subárvores de destino (§6.5)
-    "skills/",
-    "squads/",
-    "core/best-practices/"
+  "applies_to": [                            // subárvores de DESTINO — de INSTALAÇÃO, não de
+    "skills/",                               // autoria (§6.2.1). skills/ e squads/ coincidem;
+    "squads/",                               // best-practices e agentes de área NÃO: o curador
+    "_legalsquad/core/best-practices/",      // escreve em core/best-practices/ e core/agents/,
+    ".claude/agents/"                        // o motor procura nestes dois em runtime.
   ],
 
   "area": { "id": "criminal", "titulo": "Direito Criminal",
@@ -394,12 +395,13 @@ Campos comuns aos dois tipos, com os do pacote de árvore marcados:
     "rebound_evidence": false                // ver §6.8 — false = bytes originais preservados
   },
 
-  "counts": { "files": 1671, "skills": 520, "squads": 9, "best_practices": 24 },
+  "counts": { "files": 1671, "skills": 520, "squads": 9, "best_practices": 24, "agents": 6 },
   "entities": [                              // "catalog" é obrigatório e único (§6.1)
     { "file": "catalog.jsonl.zst",        "role": "catalog", "sha256": "1f8d…", "bytes":   44902 },
     { "file": "skills.jsonl.zst",         "role": "content", "sha256": "4e11…", "bytes": 1802044 },
     { "file": "squads.jsonl.zst",         "role": "content", "sha256": "9ab3…", "bytes":   96117 },
-    { "file": "best-practices.jsonl.zst", "role": "content", "sha256": "c027…", "bytes":   31880 }
+    { "file": "best-practices.jsonl.zst", "role": "content", "sha256": "c027…", "bytes":   31880 },
+    { "file": "agents.jsonl.zst",         "role": "content", "sha256": "8f3e…", "bytes":   12904 }
   ],
   "removed_paths": [                         // §6.7 — só em delta; vazio no pacote completo
     "skills/skill-aposentada/SKILL.md"
@@ -416,10 +418,32 @@ Para `payload_kind: "records"` o manifesto é o mesmo, sem `applies_to`/`area`/`
 `format_version` sobe para `1.1` porque `payload_kind` é campo novo obrigatório: um cliente `1.0`
 lendo um pacote `1.1` deve recusar por versão, não adivinhar.
 
-**Por que `applies_to` é lista e não string.** Um `area.*` materializa em **três** subárvores
-(`skills/`, `squads/`, `core/best-practices/`); uma única string só descreveria a primeira. O rascunho
-da [`F0 §4.2`](../legalsquad/F0-SANEAMENTO.md) escreveu `"applies_to": "skills/"` quando só as skills
-estavam em vista — a forma normativa é a lista.
+**Por que `applies_to` é lista e não string.** Um `area.*` materializa em **quatro** subárvores
+(`skills/`, `squads/`, `_legalsquad/core/best-practices/`, `.claude/agents/`); uma única string só
+descreveria a primeira. O rascunho da [`F0 §4.2`](../legalsquad/F0-SANEAMENTO.md) escreveu
+`"applies_to": "skills/"` quando só as skills estavam em vista — a forma normativa é a lista.
+
+### 6.2.1 Autoria × instalação — quando os dois caminhos divergem
+
+`skills/` e `squads/` são iguais nos dois lados: o curador escreve, o cliente instala, mesmo
+caminho. **Best-practices e agente reutilizável de área não são** — o curador escreve em
+`core/best-practices/` e `core/agents/`, mas o motor procura em `_legalsquad/core/best-practices/`
+e `.claude/agents/` em runtime (confirmado contra o código, não só a documentação — três citações
+em `runner.pipeline.md` e uma em `src/skill-catalog.js`). O empacotador remapeia o caminho de
+autoria para o de instalação **uma vez**, logo após ler a árvore; tudo depois disso — corte,
+catálogo, `applies_to` — opera sobre o caminho de instalação.
+
+Isto corrige um defeito real: antes do remapeamento, `build-area` materializava best-practices em
+`core/best-practices/`, e o motor nunca as encontrava — silenciosamente, porque a injeção do
+runner degrada com um `WARNING` e segue sem a régua. Lia-se como "área sem essa best-practice",
+não como "pacote materializou no lugar errado".
+
+**Agente reutilizável de área ≠ agente de squad.** Um agente dentro de `squads/<nome>/agents/`
+pertence a UM squad e viaja com ele, sem remapeamento (é arquivo de apoio da subárvore
+`squads/`). Um agente em `core/agents/` na autoria é especialista **reutilizável por qualquer
+squad da área** — materializa em `.claude/agents/`, ao lado dos agentes núcleo do motor
+(`catalog-scout`, `avaliador-squad`, `verificador-citacoes`), e entra no catálogo como
+`kind: "agent"`.
 
 ### 6.5 Extração (`payload_kind: "tree"`)
 
@@ -710,8 +734,9 @@ espelhando o padrão de `search-acervo`/`contract-skills`.
 5. Extrai o payload conforme o `payload_kind` do manifesto (§6): pacote de **acervo**
    (`payload_kind: "records"`) vai para `acervo/_packs/<pack_id>/` (área **gerenciada**); pacote de
    **área** (`area.*`, `transversal`, `payload_kind: "tree"`) materializa as subárvores declaradas em
-   `applies_to` — `skills/`, `squads/`, `core/best-practices/` — sob as regras de contenção e
-   atomicidade da §6.5, e aplicando `removed_paths` quando for delta.
+   `applies_to` — `skills/`, `squads/`, `_legalsquad/core/best-practices/`, `.claude/agents/` (§6.2.1,
+   caminho de INSTALAÇÃO) — sob as regras de contenção e atomicidade da §6.5, e aplicando
+   `removed_paths` quando for delta.
 6. **Reindexa o que foi tocado** — e só o que foi tocado:
    - pacote de acervo → `indexar-acervo` (as entidades entram como `VERIFIED_OFFICIAL` +
      proveniência);

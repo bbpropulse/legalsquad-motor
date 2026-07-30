@@ -79,9 +79,9 @@ for (const pacote of pacotes) {
 
 console.log(`build-area: ${pacotes.length} pacote(s) em ${destino}\n`);
 for (const linha of relatorio.pacotes) {
-  const { skills, squads, best_practices: bp, files } = linha.counts;
+  const { skills, squads, best_practices: bp, agents, files } = linha.counts;
   console.log(`  ${linha.packId}@${versao}`);
-  console.log(`    ${skills} skills · ${squads} squads · ${bp} best-practices · ${files} arquivos`);
+  console.log(`    ${skills} skills · ${squads} squads · ${bp} best-practices · ${agents} agentes · ${files} arquivos`);
   console.log(`    catálogo ${linha.bytesCatalogo}B · conteúdo ${linha.bytesConteudo}B · razão ${linha.razao}x`);
   console.log(`    ${linha.contentHash}\n`);
 }

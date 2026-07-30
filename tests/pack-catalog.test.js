@@ -97,18 +97,22 @@ test('o empacotador NÃO reescreve os bytes da skill', () => {
   assert.match(entidade.text, /CRIMINALSQUAD:HP-CONTRACT/, 'os bytes originais são preservados');
 });
 
-test('squads e best-practices também entram no catálogo', () => {
+test('squads, best-practices e agentes de área também entram no catálogo', () => {
+  // `extrairCatalogo` recebe entidades já no caminho de INSTALAÇÃO — o remapeamento
+  // de autoria → instalação acontece antes, em `pack-build.js`.
   const registros = extrairCatalogo([
     entidadeDeSkill('alfa', FM_BASE),
     { path: 'squads/demo/squad.yaml', sha256: 'sha-squad', bytes: 12, text: 'name: demo\ndescription: Squad sintético\n' },
-    { path: 'core/best-practices/redacao.md', sha256: 'sha-bp', bytes: 9, text: '# Redação\n\ntexto\n' },
+    { path: '_legalsquad/core/best-practices/redacao.md', sha256: 'sha-bp', bytes: 9, text: '# Redação\n\ntexto\n' },
+    { path: '.claude/agents/analista-demo.md', sha256: 'sha-ag', bytes: 40, text: '---\nname: analista-demo\ndescription: Agente sintético de teste.\n---\n\ncorpo\n' },
     { path: 'skills/alfa/references/x.md', sha256: 'sha-ref', bytes: 3, text: 'x' },
+    { path: 'squads/demo/agents/redator-demo.custom.md', sha256: 'sha-sq-ag', bytes: 3, text: 'x' },
   ], 'skills.jsonl.zst');
 
   const tipos = registros.map((r) => `${r.kind}:${r.id}`).sort();
   assert.deepEqual(
     tipos,
-    ['best-practice:redacao', 'skill:alfa', 'squad:demo'],
-    'um registro por ITEM descobrível — arquivos de apoio (references/) não são itens'
+    ['agent:analista-demo', 'best-practice:redacao', 'skill:alfa', 'squad:demo'],
+    'um registro por ITEM descobrível — arquivos de apoio (references/, agente amarrado a UM squad) não são itens'
   );
 });
