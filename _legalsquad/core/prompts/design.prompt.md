@@ -19,7 +19,7 @@ Read these files before starting:
 
 **O catálogo de skills NÃO entra por leitura de arquivo.** `skills/_index.yaml` é a fonte que o motor consulta, mas ele cresce com o tamanho da área — uma área grande são centenas de milhares de tokens — e lê-lo inteiro estoura o contexto a cada Design. Descubra as skills pela **shortlist compacta**: a que o `catalog-scout`/Discovery já produziu, ou uma nova `npx legalsquad search-skills --query "<capability>" --limit 8 --json`. O manifesto de canonicalização da área (`skills/_*-integration.yaml`), **quando existir**, é consultado só por busca direcionada, para resolver um alvo canônico.
 
-Não inicie pesquisa, não crie agente e não desenhe step antes de reconciliar a shortlist de skills com `discovery.yaml.catalog_context`. Leia também, antes de qualquer pesquisa ou desenho, as best-practices que o `_catalog.yaml` da área marcar como **obrigatórias** para o tipo de trabalho em questão.
+Não inicie pesquisa, não crie agente e não desenhe step antes de reconciliar a shortlist de skills com `discovery.yaml.catalog_context`. Leia também, antes de qualquer pesquisa ou desenho, as entradas com `obrigatoria: true` em `_catalog.yaml` — são as best-practices que a área declara obrigatórias, um campo de dado, não uma leitura frouxa de `whenToUse`.
 
 > **Protocolo de ausência (motor sem área instalada):** se `_legalsquad/core/best-practices/_catalog.yaml`, `skills/_index.yaml`, o manifesto de integração **ou qualquer best-practice declarada obrigatória** (isto é, as demais leituras "obrigatórias"/"não opcionais" deste documento) **não existirem no disco**, não trate como erro nem bloqueie o Design: registre a ausência em `design.yaml` (`catalog_context.note: "sem catálogo — área não instalada"`; para protocolos de domínio, `area_protocol: not_installed`), pule as leituras correspondentes e prossiga em **modo GAPS** — todo papel sem correspondência de catálogo é desenhado do zero (Phase E), e nenhum agente ou step pode referenciar skill, best-practice ou especialista que não exista no disco.
 >
@@ -40,12 +40,12 @@ Se o catálogo **não existir**, **estiver vazio** ou **nenhuma entrada casar** 
 
 Based on the squad's purpose and the domains identified in Discovery, select which best-practice files are relevant:
 
-1. Review each catalog entry's `whenToUse` field
-2. Select entries whose `whenToUse` matches the squad's needs
+1. Toda entrada com `obrigatoria: true` entra **sempre**, incondicionalmente — não depende de `whenToUse` casar com nada. É o campo do schema, não uma leitura de relevância.
+2. Para as demais, review each catalog entry's `whenToUse` field and select entries whose `whenToUse` matches the squad's needs.
 3. Read the full content of each selected best-practice file from `_legalsquad/core/best-practices/{file}`
 4. Use this knowledge to design better agents in Phase E
 
-As best-practices que o `_catalog.yaml` da área marcar como obrigatórias para o tipo de trabalho são **sempre selecionadas** e governam todo o design; não são opcionais nem substituídas por uma skill em preview.
+As best-practices com `obrigatoria: true` governam todo o design; não são opcionais nem substituídas por uma skill em preview.
 
 **Example:** For a content creation squad targeting Instagram:
 - Read `copywriting.md` (for the writer agent)

@@ -13,7 +13,8 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getSkillLifecyclePolicy, parseSkillMetadata } from './frontmatter.js';
+import { extractFrontMatter, getSkillLifecyclePolicy, parseSkillMetadata } from './frontmatter.js';
+import { defaultBestPracticesCatalogPath } from './best-practices-catalog.js';
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -26,22 +27,134 @@ function skillsDirPadrao(squadsDir) {
   return join(dirname(squadsDir), 'skills');
 }
 
+/** Reusa o mesmo cálculo de caminho de `defaultBestPracticesCatalogPath` — um só lugar sabe onde `_legalsquad/core/best-practices/` mora. */
+function bestPracticesDirPadrao(squadsDir) {
+  return dirname(defaultBestPracticesCatalogPath(dirname(squadsDir)));
+}
+
 /**
- * Ids declarados numa chave `skills:` — cobre as duas formas que o motor gera:
- * lista de bloco (`squad.yaml`) e inline (`skills: [a, b]`, frontmatter dos agentes).
+ * Valores declarados numa chave de topo qualquer — cobre as duas formas que o
+ * motor gera: lista de bloco (`chave:\n  - a\n  - b`) e inline (`chave: [a, b]`).
+ * Reusada por `skills:` (frontmatter dos agentes inclusive) e por `data:`.
  */
-function skillsDeclaradas(texto) {
-  const inline = texto.match(/^\s*skills:\s*\[([^\]]*)\]\s*$/m);
+function listaDeChave(texto, chave) {
+  const inline = texto.match(new RegExp(`^\\s*${chave}:\\s*\\[([^\\]]*)\\]\\s*$`, 'm'));
   if (inline) {
     return inline[1].split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
   }
-  const bloco = texto.match(/^skills:\s*\n((?:\s+-\s+.+\n?)+)/m);
+  const bloco = texto.match(new RegExp(`^${chave}:\\s*\\n((?:\\s+-\\s+.+\\n?)+)`, 'm'));
   if (!bloco) return [];
   return bloco[1]
     .split('\n')
     .map((linha) => linha.match(/^\s*-\s+(.+?)\s*$/)?.[1])
     .filter(Boolean)
     .map((s) => s.replace(/^["']|["']$/g, ''));
+}
+
+const skillsDeclaradas = (texto) => listaDeChave(texto, 'skills');
+
+const PREFIXO_INSTALACAO_BP = '_legalsquad/core/best-practices/';
+const PREFIXO_AUTORIA_BP = 'core/best-practices/';
+
+/** Entradas de `data:` que apontam pra best-practices — instalação ou autoria. */
+function bestPracticesDeclaradas(texto) {
+  return listaDeChave(texto, 'data').filter(
+    (ref) => ref.startsWith(PREFIXO_INSTALACAO_BP) || ref.startsWith(PREFIXO_AUTORIA_BP)
+  );
+}
+
+/**
+ * `---\nname: ...\n---` — contrato exigido só de best-practice consumida via
+ * `format:` (runner.pipeline.md, Agent Loading 4a). Reusa `extractFrontMatter`
+ * (mesmo strip de BOM que já protege SKILL.md) em vez de reimplementar o
+ * parse pela terceira vez neste motor.
+ */
+function temFrontmatterComName(texto) {
+  const corpo = extractFrontMatter(texto);
+  return corpo ? /^name:\s*\S/m.test(corpo) : false;
+}
+
+/** Caminho relativo a `bestPracticesDir` que a referência implica — nunca só o basename. */
+function caminhoRelativoBP(ref) {
+  if (ref.startsWith(PREFIXO_INSTALACAO_BP)) return ref.slice(PREFIXO_INSTALACAO_BP.length);
+  if (ref.startsWith(PREFIXO_AUTORIA_BP)) return ref.slice(PREFIXO_AUTORIA_BP.length);
+  return ref.split('/').pop();
+}
+
+/**
+ * Confere as referências a best-practices declaradas em `data:` (squad.yaml)
+ * e `format:` (steps do pipeline) — a mesma classe de "declaração que ninguém
+ * confere" que `checarSkillsDeclaradas` fecha para skills.
+ *
+ * Cobre um caso a mais que skills não tem: `data:` pode citar o caminho de
+ * AUTORIA (`core/best-practices/`) em vez do de INSTALAÇÃO
+ * (`_legalsquad/core/best-practices/`) — resíduo de quando o empacotador
+ * ainda materializava no lugar errado. É aviso, não erro: o arquivo pode até
+ * existir por acidente, mas a referência não sobrevive a uma reinstalação.
+ */
+function checarBestPracticesDeclaradas(dir, bestPracticesDir, steps, issues) {
+  const squadYamlPath = join(dir, 'squad.yaml');
+  const referencias = new Map(); // nome do arquivo -> referência original
+  if (existsSync(squadYamlPath)) {
+    for (const ref of bestPracticesDeclaradas(readFileSync(squadYamlPath, 'utf8'))) {
+      if (ref.startsWith(PREFIXO_AUTORIA_BP) && !ref.startsWith(PREFIXO_INSTALACAO_BP)) {
+        issues.push(issue(
+          'warn',
+          'best-practice-caminho-de-autoria',
+          `data: "${ref}" usa o caminho de AUTORIA — instalação materializa em `
+            + `"${PREFIXO_INSTALACAO_BP}${ref.slice(PREFIXO_AUTORIA_BP.length)}"`
+        ));
+      }
+      referencias.set(caminhoRelativoBP(ref), ref);
+    }
+  }
+
+  const formatos = new Map(); // nome do arquivo -> id do step
+  for (const step of steps) {
+    if (step.format) formatos.set(`${step.format}.md`, step.id);
+  }
+
+  if (!referencias.size && !formatos.size) return;
+
+  if (!existsSync(bestPracticesDir)) {
+    issues.push(issue(
+      'warn',
+      'best-practices-nao-instaladas',
+      `${referencias.size + formatos.size} referência(s) de best-practice e nenhum diretório em `
+        + `${bestPracticesDir} — área não instalada; não dá para verificar existência nem contrato`
+    ));
+    return;
+  }
+
+  for (const [arquivo, ref] of referencias) {
+    if (!existsSync(join(bestPracticesDir, arquivo))) {
+      issues.push(issue(
+        'error',
+        'best-practice-declarada-inexistente',
+        `data: "${ref}" declarada e ausente de ${bestPracticesDir}`
+      ));
+    }
+  }
+
+  for (const [arquivo, stepId] of formatos) {
+    const caminho = join(bestPracticesDir, arquivo);
+    if (!existsSync(caminho)) {
+      issues.push(issue(
+        'error',
+        'format-declarado-inexistente',
+        `${stepId}: format: aponta pra "${arquivo}", ausente de ${bestPracticesDir}`
+      ));
+      continue;
+    }
+    if (!temFrontmatterComName(readFileSync(caminho, 'utf8'))) {
+      issues.push(issue(
+        'error',
+        'format-sem-frontmatter',
+        `${stepId}: format: "${arquivo}" existe mas não tem frontmatter YAML com name: — `
+          + 'contrato exigido de quem é consumida via format: (runner.pipeline.md, Agent Loading 4a)'
+      ));
+    }
+  }
 }
 
 /**
@@ -192,6 +305,7 @@ function parseSteps(pipeline) {
       tipo: bloco.match(/^ {4}type: (\S+)\s*$/m)?.[1] || '',
       file: bloco.match(/^ {4}file: (\S+)\s*$/m)?.[1] || null,
       agent: bloco.match(/^ {4}agent: (\S+)\s*$/m)?.[1] || null,
+      format: bloco.match(/^ {4}format: (\S+)\s*$/m)?.[1] || null,
       onReject: bloco.match(/^ {4}on_reject: (\S+)\s*$/m)?.[1] || null,
       dependsOn: parseListaDeStep(bloco, 'depends_on'),
       parallelGroup: bloco.match(/^ {4}parallel_group: (\S+)\s*$/m)?.[1] || null,
@@ -244,6 +358,7 @@ function parseCheckpoints(pipeline) {
 export function checkSquad(squad, options = {}) {
   const squadsDir = options.squadsDir || squadsDirPadrao();
   const skillsDir = options.skillsDir || skillsDirPadrao(squadsDir);
+  const bestPracticesDir = options.bestPracticesDir || bestPracticesDirPadrao(squadsDir);
   const dir = join(squadsDir, squad);
   const issues = [];
   const resultado = () => ({
@@ -445,6 +560,9 @@ export function checkSquad(squad, options = {}) {
 
   // --- skills declaradas: promessa que ninguém conferia ---
   checarSkillsDeclaradas(dir, skillsDir, issues);
+
+  // --- best-practices declaradas (data:/format:): mesma promessa, mesma dívida ---
+  checarBestPracticesDeclaradas(dir, bestPracticesDir, steps, issues);
 
   return resultado();
 }

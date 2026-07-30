@@ -60,7 +60,7 @@ After the user answers Step 1, classify their intent into one of the following d
 
 Save the detected domain as `domain`.
 
-Se o domínio for `legal`, verifique em `_legalsquad/core/best-practices/_catalog.yaml` quais best-practices a área instalada marca como **obrigatórias** para o tipo de trabalho detectado e leia-as neste ponto, antes de qualquer investigação — **quando instaladas**. Se o `_catalog.yaml` ou as best-practices que ele declara obrigatórias não existirem (área não instalada), registre `area_protocol: not_installed` no `discovery.yaml` e siga; **nunca reconstitua um protocolo de memória** nem finja tê-lo aplicado.
+Se o domínio for `legal`, verifique em `_legalsquad/core/best-practices/_catalog.yaml` quais entradas têm `obrigatoria: true` — o campo do schema, não uma leitura por `whenToUse` — e leia-as neste ponto, antes de qualquer investigação — **quando instaladas**. Se o `_catalog.yaml` não existir, ou existir sem nenhuma entrada `obrigatoria: true` (área não instalada), registre `area_protocol: not_installed` no `discovery.yaml` e siga; **nunca reconstitua um protocolo de memória** nem finja tê-lo aplicado.
 
 ---
 

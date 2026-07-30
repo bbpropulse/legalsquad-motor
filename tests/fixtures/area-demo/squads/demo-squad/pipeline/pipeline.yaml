@@ -53,6 +53,7 @@ steps:
     agent: redator-demo
     execution: inline
     file: steps/step-05-redacao-do-rascunho.md
+    format: fluxo-demo-basico
     depends_on: step-04
     output:
       artifacts:

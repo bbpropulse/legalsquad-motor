@@ -10,6 +10,7 @@
 // oportunidade de mexer no conteúdo (ver `promoverNuncaReescreve` abaixo).
 
 import { parseSkillMetadata } from './frontmatter.js';
+import { parseBestPracticesCatalogText } from './best-practices-catalog.js';
 
 /** Marcadores de contrato de forks anteriores a este motor (§6.8). */
 const MARCADORES_LEGADOS = [/CRIMINALSQUAD:HP-CONTRACT/, /\bcsq-v5-/];
@@ -93,7 +94,16 @@ function registroDeSquad(entidade, nomeDaEntidade, id) {
   };
 }
 
-function registroDeBestPractice(entidade, nomeDaEntidade, id) {
+/**
+ * `catalogo` é o lookup por id do `_catalog.yaml` da mesma pasta (pode ser
+ * `undefined` — best-practice sem catálogo instalado, ou id fora dele). O
+ * `whenToUse` é o texto que o Arquiteto já usa pra casar squad↔best-practice;
+ * sem ele aqui, o catálogo sincronizável (o que o `sync`/busca local recebe)
+ * ficava mais pobre que a leitura direta do `_catalog.yaml` — duas fontes de
+ * verdade pra mesma metadata, uma rica e outra capada no título do markdown.
+ */
+function registroDeBestPractice(entidade, nomeDaEntidade, id, catalogo) {
+  const entrada = catalogo?.get(id);
   const titulo = entidade.text?.match(/^#\s+(.+)$/m)?.[1] || id;
   return {
     kind: 'best-practice',
@@ -102,7 +112,10 @@ function registroDeBestPractice(entidade, nomeDaEntidade, id) {
     path: entidade.path,
     sha256: entidade.sha256,
     bytes: entidade.bytes,
-    description: recortar(titulo),
+    description: recortar(entrada?.whenToUse || titulo),
+    // Só entra quando true — catálogo fino, sem carregar `obrigatoria: false`
+    // em toda entrada (mesmo espírito de `promotion_blocked_by` acima).
+    ...(entrada?.obrigatoria ? { obrigatoria: true } : {}),
   };
 }
 
@@ -141,6 +154,16 @@ function registroDeAgente(entidade, nomeDaEntidade, id) {
 export function extrairCatalogo(entidades, nomeDaEntidade) {
   const registros = [];
 
+  // Lookup por id: no máximo um `_catalog.yaml` por pasta de best-practices,
+  // e ele pode nem existir (best-practices sem `_catalog.yaml` instalado
+  // continuam empacotáveis — caem no fallback de `registroDeBestPractice`).
+  const catalogoYaml = entidades.find(
+    (e) => e.path === '_legalsquad/core/best-practices/_catalog.yaml'
+  );
+  const catalogo = catalogoYaml
+    ? new Map(parseBestPracticesCatalogText(catalogoYaml.text).map((entrada) => [entrada.id, entrada]))
+    : undefined;
+
   for (const entidade of entidades) {
     const skill = entidade.path.match(/^skills\/([^/]+)\/SKILL\.md$/);
     if (skill) {
@@ -157,7 +180,7 @@ export function extrairCatalogo(entidades, nomeDaEntidade) {
     // organizou o diretório de conteúdo.
     const bp = entidade.path.match(/^_legalsquad\/core\/best-practices\/([^/]+)\.md$/);
     if (bp && !bp[1].startsWith('_')) {
-      registros.push(registroDeBestPractice(entidade, nomeDaEntidade, bp[1]));
+      registros.push(registroDeBestPractice(entidade, nomeDaEntidade, bp[1], catalogo));
       continue;
     }
     const agente = entidade.path.match(/^\.claude\/agents\/([^/]+)\.md$/);

@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { discoverSkillCatalog } from './skill-catalog.js';
 import { auditSkillCatalogQuality } from './skill-quality.js';
 import { queryTokens, rankSkills } from './skill-rank.js';
+import { defaultBestPracticesCatalogPath, parseBestPracticesCatalog } from './best-practices-catalog.js';
 
 const DEFAULT_LIMIT = 8;
 const MAX_LIMIT = 20;
@@ -21,12 +22,49 @@ function clipped(value, max = 220) {
   return `${text.slice(0, max - 1).replace(/\s+\S*$/, '')}…`;
 }
 
+/**
+ * Best-practices reusam o MESMO motor de ranking das skills (`rankSkills` é
+ * puro e genérico o bastante para qualquer doc `{id, description}`). Sem
+ * índice próprio: um `_catalog.yaml` de área cabe inteiro em memória, ao
+ * contrário de `skills/_index.yaml` — não há o mesmo problema de escala que
+ * justificou a auditoria/corte em duas fases da busca de skills acima.
+ *
+ * Sem catálogo instalado (área ausente) → `[]`, nunca erro: mesma degradação
+ * graciosa de toda leitura de `_legalsquad/core/best-practices/` no motor.
+ */
+function searchBestPractices(query, rootDir, options) {
+  const catalogPath = options.bestPracticesCatalogPath || defaultBestPracticesCatalogPath(rootDir);
+  const entradas = parseBestPracticesCatalog(catalogPath);
+  if (!entradas.length) return [];
+
+  const ranked = rankSkills(
+    entradas.map((entrada) => ({ id: entrada.id, description: entrada.whenToUse || entrada.name })),
+    query
+  );
+  const porId = new Map(entradas.map((entrada) => [entrada.id, entrada]));
+
+  return ranked
+    .slice(0, boundedLimit(options.limit))
+    .map((match) => {
+      const entrada = porId.get(match.id);
+      return {
+        id: entrada.id,
+        name: entrada.name,
+        score: match.score,
+        matched_by: match.reasons,
+        description: clipped(entrada.whenToUse || entrada.name),
+        ...(entrada.obrigatoria ? { obrigatoria: true } : {}),
+      };
+    });
+}
+
 export function searchSkillCatalog(query, rootDir, options = {}) {
   const tokens = queryTokens(query);
   if (!tokens.length) {
     return {
       success: false,
       results: [],
+      best_practices: [],
       error: { code: 'search-query-empty', message: 'informe termos materiais da capability' },
     };
   }
@@ -35,6 +73,7 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
     return {
       success: false,
       results: [],
+      best_practices: [],
       error: { code: 'skills-directory-missing', message: 'diretório skills/ ausente' },
     };
   }
@@ -128,6 +167,7 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
     limit,
     include_preview: options.includePreview === true,
     results: ranked,
+    best_practices: searchBestPractices(query, rootDir, options),
     error: null,
   };
 }
@@ -158,6 +198,13 @@ export function skillSearchCli(query, targetDir, values = {}) {
       : `supervisão-obrigatória${alegaSemProva ? ` (alega ${item.quality_status} sem evidência)` : ''}`;
     const pilot = item.pilot_opt_in_required ? '; pilot-opt-in' : '';
     console.log(`  - ${item.id} — ${gate}${pilot} — ${item.description}`);
+  }
+  if (result.best_practices.length) {
+    console.log(`BUSCA_BEST_PRACTICES:${result.best_practices.length}`);
+    for (const bp of result.best_practices) {
+      const obrigatoria = bp.obrigatoria ? '; obrigatória' : '';
+      console.log(`  - ${bp.id} — ${bp.name}${obrigatoria} — ${bp.description}`);
+    }
   }
   return result;
 }

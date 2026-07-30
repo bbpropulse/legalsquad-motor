@@ -11,6 +11,7 @@ import {
   SKILL_LIFECYCLES,
 } from './frontmatter.js';
 import { auditSkillCatalogQuality } from './skill-quality.js';
+import { parseBestPracticesCatalog } from './best-practices-catalog.js';
 
 // O agrupamento é mecanismo — serve para o agente de roteamento ler o catálogo
 // em blocos em vez de uma lista plana. A TAXONOMIA, porém, é da área: o motor
@@ -386,10 +387,11 @@ function validateDeterministicEngines(raw, catalog, errors, {
   }
 }
 
+// Só os ids importam aqui (validar alvo de canonicalização); a leitura em si
+// é única, em best-practices-catalog.js — reusada por empacotamento, busca e
+// squad-check, pra não ter quatro parsers do mesmo `_catalog.yaml` divergindo.
 function parseBestPracticeIds(path) {
-  if (!path || !existsSync(path)) return new Set();
-  const raw = readFileSync(path, 'utf8');
-  return new Set([...raw.matchAll(/^\s+- id:\s*([a-z0-9][a-z0-9-]*)\s*$/gm)].map((match) => match[1]));
+  return new Set(parseBestPracticesCatalog(path).map((entrada) => entrada.id));
 }
 
 function validateCanonicalization(raw, catalog, errors, {

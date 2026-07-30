@@ -41,7 +41,7 @@ const HELP = `
     npx legalsquad contract-skills         Apply the v5 operational contract + reindex
     npx legalsquad check-skills            Validate skill catalogue and graph
     npx legalsquad audit-skills            Audit skill contracts and evidence maturity
-    npx legalsquad search-skills <query>   Return a compact, ranked skill shortlist
+    npx legalsquad search-skills <query>   Return a compact, ranked skill + best-practice shortlist
     npx legalsquad search-acervo <query>   Return a compact, ranked acervo shortlist
     npx legalsquad captura <file|URL>      Watch video + transcribe audio (local by default)
     npx legalsquad captura setup           Install on-use deps (ffmpeg/yt-dlp/faster-whisper)

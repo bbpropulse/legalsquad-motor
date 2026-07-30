@@ -11,4 +11,5 @@ catalog:
     name: "Revisão Dupla Sintética"
     whenToUse: "Criar agentes que revisam em paralelo um rascunho sintético antes da aprovação final."
     file: revisao-dupla-demo.md
+    obrigatoria: true
 

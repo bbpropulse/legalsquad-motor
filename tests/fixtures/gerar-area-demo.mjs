@@ -599,7 +599,16 @@ const BEST_PRACTICES = [
     name: 'Fluxo Demo Básico',
     whenToUse: 'Criar agentes que executam o fluxo sintético triagem → análise → redação da área demo.',
     file: 'fluxo-demo-basico.md',
-    content: `# Fluxo Demo Básico
+    // Frontmatter é o contrato exigido só de quem é consumida via `format:`
+    // (runner.pipeline.md — Agent Loading passo 4a): o runner faz parse do
+    // YAML pra extrair `name`. As best-practices descobertas só pelo
+    // `_catalog.yaml` (a maioria) não precisam disso — esta é a exceção
+    // exercitada pela fixture, ver step-05 do pipeline do demo-squad.
+    content: `---
+name: "Fluxo Demo Básico"
+---
+
+# Fluxo Demo Básico
 
 Best-practice sintética: todo agente do fluxo demo básico deve (1) exigir
 objetivo e fase declarados antes de agir, (2) nunca inventar documento de
@@ -612,6 +621,10 @@ entrega. Sem conteúdo jurídico — fixture da área demo.
     name: 'Revisão Dupla Sintética',
     whenToUse: 'Criar agentes que revisam em paralelo um rascunho sintético antes da aprovação final.',
     file: 'revisao-dupla-demo.md',
+    // `obrigatoria: true` exercita o campo real do schema (antes só prosa nos
+    // prompts, sem lugar nenhum pra viver) — toda área demo que tenha
+    // parallel_group de revisão é obrigada a consultar esta regra.
+    obrigatoria: true,
     content: `# Revisão Dupla Sintética
 
 Best-practice sintética: quando dois revisores rodam em paralelo
@@ -653,7 +666,9 @@ async function gerarBestPractices() {
     yaml += `  - id: ${bp.id}\n`;
     yaml += `    name: "${bp.name}"\n`;
     yaml += `    whenToUse: "${bp.whenToUse}"\n`;
-    yaml += `    file: ${bp.file}\n\n`;
+    yaml += `    file: ${bp.file}\n`;
+    if (bp.obrigatoria) yaml += '    obrigatoria: true\n';
+    yaml += '\n';
   }
   await writeFile(join(dir, '_catalog.yaml'), yaml);
   for (const bp of BEST_PRACTICES) {
@@ -741,8 +756,8 @@ skills:
   - demo-calculo-beta
 
 data:
-  - core/best-practices/fluxo-demo-basico.md
-  - core/best-practices/revisao-dupla-demo.md
+  - _legalsquad/core/best-practices/fluxo-demo-basico.md
+  - _legalsquad/core/best-practices/revisao-dupla-demo.md
   - acervo/_index.yaml
 
 agents:
@@ -807,7 +822,15 @@ const PIPELINE_STEPS = [
   { id: 'step-02', name: 'Triagem', type: 'agent', agent: 'triagem-demo', execution: 'inline', desc: 'Tara Triagem monta a ficha de foco a partir da demanda.', depends_on: 'step-01', artifacts: ['output/triagem.md'] },
   { id: 'step-03', name: 'Análise', type: 'agent', agent: 'analista-demo', execution: 'subagent', desc: 'Ana Análise produz o diagnóstico sintético.', depends_on: 'step-02', artifacts: ['output/analise.md'] },
   { id: 'step-04', name: 'Aprovar Análise', type: 'checkpoint', desc: 'O usuário aprova o diagnóstico sintético antes da redação.', depends_on: 'step-03', artifacts: ['output/analise-aprovada.md'] },
-  { id: 'step-05', name: 'Redação do Rascunho', type: 'agent', agent: 'redator-demo', execution: 'inline', desc: 'Rui Redação produz o rascunho sintético.', depends_on: 'step-04', artifacts: ['output/rascunho-demo.md'] },
+  {
+    id: 'step-05', name: 'Redação do Rascunho', type: 'agent', agent: 'redator-demo', execution: 'inline',
+    desc: 'Rui Redação produz o rascunho sintético.', depends_on: 'step-04', artifacts: ['output/rascunho-demo.md'],
+    // Exercita o mecanismo `format:` (runner.pipeline.md, Agent Loading passo
+    // 4a): a best-practice tem de ter frontmatter YAML com `name:` — é o
+    // contrato que distingue quem é consumida via `format:` de quem só é
+    // descoberta pelo `_catalog.yaml` (a maioria, sem frontmatter).
+    format: 'fluxo-demo-basico',
+  },
   { id: 'step-06', name: 'Aprovar Rascunho', type: 'checkpoint', desc: 'O usuário aprova o rascunho antes da revisão dupla.', depends_on: 'step-05' },
   {
     id: 'step-07', name: 'Revisão A', type: 'agent', agent: 'revisor-demo-a', execution: 'subagent',
@@ -845,6 +868,7 @@ function pipelineYaml() {
     if (step.agent) y += `    agent: ${step.agent}\n`;
     if (step.execution) y += `    execution: ${step.execution}\n`;
     y += `    file: steps/${stepFileName(step)}\n`;
+    if (step.format) y += `    format: ${step.format}\n`;
     if (step.depends_on) {
       y += Array.isArray(step.depends_on)
         ? `    depends_on: [${step.depends_on.join(', ')}]\n`

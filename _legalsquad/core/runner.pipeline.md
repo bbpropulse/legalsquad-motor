@@ -143,9 +143,13 @@ Before executing any step that references an agent:
    - Apply Voice Guidance (vocabulary always/never use, tone rules)
 4. **Inject format context**: Check if the current step's frontmatter contains a `format:` field.
    If present:
-   a. Read `_legalsquad/core/best-practices/{format}.md` (e.g., `_legalsquad/core/best-practices/instagram-feed.md`)
+   a. Read `_legalsquad/core/best-practices/{format}.md` (e.g., `format: fluxo-demo-basico` reads
+      `_legalsquad/core/best-practices/fluxo-demo-basico.md`)
       - If the file does not exist → **WARNING**: "Format '{format}' not found in _legalsquad/core/best-practices/. Skipping format injection." Continue without format.
-   b. Parse the YAML frontmatter to extract the `name` field
+   b. Parse the YAML frontmatter to extract the `name` field. **This is a real contract, not best-effort**:
+      a best-practice consumed via `format:` MUST carry `---\nname: "..."\n---` — `check-squad` fails
+      the squad (`format-sem-frontmatter`) when it doesn't. Best-practices discovered only via
+      `_catalog.yaml` (the majority) don't need frontmatter; this requirement is specific to `format:`.
    c. Extract the Markdown body (everything after the YAML frontmatter closing `---`)
    d. Append to the agent's context, before skill instructions:
       ```

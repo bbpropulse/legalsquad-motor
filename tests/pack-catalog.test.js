@@ -97,6 +97,49 @@ test('o empacotador NÃO reescreve os bytes da skill', () => {
   assert.match(entidade.text, /CRIMINALSQUAD:HP-CONTRACT/, 'os bytes originais são preservados');
 });
 
+test('best-practice com entrada no `_catalog.yaml` usa `whenToUse` como description, não só o título', () => {
+  // Antes desta mudança, `registroDeBestPractice` só olhava pro `# Título` do
+  // markdown — o `whenToUse`, o texto rico que o Arquiteto usa pra casar
+  // squad↔best-practice, nunca chegava ao catálogo sincronizável. Resultado:
+  // busca local sobre best-practices seria bem mais pobre que a leitura direta
+  // do `_catalog.yaml` que o Arquiteto já faz hoje.
+  const catalogo = [
+    'catalog:',
+    '  - id: redacao',
+    '    name: "Redação Persuasiva"',
+    '    whenToUse: "Redigir ou revisar qualquer peça, parecer ou memorial jurídico."',
+    '    file: redacao.md',
+    '    obrigatoria: true',
+    '',
+  ].join('\n');
+
+  const registros = extrairCatalogo([
+    { path: '_legalsquad/core/best-practices/_catalog.yaml', sha256: 'sha-cat', bytes: catalogo.length, text: catalogo },
+    { path: '_legalsquad/core/best-practices/redacao.md', sha256: 'sha-bp', bytes: 9, text: '# Redação\n\ntexto\n' },
+  ], 'best-practices.jsonl.zst');
+
+  assert.equal(registros.length, 1, 'o _catalog.yaml em si não vira registro — é metadado, não item');
+  const [redacao] = registros;
+  assert.equal(redacao.kind, 'best-practice');
+  assert.equal(redacao.id, 'redacao');
+  assert.equal(
+    redacao.description,
+    'Redigir ou revisar qualquer peça, parecer ou memorial jurídico.',
+    'description vem do whenToUse do catálogo, não do # Título do markdown'
+  );
+  assert.equal(redacao.obrigatoria, true, '`obrigatoria: true` do _catalog.yaml precisa sobreviver ao empacotamento');
+});
+
+test('best-practice SEM entrada no `_catalog.yaml` (ou sem catálogo nenhum) cai pro título — nunca quebra', () => {
+  const registros = extrairCatalogo([
+    { path: '_legalsquad/core/best-practices/orfa.md', sha256: 'sha-orfa', bytes: 20, text: '# Best-Practice Órfã\n\ntexto\n' },
+  ], 'best-practices.jsonl.zst');
+
+  const [orfa] = registros;
+  assert.equal(orfa.description, 'Best-Practice Órfã', 'sem catálogo, o título continua sendo o fallback');
+  assert.equal(orfa.obrigatoria, undefined, 'nunca inventa obrigatoriedade pra quem o catálogo não declarou');
+});
+
 test('squads, best-practices e agentes de área também entram no catálogo', () => {
   // `extrairCatalogo` recebe entidades já no caminho de INSTALAÇÃO — o remapeamento
   // de autoria → instalação acontece antes, em `pack-build.js`.

@@ -633,7 +633,7 @@ Verifique programaticamente (leia/`grep` os arquivos gerados):
 - [ ] **Veredito parseável:** o step de revisão instrui emitir o bloco `verdict: APPROVE | REJECT` + `fixes:` no topo do `outputFile` (grep por `verdict:` no step).
 - [ ] **Loop com teto:** o step de revisão tem `on_reject: {step de redação}` **e** `max_review_cycles` (no step e/ou no `pipeline.yaml`), retomando pelo checkpoint humano de re-aprovação.
 - [ ] **Citation Gate explícito:** o step de pesquisa manda marcar `[NÃO VERIFICADO]`/`[DIVERGENTE]`; o step de revisão aciona o subagente `verificador-citacoes` e condiciona o APPROVE ao veredito (grep por `verificador-citacoes` e `NÃO VERIFICADO`).
-- [ ] **Padrão de redação (obra-prima):** o step de redação referencia pelo id a best-practice de redação persuasiva do `_catalog.yaml` da área (ou, sem catálogo instalado, traz os requisitos escritos no corpo) e o step de revisão cobre a dimensão de qualidade da redação (teoria do caso, subsunção explícita, coesão — grep pelo id referenciado ou por "teoria do caso").
+- [ ] **Padrão de redação (obra-prima):** o step de redação referencia pelo id a best-practice de redação persuasiva do `_catalog.yaml` da área — normalmente a entrada com `obrigatoria: true` (ou, sem catálogo instalado, traz os requisitos escritos no corpo) — e o step de revisão cobre a dimensão de qualidade da redação (teoria do caso, subsunção explícita, coesão — grep pelo id referenciado ou por "teoria do caso").
 - [ ] **Checkpoint antes do irreversível:** todo step que protocola/envia e-mail/peça é precedido imediatamente por um `type: checkpoint` (extensão jurídica do Gate 2b).
 - [ ] **Ética/sigilo:** algum agente/step referencia a best-practice `etica-oab-sigilo` (e, havendo conteúdo público, `conteudo-juridico-redes`/Provimento 205).
 - [ ] **Meta verificável:** o `squad.yaml` tem `goal` (1 frase) e `success_criteria` (3–6 critérios verificáveis) — o runner usa-os na Verificação da Meta (goal-backward) antes de concluir.
@@ -665,17 +665,19 @@ npx legalsquad check-squad {code}
 Ele verifica por **código** (exit != 0 reprova): `code` batendo com a pasta, `goal` preenchido,
 `success_criteria` entre 3 e 6, `_evals/scores.md` com o cabeçalho do log de regressão, ao menos um
 caso-ouro em `_evals/casos/`, todo `file:` de step existindo em disco, todo `agent:` presente no
-`squad-party.csv` **e** com arquivo correspondente, `on_reject` apontando para step real, e cada
-`checkpoints:` existindo entre os steps. Ausência de checkpoint sai como **aviso** (nem todo squad
-precisa de aprovação humana) — os demais são erro.
+`squad-party.csv` **e** com arquivo correspondente, `on_reject` apontando para step real, cada
+`checkpoints:` existindo entre os steps, toda skill em `skills:` instalada e com lifecycle elegível,
+e toda referência a best-practice em `data:`/`format:` existindo em
+`_legalsquad/core/best-practices/` — inclusive o contrato de frontmatter (`name:`) exigido de quem é
+consumida via `format:`, e o alerta de `data:` ainda no caminho de AUTORIA (`core/best-practices/`,
+não remapeado). Ausência de checkpoint, `data:`/`format:` no caminho de autoria e ausência da própria
+pasta `_legalsquad/core/best-practices/` (área não instalada) saem como **aviso** — os demais são erro.
 
 Corrija tudo que ele apontar e rode de novo até sair limpo. **Não relate como validado o que o
 comando não confirmou** — é exatamente o tipo de checagem que o modelo tende a "dar por feita".
 
-Checagens que o validador ainda não cobre (confira lendo o filesystem):
+Checagem que o validador ainda não cobre (confira lendo o filesystem):
 - [ ] All task files referenced in agent frontmatter exist
-- [ ] Skills listed in `squad.yaml` are installed in `skills/`
-- [ ] Best-practices files referenced by `format:` fields in steps exist in `_legalsquad/core/best-practices/` (quando o diretório existir — ver protocolo de ausência)
 
 ---
 

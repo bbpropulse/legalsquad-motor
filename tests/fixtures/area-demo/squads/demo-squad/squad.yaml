@@ -29,8 +29,8 @@ skills:
   - demo-calculo-beta
 
 data:
-  - core/best-practices/fluxo-demo-basico.md
-  - core/best-practices/revisao-dupla-demo.md
+  - _legalsquad/core/best-practices/fluxo-demo-basico.md
+  - _legalsquad/core/best-practices/revisao-dupla-demo.md
   - acervo/_index.yaml
 
 agents:
