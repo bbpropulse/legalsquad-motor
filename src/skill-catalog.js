@@ -67,7 +67,15 @@ export function discoverSkillCatalog(skillsDir) {
   const entries = [];
   const missingSkillFiles = [];
   for (const id of directories) {
-    const skillPath = join(skillsDir, id, 'SKILL.md');
+    // A camada local VENCE a do pacote. É ela que o agente recebe — o
+    // enriquecimento só serve para alguma coisa se for o que de fato carrega.
+    // O `SKILL.md` do pacote continua no disco e continua sendo atualizado
+    // pelo sync; ele vira a base sobre a qual a adaptação existe.
+    const localPath = join(skillsDir, id, 'SKILL.local.md');
+    const packPath = join(skillsDir, id, 'SKILL.md');
+    const local = existsSync(localPath);
+    const skillPath = local ? localPath : packPath;
+
     if (!existsSync(skillPath)) {
       missingSkillFiles.push(id);
       continue;
@@ -85,6 +93,9 @@ export function discoverSkillCatalog(skillsDir) {
     entries.push({
       id,
       skillPath,
+      // Procedência: distingue o que o curador publicou do que esta instalação
+      // adaptou. Sem isso ninguém sabe que o conteúdo divergiu do pacote.
+      local,
       raw,
       frontmatter: extractFrontMatter(raw),
       metadata,

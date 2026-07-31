@@ -35,6 +35,18 @@ const USER_OWNED = [
 /** A única subárvore gerenciada dentro de uma área user-owned. */
 const EXCECOES_GERENCIADAS = ['acervo/_packs/'];
 
+/**
+ * Camada local: o que o usuário (ou o Arquiteto, com o "sim" dele) adaptou
+ * sobre o que o pacote entregou.
+ *
+ * É sufixo, não prefixo, porque a posse aqui não é do DIRETÓRIO e sim do
+ * ARQUIVO: `skills/x/SKILL.md` continua sendo do pacote e pode ser atualizado
+ * à vontade; `skills/x/SKILL.local.md` é do usuário e nenhum pacote o toca.
+ * Sem isso, enriquecer uma skill seria trabalho que o próximo `sync` apagaria
+ * em silêncio — some o conteúdo e não sobra erro.
+ */
+const SUFIXO_LOCAL = '.local.md';
+
 /** Arquivos que nenhum pacote toca, em qualquer lugar da árvore. */
 export const ARQUIVOS_PROIBIDOS = new Set(['.env']);
 
@@ -47,6 +59,9 @@ export const ARQUIVOS_PROIBIDOS = new Set(['.env']);
  * de outra, onde ela não significa nada.
  */
 export function ehUserOwned(caminho) {
+  // A camada local vale em QUALQUER subárvore, e é checada antes das exceções
+  // gerenciadas: um pacote hostil não contorna a posse declarando outra raiz.
+  if (caminho.endsWith(SUFIXO_LOCAL)) return true;
   if (EXCECOES_GERENCIADAS.some((prefixo) => caminho.startsWith(prefixo))) return false;
   return USER_OWNED.some((prefixo) => caminho.startsWith(prefixo));
 }
