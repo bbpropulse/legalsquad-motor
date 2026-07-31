@@ -487,7 +487,16 @@ Quando o squad produz uma **peça protocolável, parecer ou pesquisa que cita le
 
 O squad pode precisar de uma capability que **nenhuma** skill existente cobre (o Gate de catálogo da Discovery/Design confirmou a lacuna com `npx legalsquad search-skills`). Só então crie — e crie **de primeira linha**, no contrato operacional v5, nunca no formato leve. Uma skill nova mal-feita contamina todo squad que a carrega.
 
-**Regra de ouro:** reusar › adaptar › criar. Se uma skill `active`/`contracted` cobre (ou quase), reuse/aponte por caminho; não recrie capability que já tem alvo canônico.
+**Regra de ouro:** REUSAR › ENRIQUECER › CRIAR. Se uma skill `active`/`contracted` cobre (ou quase) **e tem corpo**, reuse/aponte por caminho; não recrie capability que já tem alvo canônico.
+
+**Antes de criar, cheque a substância.** A shortlist do `search-skills` traz `linhas_proprias` e `titulo_oco`. Se a skill do tema existe mas está com `titulo_oco: true`, o caminho **não** é criar outra com nome parecido — é **enriquecer aquela**:
+
+1. **Pesquise fonte oficial primeiro.** Dispositivo legal no Planalto, resolução no site do tribunal, súmula na base oficial. Sem fonte aberta e lida, **não escreva** — enriquecer skill jurídica de memória é pior que o molde vazio, porque a casca é obviamente vazia e a invenção parece conhecimento.
+2. **Passe pelo Citation Gate.** Toda lei, súmula, tese e acórdão que entrar no corpo vai para o `verificador-citacoes` **antes** de gravar. Citação que voltar `NÃO ENCONTRADA` ou `DIVERGENTE` sai do texto ou desce para `[NÃO VERIFICADO]` — nunca fica como afirmação. Não basta abrir 20 fontes: o que sustenta uma tese central precisa da fonte que **aquela** tese cita, não de uma fonte vizinha.
+3. **Mostre o diff e peça o «sim».** Enriquecimento é conteúdo autoral entrando numa skill que o usuário instalou; ele aprova antes de existir.
+4. **Grave em `skills/<id>/SKILL.local.md`, nunca sobrescrevendo o `SKILL.md`.** O `.local.md` é user-owned: vence a versão do pacote na descoberta e sobrevive ao próximo `sync`. Escrever no `SKILL.md` faria o trabalho sumir em silêncio na próxima sincronização.
+
+Só quando **nenhuma** entrada cobre o tema é que se cria do zero — e aí vale tudo abaixo.
 
 Quando criar for inevitável, para CADA skill nova:
 

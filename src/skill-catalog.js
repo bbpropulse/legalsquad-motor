@@ -12,6 +12,7 @@ import {
 } from './frontmatter.js';
 import { auditSkillCatalogQuality } from './skill-quality.js';
 import { parseBestPracticesCatalog } from './best-practices-catalog.js';
+import { medirOriginalidade } from './skill-originality.js';
 
 // O agrupamento é mecanismo — serve para o agente de roteamento ler o catálogo
 // em blocos em vez de uma lista plana. A TAXONOMIA, porém, é da área: o motor
@@ -124,6 +125,16 @@ export function renderSkillIndex(catalog) {
   const qualityBySkill = new Map(
     auditSkillCatalogQuality(catalog).results.map((result) => [result.id, result]),
   );
+  // Substância entra no índice (e não é medida na busca) porque medir 5523
+  // skills custa ~16s — caro demais para responder uma consulta. Aqui é pago
+  // uma vez, na indexação.
+  const substanciaPorSkill = new Map(
+    medirOriginalidade(catalog.entries.map((entry) => ({
+      id: entry.id,
+      titulo: entry.metadata?.name || entry.id,
+      texto: entry.raw,
+    }))).skills.map((skill) => [skill.id, skill]),
+  );
   const groups = new Map();
   for (const entry of catalog.entries) {
     if (!groups.has(entry.group)) groups.set(entry.group, []);
@@ -168,6 +179,15 @@ export function renderSkillIndex(catalog) {
       yaml += `    production_eligible: ${entry.policy.productionEligible}\n`;
       yaml += `    selection: ${entry.policy.selection}\n`;
       yaml += `    high_performance_eligible: ${qualityBySkill.get(entry.id)?.highPerformanceEligible === true}\n`;
+      // Substância: o que permite ao Arquiteto distinguir capacidade real de
+      // título vazio. `linhas_proprias` é o que DECIDE (absoluto, imune a
+      // extração de boilerplate); `originalidade` informa quanto do arquivo é
+      // molde, mas não decide.
+      const substancia = substanciaPorSkill.get(entry.id);
+      if (substancia) {
+        yaml += `    linhas_proprias: ${substancia.linhasExclusivas}\n`;
+        yaml += `    originalidade: ${substancia.originalidade.toFixed(3)}\n`;
+      }
       if (meta.version) yaml += `    version: ${yamlString(meta.version)}\n`;
       if (meta.categories.length) yaml += `    categories: ${yamlList(meta.categories)}\n`;
       if (meta.aliases.length) yaml += `    aliases: ${yamlList(meta.aliases)}\n`;

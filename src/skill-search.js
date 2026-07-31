@@ -1,9 +1,10 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { discoverSkillCatalog } from './skill-catalog.js';
 import { auditSkillCatalogQuality } from './skill-quality.js';
 import { queryTokens, rankSkills } from './skill-rank.js';
 import { defaultBestPracticesCatalogPath, parseBestPracticesCatalog } from './best-practices-catalog.js';
+import { ehTituloOco, lerSubstanciaDoIndice } from './skill-substancia.js';
 
 const DEFAULT_LIMIT = 8;
 const MAX_LIMIT = 20;
@@ -79,6 +80,13 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
   }
 
   const catalog = discoverSkillCatalog(skillsDir);
+  // Substância vem do índice já calculado. Medir na hora custa ~16s em 5523
+  // skills — inviável numa busca. Índice ausente ou velho devolve mapa vazio,
+  // e `ehTituloOco` trata ausência como "não sei", nunca como "está vazia".
+  const indicePath = join(skillsDir, '_index.yaml');
+  const substancia = existsSync(indicePath)
+    ? lerSubstanciaDoIndice(readFileSync(indicePath, 'utf8'))
+    : new Map();
   const profilesPath = join(rootDir, '_legalsquad', 'core', 'skill-quality-profiles.json');
   const allowedLifecycles = options.includePreview ? PREVIEW_LIFECYCLES : DEFAULT_LIFECYCLES;
   const limit = boundedLimit(options.limit);
@@ -125,14 +133,31 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
         ? (quality.qualityStatus === 'certified' ? 10 : 8)
         : 0;
       const lifecycleBonus = entry.metadata.lifecycle === 'active' ? 4 : 0;
-      return { entry, quality, match, rank: match.score + maturityBonus + lifecycleBonus };
+      // Título oco desce no rank, mas NÃO some da shortlist: o Arquiteto
+      // precisa saber que o tema já tem entrada no catálogo — senão criaria
+      // uma segunda com outro nome e duplicaria a taxonomia. O que ele
+      // precisa é enxergar que o corpo está vazio, para preencher em vez de
+      // reusar. Ocultar seria trocar um erro por outro.
+      const substanciaDaSkill = substancia.get(entry.id);
+      const penalidadeDeVazio = ehTituloOco(substanciaDaSkill) ? -30 : 0;
+      return {
+        entry,
+        quality,
+        match,
+        substancia: substanciaDaSkill,
+        rank: match.score + maturityBonus + lifecycleBonus + penalidadeDeVazio,
+      };
     })
     .sort((left, right) => right.rank - left.rank || left.entry.id.localeCompare(right.entry.id))
     .slice(0, limit)
-    .map(({ entry, quality, match, rank }) => ({
+    .map(({ entry, quality, match, rank, substancia: sub }) => ({
       id: entry.id,
       score: rank,
       matched_by: match.reasons,
+      // O que o Arquiteto usa para decidir REUSAR × ENRIQUECER × CRIAR.
+      linhas_proprias: sub?.linhasProprias ?? null,
+      titulo_oco: ehTituloOco(sub),
+      local: entry.local === true,
       lifecycle: entry.metadata.lifecycle,
       quality_status: quality?.qualityStatus || entry.metadata.qualityStatus,
       high_performance_eligible: quality?.highPerformanceEligible === true,
@@ -197,7 +222,13 @@ export function skillSearchCli(query, targetDir, values = {}) {
       ? 'alta-performance-elegível'
       : `supervisão-obrigatória${alegaSemProva ? ` (alega ${item.quality_status} sem evidência)` : ''}`;
     const pilot = item.pilot_opt_in_required ? '; pilot-opt-in' : '';
-    console.log(`  - ${item.id} — ${gate}${pilot} — ${item.description}`);
+    // O aviso mais importante da linha: existe o título, não existe o corpo.
+    // Sem isto o Arquiteto reusa casca achando que reusou capacidade.
+    const oco = item.titulo_oco
+      ? ` ⚠ TÍTULO OCO (${item.linhas_proprias} linhas próprias) — ENRIQUEÇA, não reuse como está`
+      : '';
+    const local = item.local ? '; adaptada localmente' : '';
+    console.log(`  - ${item.id} — ${gate}${pilot}${local}${oco} — ${item.description}`);
   }
   if (result.best_practices.length) {
     console.log(`BUSCA_BEST_PRACTICES:${result.best_practices.length}`);

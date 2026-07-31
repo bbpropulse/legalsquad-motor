@@ -36,6 +36,8 @@ skills:
     production_eligible: true
     selection: default
     high_performance_eligible: false
+    linhas_proprias: 4
+    originalidade: 0.105
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["conector-mcp", "demo mcp"]
@@ -57,6 +59,8 @@ skills:
     production_eligible: true
     selection: default
     high_performance_eligible: false
+    linhas_proprias: 2
+    originalidade: 0.053
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["demo-calculo-beta", "demo beta"]
@@ -79,6 +83,8 @@ skills:
     production_eligible: false
     selection: compatibility-only
     high_performance_eligible: false
+    linhas_proprias: 1
+    originalidade: 0.026
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["demo-deprecada", "demo deprecada"]
@@ -100,6 +106,8 @@ skills:
     production_eligible: true
     selection: default
     high_performance_eligible: false
+    linhas_proprias: 2
+    originalidade: 0.053
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["demo-peca-alpha", "demo alpha"]
@@ -121,6 +129,8 @@ skills:
     production_eligible: true
     selection: explicit
     high_performance_eligible: false
+    linhas_proprias: 2
+    originalidade: 0.053
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["demo-piloto", "demo piloto"]
@@ -142,6 +152,8 @@ skills:
     production_eligible: false
     selection: test-only
     high_performance_eligible: false
+    linhas_proprias: 4
+    originalidade: 0.105
     version: "3.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["demo-preview-engine", "demo engine"]
@@ -164,6 +176,8 @@ skills:
     production_eligible: true
     selection: default
     high_performance_eligible: false
+    linhas_proprias: 0
+    originalidade: 0.000
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["demo-publicacao", "demo publicacao"]
@@ -185,6 +199,8 @@ skills:
     production_eligible: false
     selection: blocked
     high_performance_eligible: false
+    linhas_proprias: 1
+    originalidade: 0.026
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["demo-quarentena", "demo quarentena"]
@@ -206,6 +222,8 @@ skills:
     production_eligible: true
     selection: default
     high_performance_eligible: false
+    linhas_proprias: 2
+    originalidade: 0.053
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["gerador-imagem", "demo imagem"]
@@ -227,6 +245,8 @@ skills:
     production_eligible: true
     selection: default
     high_performance_eligible: false
+    linhas_proprias: 3
+    originalidade: 0.079
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["gerador-imagem-env", "demo env"]
@@ -248,6 +268,8 @@ skills:
     production_eligible: true
     selection: default
     high_performance_eligible: false
+    linhas_proprias: 3
+    originalidade: 0.079
     version: "1.0.0"
     categories: ["demo", "sintetico"]
     positive_triggers: ["legalsquad-skill-creator", "demo creator"]

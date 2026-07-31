@@ -149,6 +149,7 @@ No LegalSquad, as skills de **peça, análise e cálculo SÃO o núcleo do traba
    - `quarantined`: nunca selecionar, instalar ou executar.
    - Qualidade: prefira `certified`, depois `verified`, **apenas** com `high_performance_eligible: true`; rótulo sem elegibilidade computada é inválido para promoção. `contracted` exige contrato do perfil, guards e revisão humana e não pode ser descrita como comportamentalmente validada; `legacy` não entra em design novo.
    - Confirme `risk`, `delivery_type`, `freshness_policy`, `guard_triggers` e `eval_case_ids`. Use gatilhos positivos, negativos e de guarda; respeite `coexists` e evite cadeias redundantes.
+   - **Substância — `linhas_proprias` e `titulo_oco`.** Lifecycle e qualidade dizem se a skill está liberada; substância diz se ela tem conteúdo. `titulo_oco: true` significa que o corpo está vazio: existe o nome e a descrição, não existe o conhecimento. **Uma casca `active` + `certified` continua sendo uma casca.** Trate-a como LACUNA marcada no catálogo, nunca como capacidade resolvida.
 2. **Mapeie cada necessidade do squad a uma família de capacidade** (reaproveite, não reinvente). As famílias e os nomes de skill **vêm do catálogo da área instalada** — descubra-os com `search-skills` e pelo `_index.yaml`, **nunca presuma nomes nem invente peças**. As famílias que o motor sempre trata da mesma forma, qualquer que seja a área:
    - **Peças e recursos** — o step de redação carrega a skill da peça certa, resolvida pelo catálogo (e pelo manifesto de canonicalização, quando houver). Skill em preview nunca é dependência de produção: preserve-a como fonte auditável.
    - **Análise de provas e leitura dos autos** — skills de leitura documental/multimodal e OCR expostas pela área.
@@ -163,7 +164,12 @@ No LegalSquad, as skills de **peça, análise e cálculo SÃO o núcleo do traba
    a. Read the skills engine from `_legalsquad/core/skills.engine.md`
    b. Follow Operation 2 (Install a Skill) — ask for env vars, configure MCP, create binding
 5. Registre no design.yaml: quais skills os steps carregam (núcleo), quais integrações foram instaladas e a decisão de lifecycle/canonicalização (selecionadas, recusadas e fallback de qualquer pilot).
-6. **Regra de ouro:** prefira SEMPRE reaproveitar uma skill existente a instruir o agente a "fazer do zero"; e prefira a CALCULADORA determinística ao cálculo pelo LLM. Se nada cobre uma necessidade recorrente, sinalize como GAP (o Build pode propor uma skill nova ao usuário).
+6. **Regra de ouro — REUSAR × ENRIQUECER × CRIAR.** Prefira SEMPRE reaproveitar conteúdo existente a instruir o agente a "fazer do zero"; e prefira a CALCULADORA determinística ao cálculo pelo LLM. Mas "existe uma entrada no catálogo" não é o mesmo que "a capacidade está coberta" — decida pela substância:
+   - **REUSAR** — skill com `titulo_oco: false` e tema certo: aponte o step para ela e siga.
+   - **ENRIQUECER** — skill com `titulo_oco: true` e tema certo: o nome está certo, o corpo não existe. Registre no design.yaml como `enriquecimento_proposto` e deixe o Build conduzir (Step B2). **Não crie uma segunda skill com outro nome para o mesmo tema** — isso duplica a taxonomia e deixa as duas ocas.
+   - **CRIAR** — nenhuma entrada cobre o tema: sinalize como GAP; o Build propõe a skill nova ao usuário.
+
+   O erro que esta regra existe para impedir: com um catálogo grande e oco, "nunca crie o que já existe" faz o squad nascer com todas as capacidades no nome e nenhuma no corpo. **Quanto maior o catálogo vazio, menos o Arquiteto produz** — a não ser que ele enxergue a diferença entre título e conteúdo.
 7. Se o squad não precisar de nenhuma integração e as skills de núcleo já estão mapeadas → siga para a Phase E.
 
 ---
