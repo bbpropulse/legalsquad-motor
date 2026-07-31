@@ -216,3 +216,42 @@ auditável no artefato.
 **Aceite do F2 (paridade):** instalação limpa `legalsquad` + `transversal` + `area.criminal`
 reproduz a experiência atual do LegalSquad — 9 squads, gates verdes, resolvedor e Citation Gate
 funcionando. **Se não houver paridade, para** — não se abre área nova nem se migra aluno.
+
+## F3 — Sync + licença: **núcleo construído, deploy pendente**
+
+O servidor de distribuição (SPEC §7-§8) mora num repositório **novo e privado**,
+[`legalsquad-acervo-server`](https://github.com/bbpropulse/legalsquad-acervo-server) — nunca no
+motor (público). Mesma razão pela qual conteúdo de área não entra aqui: segredo de assinatura de
+URL, segredo de admin e o inventário de quem tem licença não pertencem a repositório público.
+
+**Construído e testado (39 testes no servidor, 576 no motor):**
+- Servidor: `GET /v1/catalog` (entitlement, URLs assinadas HMAC expiráveis), `GET /v1/signing-keys`,
+  `POST /v1/admin/publish` (autenticado). Módulos puros, camada HTTP fina em cima.
+- Motor: `src/pack-archive.js` (formato de transporte — um pacote inteiro num `Buffer`, pra caber
+  numa única URL do §7.1), `src/acervo-transport.js` (`baixar` via `fetch`), `src/acervo-cli.js`
+  (`sync` real: busca catálogo → `planejarSync` → `executarSync` com `verificarPacote`/
+  `aplicarPacote` já existentes), `tools/publish-pack.mjs` (verifica localmente com `--pubkey`,
+  publica no servidor — nunca sobe pacote sem verificar antes).
+
+**Simplificação deliberada de v1** (decidida com o usuário — ver README do servidor):
+`verificarPacote` verifica o pacote como unidade atômica; não há verificação parcial por entidade
+ainda. Por isso `catalog` e `content`, na resposta do `/v1/catalog`, apontam pro mesmo arquivo (o
+pacote inteiro), e sem entitlement nenhum dos dois aparece — o pack continua listado (nunca some),
+só sem link de download. A separação "catálogo fino sempre baixável" da SPEC fica para quando
+`pack-format.js` suportar verificação parcial.
+
+**Pendente — não é dívida, é o que falta para ir ao ar:**
+- Deploy real no Railway: a sessão que construiu isto não tinha `railway login` autenticado: o
+  código está pronto, o deploy é passo manual (ver README do servidor).
+- Uma chave Ed25519 de produção de verdade (gerar, guardar a privada fora de qualquer git, publicar
+  a pública no servidor).
+- `_legalsquad/core/best-practices/`/`.claude/agents/` **não têm chave pública embarcada** — o
+  cliente hoje aponta `signing_public_key_path` para um arquivo local (mesmo padrão manual que
+  `apply-pack.mjs --pubkey` já usa). Embarcar uma chave padrão no motor público é decisão de produto
+  ainda não tomada — SPEC §7.2 já registra isso como aspiracional ("verificação nunca depende de
+  rede, chave já embarcada").
+
+**Aceite (SPEC/MIGRACAO.md F3):** licença ativa baixa o pack; sem licença, o pack aparece listado mas
+não baixa; vencida degrada para o cache existente, sem atualizar. Verificado localmente com servidor
+de fixture (`tests/acervo-cli.test.js`) e com o servidor real rodando em `localhost` — falta a
+verificação contra a instância pública no Railway.

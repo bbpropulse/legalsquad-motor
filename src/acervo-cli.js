@@ -1,27 +1,28 @@
 // CLI do acervo (SPEC §9.1): `sync`, `status`, `packs`.
 //
-// Camada fina de propósito — a decisão está em `acervo-sync.js` (puro) e o
-// estado em `acervo-estado.js`. Aqui só ficam a rede, a impressão e o wiring.
-//
-// **O servidor ainda não existe** (§7.1). Enquanto não existir, `sync` recusa em
-// vez de fingir: um comando que diz "tudo em dia" sem falar com servidor nenhum
-// seria exatamente a mentira que este cliente foi escrito para não contar.
-
+// Camada fina de propósito — a decisão está em `acervo-sync.js` (puro), o
+// estado em `acervo-estado.js`, e a verificação/aplicação em `pack-format.js`/
+// `pack-apply.js` (já prontos e testados antes de existir servidor nenhum).
+// Aqui só ficam a rede, a impressão e o wiring.
+import { createPublicKey } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { lerEstado, gravarEstado } from './acervo-estado.js';
-import { planejarSync } from './acervo-sync.js';
+import { planejarSync, executarSync } from './acervo-sync.js';
+import { baixar } from './acervo-transport.js';
+import { decodeEntity, verificarPacote } from './pack-format.js';
+import { aplicarPacote } from './pack-apply.js';
 
 /** Config opcional; ausente significa "sem servidor", não erro de leitura. */
-function urlDoCatalogo(targetDir) {
-  const config = join(targetDir, '_legalsquad', 'config', 'acervo.json');
-  if (!existsSync(config)) return null;
+function lerConfig(targetDir) {
+  const caminho = join(targetDir, '_legalsquad', 'config', 'acervo.json');
+  if (!existsSync(caminho)) return {};
   try {
-    return JSON.parse(readFileSync(config, 'utf8')).catalog_url || null;
+    return JSON.parse(readFileSync(caminho, 'utf8'));
   } catch (erro) {
     // Config presente e ilegível é diferente de config ausente: a primeira é
     // um engano do usuário que ele precisa ver.
-    throw new Error(`acervo-cli: ${config} ilegível — ${erro.message}`, { cause: erro });
+    throw new Error(`acervo-cli: ${caminho} ilegível — ${erro.message}`, { cause: erro });
   }
 }
 
@@ -50,11 +51,31 @@ function imprimirEstado(estado, agora) {
   }
 }
 
-// `values` (flags do parseArgs) entra na assinatura mas ainda não é consumido:
-// `--content` e `--check` do §9.1 só têm efeito quando o transporte HTTP existir.
-// Fica declarado para o wiring do bin não mudar depois.
-// eslint-disable-next-line no-unused-vars
-export function acervoCli(sub, targetDir, values = {}, agora = Date.now()) {
+async function buscarCatalogo(url, license) {
+  const alvo = new URL(url);
+  if (license) alvo.searchParams.set('license', license);
+  const resposta = await fetch(alvo);
+  if (!resposta.ok) {
+    throw new Error(`GET ${alvo} devolveu HTTP ${resposta.status}`);
+  }
+  return resposta.json();
+}
+
+/** `arquivos` que `aplicarPacote` espera: os registros DECODIFICADOS das entidades de conteúdo. */
+function arquivosDoConteudo(entidades) {
+  return entidades
+    .filter((entidade) => entidade.role === 'content')
+    .flatMap((entidade) => decodeEntity(entidade.buffer));
+}
+
+function imprimirResultadoDoSync(resultado) {
+  console.log(`ACERVO:SYNC ${resultado.aplicados.length} aplicado(s), ${resultado.recusados.length} recusado(s)`);
+  for (const packId of resultado.aplicados) console.log(`  - ${packId} instalado`);
+  for (const { pack_id: packId, motivo } of resultado.recusados) console.error(`  · ${packId} recusado — ${motivo}`);
+  for (const packId of resultado.revogados) console.log(`  - ${packId} removido (revogado)`);
+}
+
+export async function acervoCli(sub, targetDir, values = {}, agora = Date.now()) {
   let estado;
   try {
     estado = lerEstado(targetDir);
@@ -75,27 +96,72 @@ export function acervoCli(sub, targetDir, values = {}, agora = Date.now()) {
     return { success: false, error: { code: 'subcomando-desconhecido', message: String(sub) } };
   }
 
-  const url = urlDoCatalogo(targetDir);
-  if (!url) {
-    // Fail-closed, e com o motivo verdadeiro. O servidor de distribuição é
-    // serviço novo (§8) e ainda não subiu; até lá o caminho suportado é o
-    // pacote local, via `tools/apply-pack.mjs`.
+  let config;
+  try {
+    config = lerConfig(targetDir);
+  } catch (erro) {
+    console.error(`ACERVO:BLOQUEADO — ${erro.message}`);
+    return { success: false, error: { code: 'config-ilegivel', message: erro.message } };
+  }
+
+  if (!config.catalog_url) {
+    // Fail-closed, e com o motivo verdadeiro. Até configurar um servidor, o
+    // caminho suportado é o pacote local, via `tools/apply-pack.mjs`.
     console.error(
       'ACERVO:BLOQUEADO — nenhum servidor de catálogo configurado '
       + '(`_legalsquad/config/acervo.json`, chave `catalog_url`).\n'
-      + '  O servidor de distribuição ainda não existe (SPEC §8). Até lá, instale pacotes locais:\n'
+      + '  Até lá, instale pacotes locais:\n'
       + '    node tools/apply-pack.mjs <dir-do-pacote> --into . --pubkey <chave.pub.pem>'
     );
     return { success: false, error: { code: 'catalogo-nao-configurado', message: 'catalog_url ausente' } };
   }
 
-  // A partir daqui é a plumbing de rede que só faz sentido com servidor de pé.
-  // O planejador e o executor já estão prontos e testados (`acervo-sync.js`).
-  console.error(`ACERVO:BLOQUEADO — sync contra ${url} ainda não implementado (F3, plumbing de rede).`);
-  return {
-    success: false,
-    error: { code: 'sync-nao-implementado', message: 'planejador e executor prontos; falta o transporte HTTP' },
-  };
+  if (!config.signing_public_key_path) {
+    // Verificar sem chave pública não é verificar — seria a assinatura Ed25519
+    // inteira virando decoração. `--pubkey` de `apply-pack.mjs` exige o mesmo.
+    console.error(
+      'ACERVO:BLOQUEADO — nenhuma chave pública configurada '
+      + '(`_legalsquad/config/acervo.json`, chave `signing_public_key_path`). '
+      + 'Sem ela não dá para verificar nada do que baixar.'
+    );
+    return { success: false, error: { code: 'chave-publica-ausente', message: 'signing_public_key_path ausente' } };
+  }
+
+  let chavePublica;
+  try {
+    chavePublica = createPublicKey(readFileSync(config.signing_public_key_path));
+  } catch (erro) {
+    console.error(`ACERVO:BLOQUEADO — chave pública ilegível em ${config.signing_public_key_path} — ${erro.message}`);
+    return { success: false, error: { code: 'chave-publica-ilegivel', message: erro.message } };
+  }
+
+  let catalogo;
+  try {
+    catalogo = await buscarCatalogo(config.catalog_url, config.license);
+  } catch (erro) {
+    console.error(`ACERVO:BLOQUEADO — catálogo inacessível — ${erro.message}`);
+    return { success: false, error: { code: 'catalogo-inacessivel', message: erro.message } };
+  }
+
+  const plano = planejarSync(catalogo, estado, { incluirConteudo: values.content === true });
+  if (!plano.ok) {
+    console.error(`ACERVO:BLOQUEADO — ${plano.motivo}`);
+    return { success: false, error: { code: 'plano-invalido', message: plano.motivo } };
+  }
+
+  const resultado = await executarSync(plano, {
+    baixar,
+    verificar: (manifesto, entidades) => verificarPacote(manifesto, entidades, chavePublica),
+    aplicar: (pack, manifesto, entidades) => {
+      const veredito = aplicarPacote(targetDir, manifesto, arquivosDoConteudo(entidades));
+      if (!veredito.ok) throw new Error(veredito.problemas.join('; '));
+    },
+  }, estado);
+
+  gravarEstado(targetDir, resultado.estado, { sincronizadoEm: new Date(agora).toISOString() });
+  imprimirResultadoDoSync(resultado);
+
+  return { success: true, ...resultado };
 }
 
 export { planejarSync, gravarEstado };
