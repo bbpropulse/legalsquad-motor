@@ -71,12 +71,15 @@ test('estado ilegível BLOQUEIA o comando em vez de reportar vazio', async () =>
   assert.match(saida, /BLOQUEADO/);
 });
 
-test('sync sem servidor configurado recusa — e diz a verdade sobre o porquê', async () => {
+test('sync sem licença recusa — e o que falta é a LICENÇA, não servidor nem chave', async () => {
+  // URL do catálogo e chave pública passaram a ser embarcadas (SPEC §7.2),
+  // então a única coisa que o aluno precisa fornecer é a licença. A mensagem
+  // tem de dizer isso, e não mandá-lo configurar o que já vem configurado.
   const { resultado, saida } = await silenciar(() => acervoCli('sync', projeto()));
 
   assert.equal(resultado.success, false);
   assert.match(saida, /BLOQUEADO/);
-  assert.match(saida, /apply-pack/, 'precisa apontar o caminho local, que funciona hoje');
+  assert.match(saida, /licen[çc]a/i);
 });
 
 test('subcomando desconhecido é recusado, não ignorado', async () => {
@@ -86,12 +89,15 @@ test('subcomando desconhecido é recusado, não ignorado', async () => {
   assert.match(saida, /sync, status ou packs/);
 });
 
-test('sync com catalog_url mas sem chave pública configurada recusa — não dá pra verificar sem chave', async () => {
+test('chave pública PRÓPRIA declarada e ilegível bloqueia — nunca cai em silêncio na embarcada', async () => {
+  // Quem publica área própria assina com chave própria. Se essa chave sumiu,
+  // cair na embarcada trocaria a autoridade que o usuário escolheu por outra,
+  // sem avisar — o pacote passaria a ser verificado contra quem ele não pediu.
   const raiz = projeto();
   mkdirSync(join(raiz, '_legalsquad', 'config'), { recursive: true });
   writeFileSync(
     join(raiz, '_legalsquad', 'config', 'acervo.json'),
-    JSON.stringify({ catalog_url: 'http://localhost:1/v1/catalog' })
+    JSON.stringify({ license: 'LS-AAAA-BBBB', signing_public_key_path: join(raiz, 'sumiu.pem') })
   );
 
   const { resultado, saida } = await silenciar(() => acervoCli('sync', raiz));

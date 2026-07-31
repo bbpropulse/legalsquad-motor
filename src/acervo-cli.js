@@ -5,26 +5,12 @@
 // `pack-apply.js` (já prontos e testados antes de existir servidor nenhum).
 // Aqui só ficam a rede, a impressão e o wiring.
 import { createPublicKey } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { lerEstado, gravarEstado } from './acervo-estado.js';
 import { planejarSync, executarSync } from './acervo-sync.js';
 import { baixar } from './acervo-transport.js';
 import { decodeEntity, verificarPacote } from './pack-format.js';
 import { aplicarPacote } from './pack-apply.js';
-
-/** Config opcional; ausente significa "sem servidor", não erro de leitura. */
-function lerConfig(targetDir) {
-  const caminho = join(targetDir, '_legalsquad', 'config', 'acervo.json');
-  if (!existsSync(caminho)) return {};
-  try {
-    return JSON.parse(readFileSync(caminho, 'utf8'));
-  } catch (erro) {
-    // Config presente e ilegível é diferente de config ausente: a primeira é
-    // um engano do usuário que ele precisa ver.
-    throw new Error(`acervo-cli: ${caminho} ilegível — ${erro.message}`, { cause: erro });
-  }
-}
+import { resolverConfigDeAcervo } from './acervo-config.js';
 
 function idade(sincronizadoEm, agora) {
   if (!sincronizadoEm) return null;
@@ -51,12 +37,17 @@ function imprimirEstado(estado, agora) {
   }
 }
 
+/**
+ * A licença vai no header `Authorization`, NUNCA na query string: query
+ * string entra em log de acesso, de proxy e de CDN, e um identificador de
+ * assinante nesses logs é rastreamento gratuito de quem paga.
+ */
 async function buscarCatalogo(url, license) {
-  const alvo = new URL(url);
-  if (license) alvo.searchParams.set('license', license);
-  const resposta = await fetch(alvo);
+  const resposta = await fetch(url, {
+    headers: license ? { authorization: `Bearer ${license}` } : {},
+  });
   if (!resposta.ok) {
-    throw new Error(`GET ${alvo} devolveu HTTP ${resposta.status}`);
+    throw new Error(`GET ${url} devolveu HTTP ${resposta.status}`);
   }
   return resposta.json();
 }
@@ -98,46 +89,31 @@ export async function acervoCli(sub, targetDir, values = {}, agora = Date.now())
 
   let config;
   try {
-    config = lerConfig(targetDir);
+    config = resolverConfigDeAcervo(targetDir);
   } catch (erro) {
     console.error(`ACERVO:BLOQUEADO — ${erro.message}`);
     return { success: false, error: { code: 'config-ilegivel', message: erro.message } };
   }
 
-  if (!config.catalog_url) {
-    // Fail-closed, e com o motivo verdadeiro. Até configurar um servidor, o
-    // caminho suportado é o pacote local, via `tools/apply-pack.mjs`.
-    console.error(
-      'ACERVO:BLOQUEADO — nenhum servidor de catálogo configurado '
-      + '(`_legalsquad/config/acervo.json`, chave `catalog_url`).\n'
-      + '  Até lá, instale pacotes locais:\n'
-      + '    node tools/apply-pack.mjs <dir-do-pacote> --into . --pubkey <chave.pub.pem>'
-    );
-    return { success: false, error: { code: 'catalogo-nao-configurado', message: 'catalog_url ausente' } };
-  }
-
-  if (!config.signing_public_key_path) {
-    // Verificar sem chave pública não é verificar — seria a assinatura Ed25519
-    // inteira virando decoração. `--pubkey` de `apply-pack.mjs` exige o mesmo.
-    console.error(
-      'ACERVO:BLOQUEADO — nenhuma chave pública configurada '
-      + '(`_legalsquad/config/acervo.json`, chave `signing_public_key_path`). '
-      + 'Sem ela não dá para verificar nada do que baixar.'
-    );
-    return { success: false, error: { code: 'chave-publica-ausente', message: 'signing_public_key_path ausente' } };
+  if (!config.ok) {
+    // Fail-closed com o motivo verdadeiro. A URL e a chave já vêm embarcadas
+    // (SPEC §7.2), então o que falta aqui é sempre a licença — ou uma chave
+    // própria que o usuário declarou e está ilegível.
+    console.error(`ACERVO:BLOQUEADO — ${config.motivo}`);
+    return { success: false, error: { code: 'config-incompleta', message: config.motivo } };
   }
 
   let chavePublica;
   try {
-    chavePublica = createPublicKey(readFileSync(config.signing_public_key_path));
+    chavePublica = createPublicKey(config.chavePublicaPem);
   } catch (erro) {
-    console.error(`ACERVO:BLOQUEADO — chave pública ilegível em ${config.signing_public_key_path} — ${erro.message}`);
-    return { success: false, error: { code: 'chave-publica-ilegivel', message: erro.message } };
+    console.error(`ACERVO:BLOQUEADO — chave pública inválida — ${erro.message}`);
+    return { success: false, error: { code: 'chave-publica-invalida', message: erro.message } };
   }
 
   let catalogo;
   try {
-    catalogo = await buscarCatalogo(config.catalog_url, config.license);
+    catalogo = await buscarCatalogo(config.catalogUrl, config.license);
   } catch (erro) {
     console.error(`ACERVO:BLOQUEADO — catálogo inacessível — ${erro.message}`);
     return { success: false, error: { code: 'catalogo-inacessivel', message: erro.message } };

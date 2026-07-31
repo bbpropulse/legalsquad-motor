@@ -134,7 +134,9 @@ Parse user input and route to the appropriate action:
 | `/legalsquad edit-company` | Re-run company profile setup |
 | `/legalsquad show-company` | Display company.md contents |
 | `/legalsquad settings` | Show/edit preferences.md |
-| `/legalsquad indexar-acervo` (ou "indexar/atualizar/reindexar acervo") | Reindexar o acervo local — ver "Indexar o Acervo" |
+| `/legalsquad ativar <licença>` (ou "minha licença é…", "ativar licença") | Gravar a licença e sincronizar — ver "Ativar a Licença" |
+| `/legalsquad sync` (ou "faça o sync", "baixar/atualizar as áreas", "tem área nova?") | **Baixar do servidor** as áreas licenciadas — ver "Sincronizar as Áreas" |
+| `/legalsquad indexar-acervo` (ou "indexar/reindexar acervo", "atualizei o acervo") | **Reindexar arquivos locais** que o usuário adicionou — ver "Indexar o Acervo" |
 | `/legalsquad indexar-skills` (ou "reindexar skills", "atualizar a biblioteca de skills") | Regerar o índice de skills — ver "Indexar as Skills" |
 | `/legalsquad auditar-skills` (ou "auditar qualidade das skills") | Medir contratos, hard fails e evidência — ver "Auditar a Qualidade das Skills" |
 | `/legalsquad atualizar` (ou "atualizar o legalsquad", "tem versão nova?") | Atualizar o LegalSquad — ver "Atualizar o LegalSquad" |
@@ -168,9 +170,39 @@ Para QUALQUER pedido em linguagem natural (tudo que não seja um `/legalsquad <c
 
 **Anti-padrões:** criar squad para tarefa única; rodar loop multi-agente quando um passo resolve; rotear sem registrar; pular o "sim" do usuário antes de criar/enviar.
 
+## Ativar a Licença
+
+Quando o usuário informa uma licença — `/legalsquad ativar LS-…`, "minha licença é LS-…", "recebi a licença", ou cola uma chave no formato `LS-XXXX-XXXX-XXXX-XXXX` — FAÇA POR ELE. Ele nunca deve editar JSON à mão.
+
+1. Grave a licença com a ferramenta Bash, na raiz do projeto: `npx legalsquad ativar <licença>`. A URL do servidor e a chave de verificação **já vêm embutidas** no LegalSquad — o usuário só precisa da licença.
+2. O comando já sincroniza em seguida. Reporte em português simples: quantas áreas foram baixadas e quantas skills ficaram disponíveis.
+3. Se a licença não for aceita, diga isso com todas as letras ("essa licença não foi reconhecida pelo servidor") e sugira conferir se foi copiada inteira. **Nunca** diga que deu certo quando não deu, e **nunca** invente uma licença.
+
+Se o usuário colar algo que parece uma licença no meio de outra conversa, confirme antes de gravar ("quer que eu ative essa licença agora?") — gravar credencial sem o usuário pedir é intrusivo.
+
+## Sincronizar as Áreas (baixar do servidor)
+
+Quando o usuário pede sync — `/legalsquad sync`, "faça o sync", "sincronize", "baixe as áreas", "tem área nova?", "atualiza as skills" — FAÇA POR ELE.
+
+1. Rode com a ferramenta Bash, na raiz do projeto: `npx legalsquad acervo sync`.
+2. Leia a saída e reporte em português simples, ex.: "✅ 12 áreas sincronizadas — 5523 skills disponíveis." Se algum pacote foi **recusado**, diga qual e por quê: pacote recusado significa que a assinatura não conferiu, e isso o usuário precisa saber, não pode ficar escondido num log.
+3. Se não houver licença configurada, **não trate como erro do sistema** — explique que falta ativar a licença e ofereça fazer isso (ver "Ativar a Licença").
+4. Se a licença estiver vencida, explique que o que já foi baixado **continua funcionando** (somente leitura) e que o que parou foi a atualização. Nunca sugira que o conteúdo foi perdido.
+
+**Não confunda com `indexar-acervo`.** São duas coisas diferentes que ambas falam em "acervo":
+
+| Pedido | O que é | Comando |
+|---|---|---|
+| "faça o sync", "baixar áreas", "tem área nova?" | Traz do **servidor** as áreas licenciadas (skills, squads) | `acervo sync` |
+| "indexar acervo", "atualizei o acervo" | Reindexa os **arquivos locais** que o usuário colocou em `acervo/` | `indexar-acervo` |
+
+Na dúvida sobre qual dos dois o usuário quis, **pergunte** — rodar o errado desperdiça tempo dele e, no caso do sync, tráfego de rede.
+
 ## Indexar o Acervo (atualizar o índice)
 
-When the user asks to index/update the acervo — `/legalsquad indexar-acervo` or natural phrasing ("indexar acervo", "atualizar acervo", "reindexar", "atualizei o acervo") — DO IT FOR THEM. The user must never run npm/node by hand.
+When the user asks to index/update the acervo — `/legalsquad indexar-acervo` or natural phrasing ("indexar acervo", "reindexar", "atualizei o acervo") — DO IT FOR THEM. The user must never run npm/node by hand.
+
+> Isto reindexa **arquivos locais**. Se o usuário quer **baixar áreas do servidor**, é outra coisa — ver "Sincronizar as Áreas".
 
 1. Run the indexer with the Bash tool from the project root: `npm run indexar-acervo` (if that npm script is missing, run `node scripts/indexar-acervo.mjs` instead). NEVER ask the user to run it — you execute it.
 2. Read the output and report back in plain Portuguese, e.g. "✅ Acervo atualizado: N documentos catalogados." If the indexer reports broken wikilinks, list them simply and offer to help confirm/fix.

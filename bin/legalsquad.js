@@ -18,6 +18,7 @@ import { skillRuntimeCli } from '../src/skill-runtime-cli.js';
 import { skillSearchCli } from '../src/skill-search.js';
 import { acervoSearchCli } from '../src/acervo-search.js';
 import { acervoCli } from '../src/acervo-cli.js';
+import { ativarCli } from '../src/acervo-ativar.js';
 import { capturaCli } from '../src/captura-cli.js';
 import { checkSquad } from '../src/squad-check.js';
 
@@ -47,8 +48,9 @@ const HELP = `
     npx legalsquad captura setup           Install on-use deps (ffmpeg/yt-dlp/faster-whisper)
     npx legalsquad resolve-skills <id...>  Enforce runtime lifecycle/evidence gates
     npx legalsquad check-squad <code>      Validate a squad's structure, rubric and eval harness
+    npx legalsquad ativar <licenca>        Activate your license and sync the licensed areas
     npx legalsquad acervo status           Show synced packs and cache freshness
-    npx legalsquad acervo sync             Sync pack catalogues (needs a configured server)
+    npx legalsquad acervo sync             Download/update the licensed areas from the server
     npx legalsquad runs [squad-name]       View execution history
 
   Learn more: https://github.com/bbpropulse/legalsquad
@@ -167,6 +169,10 @@ const commands = {
   },
   acervo: {
     run: () => acervoCli(positionals[1] || 'status', cwd, values),
+    checkSuccess: true,
+  },
+  ativar: {
+    run: () => ativarCli(positionals[1] || '', cwd, values),
     checkSuccess: true,
   },
   runs: {
