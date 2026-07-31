@@ -217,7 +217,7 @@ auditável no artefato.
 reproduz a experiência atual do LegalSquad — 9 squads, gates verdes, resolvedor e Citation Gate
 funcionando. **Se não houver paridade, para** — não se abre área nova nem se migra aluno.
 
-## F3 — Sync + licença: **núcleo construído, deploy pendente**
+## F3 — Sync + licença: **concluído e no ar**
 
 O servidor de distribuição (SPEC §7-§8) mora num repositório **novo e privado**,
 [`legalsquad-acervo-server`](https://github.com/bbpropulse/legalsquad-acervo-server) — nunca no
@@ -240,18 +240,19 @@ pacote inteiro), e sem entitlement nenhum dos dois aparece — o pack continua l
 só sem link de download. A separação "catálogo fino sempre baixável" da SPEC fica para quando
 `pack-format.js` suportar verificação parcial.
 
-**Pendente — não é dívida, é o que falta para ir ao ar:**
-- Deploy real no Railway: a sessão que construiu isto não tinha `railway login` autenticado: o
-  código está pronto, o deploy é passo manual (ver README do servidor).
-- Uma chave Ed25519 de produção de verdade (gerar, guardar a privada fora de qualquer git, publicar
-  a pública no servidor).
-- `_legalsquad/core/best-practices/`/`.claude/agents/` **não têm chave pública embarcada** — o
-  cliente hoje aponta `signing_public_key_path` para um arquivo local (mesmo padrão manual que
-  `apply-pack.mjs --pubkey` já usa). Embarcar uma chave padrão no motor público é decisão de produto
-  ainda não tomada — SPEC §7.2 já registra isso como aspiracional ("verificação nunca depende de
-  rede, chave já embarcada").
+**Em produção:** `https://acervo-server-production.up.railway.app` (projeto Railway
+`legalsquad-acervo`, volume persistente em `/data`). Chave Ed25519 de produção em
+`~/.legalsquad-signing/` — privada **fora de qualquer git**, `kid: prod-2026-07`, pública servida em
+`/v1/signing-keys`. 12 pacotes publicados (**5523 skills**: 10 áreas JusSkills + transversal +
+`area.eleitoral` com 1000 skills).
 
-**Aceite (SPEC/MIGRACAO.md F3):** licença ativa baixa o pack; sem licença, o pack aparece listado mas
-não baixa; vencida degrada para o cache existente, sem atualizar. Verificado localmente com servidor
-de fixture (`tests/acervo-cli.test.js`) e com o servidor real rodando em `localhost` — falta a
-verificação contra a instância pública no Railway.
+**Aceite (SPEC/MIGRACAO.md F3) — verificado contra a instância pública:** licença ativa baixa os 12
+packs numa instalação limpa (18s) e a busca encontra as skills; licença inexistente devolve
+`status: none` com os 12 packs **listados** e zero links de download — "existe, sua licença não
+cobre", nunca "não existe".
+
+**Pendência remanescente (decisão de produto, não dívida):** o motor **não embarca chave pública** —
+o cliente aponta `signing_public_key_path` para um arquivo local, mesmo padrão manual do
+`apply-pack.mjs --pubkey`. Embarcar uma chave padrão no motor público é decisão ainda não tomada; a
+SPEC §7.2 já registra isso como aspiracional ("verificação nunca depende de rede, chave já
+embarcada").
