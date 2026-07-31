@@ -113,6 +113,29 @@ function continuationLines(lines, index, parentIndent) {
   return body;
 }
 
+/**
+ * Mesma varredura de `continuationLines`, mas para listas de BLOCO: um item
+ * `- valor` é uma entrada válida no MESMO nível de indentação da chave que a
+ * introduz (`categories:\n- law`), não só mais recuado (`categories:\n  -
+ * law`) — as duas formas são YAML válido, e a primeira é a que gera-de-lote
+ * de terceiros comumente produz. `continuationLines` sozinha cortava a lista
+ * no primeiro item porque exigia indentação ESTRITAMENTE maior que a chave —
+ * correto para escalar em bloco (`>`/`|`, que exige recuo), errado para
+ * sequência em bloco.
+ */
+function listContinuationLines(lines, index, parentIndent) {
+  const body = [];
+  for (let cursor = index + 1; cursor < lines.length; cursor++) {
+    const line = lines[cursor];
+    if (!line.trim()) { body.push(line); continue; }
+    const atual = indentation(line);
+    if (atual < parentIndent) break;
+    if (atual === parentIndent && !/^\s*-(\s|$)/.test(line)) break;
+    body.push(line);
+  }
+  return body;
+}
+
 // Reads a scalar value, supporting YAML folded (`>`, `>-`) and literal (`|`,
 // `|-`) scalars. Legacy top-level keys take precedence over nested metadata.
 export function parseScalar(fm, key) {
@@ -175,7 +198,7 @@ export function parseList(fm, key) {
   if (value) return [];
 
   const items = [];
-  for (const line of continuationLines(lines, index, indent)) {
+  for (const line of listContinuationLines(lines, index, indent)) {
     const match = line.match(/^\s*-\s+(.+)$/);
     if (match) items.push(stripMatchingQuotes(match[1]));
   }

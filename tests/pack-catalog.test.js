@@ -82,6 +82,24 @@ test('skill com marcador de contrato legado desce para `contracted`, com o motiv
   );
 });
 
+test('skill com marcador ELEITORAL:HP-CONTRACT (fork de OUTRO produto) também desce pra `contracted`', () => {
+  // Achado ao importar o lote de advocacia eleitoral (1000 skills, terceiro):
+  // contrato próprio, "alta performance"-like mas de outra ferramenta —
+  // `quality_status: "contracted-reviewed"` não é `verified`/`certified`
+  // literal, então passaria batido sem o marcador entrar na lista. O motor
+  // não confia em rótulo de promoção que não seja o seu próprio vocabulário.
+  const corpo = '\n<!-- ELEITORAL:HP-CONTRACT:START -->\ncontrato\n<!-- ELEITORAL:HP-CONTRACT:END -->\n';
+  const comStatusEstrangeiro = FM_BASE.replace('quality_status: "contracted"', 'quality_status: "contracted-reviewed"');
+
+  const [alfa] = extrairCatalogo([entidadeDeSkill('alfa', comStatusEstrangeiro, corpo)], 'skills.jsonl.zst');
+
+  assert.equal(alfa.quality_status, 'contracted', 'status estrangeiro normaliza pro vocabulário do motor');
+  assert.ok(
+    alfa.promotion_blocked_by?.some((motivo) => /legad|ELEITORAL/i.test(motivo)),
+    `o marcador ELEITORAL precisa aparecer como motivo — recebido: ${JSON.stringify(alfa.promotion_blocked_by)}`
+  );
+});
+
 test('o empacotador NÃO reescreve os bytes da skill', () => {
   // A tentação óbvia é normalizar `CRIMINALSQUAD:` → `LEGALSQUAD:` ao empacotar.
   // Reescrever muda os bytes, e `skill_binding.skill_sha256` amarra a evidência

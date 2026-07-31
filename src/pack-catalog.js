@@ -12,8 +12,16 @@
 import { parseSkillMetadata } from './frontmatter.js';
 import { parseBestPracticesCatalogText } from './best-practices-catalog.js';
 
-/** Marcadores de contrato de forks anteriores a este motor (§6.8). */
-const MARCADORES_LEGADOS = [/CRIMINALSQUAD:HP-CONTRACT/, /\bcsq-v5-/];
+/**
+ * Marcadores de contrato de forks anteriores a este motor OU de ferramentas de
+ * terceiros que geram um contrato "alta performance"-like próprio (§6.8). O
+ * motor só confia no PRÓPRIO vocabulário de promoção — um `quality_status`
+ * estrangeiro (ex.: `contracted-reviewed`, do lote de advocacia eleitoral)
+ * nunca é `verified`/`certified` literal, então passaria batido sem o
+ * marcador do corpo entrar aqui. Cada entrada nova é um produto/fork externo
+ * identificado, nunca uma suposição sobre o que "parece" legado.
+ */
+const MARCADORES_LEGADOS = [/CRIMINALSQUAD:HP-CONTRACT/, /\bcsq-v5-/, /ELEITORAL:HP-CONTRACT/];
 
 /** Status que significam desempenho comprovado — e que exigem evidência local. */
 const STATUS_PROMOVIDOS = new Set(['verified', 'certified']);
