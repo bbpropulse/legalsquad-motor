@@ -85,6 +85,49 @@ export function identificarMolde(corpus, opcoes = {}) {
   return molde;
 }
 
+/**
+ * Reúne o protocolo que sai das skills, na ordem de leitura do corpus.
+ *
+ * **Tem de conter TODA linha de molde.** A primeira versão varria só a skill
+ * mais longa, presumindo que ela contivesse o protocolo inteiro — e no lote
+ * médico isso preservou 30 de 858 linhas. O que é removido de 752 arquivos e
+ * não entra na best-practice simplesmente deixa de existir no sistema, sem
+ * nenhum erro: extrair vira apagar.
+ *
+ * @param {{id: string, titulo: string, texto: string}[]} corpus
+ * @param {Set<string>} linhasDeMolde saída de `identificarMolde`
+ */
+export function montarProtocolo(corpus, linhasDeMolde) {
+  const vistas = new Set();
+  const protocolo = [];
+
+  // Ordem de leitura: primeira aparição no corpus. Preserva a sequência que o
+  // autor deu ao fluxo, em vez de embaralhar por frequência.
+  for (const skill of corpus) {
+    const originais = skill.texto.split('\n');
+    const normalizadas = normalizarSkill(skill).split('\n');
+    originais.forEach((linha, i) => {
+      const chave = normalizadas[i]?.trim();
+      if (!chave || vistas.has(chave) || !linhasDeMolde.has(chave)) return;
+      vistas.add(chave);
+      // Grava a forma NORMALIZADA: a linha é genérica por definição, e a
+      // original traria o tema de uma skill arbitrária para dentro do
+      // protocolo comum.
+      protocolo.push(normalizadas[i].trimEnd());
+    });
+  }
+
+  if (vistas.size !== linhasDeMolde.size) {
+    // Invariante do próprio módulo: toda linha removida das skills está aqui.
+    // Falhar alto é melhor que publicar um pacote com protocolo incompleto —
+    // depois de assinado e distribuído, o conserto custa re-assinar tudo.
+    throw new Error(
+      `protocolo incompleto: ${vistas.size} de ${linhasDeMolde.size} linhas de molde`
+    );
+  }
+  return protocolo.join('\n');
+}
+
 function limiteDoFrontmatter(linhas) {
   if (linhas[0]?.trim() !== '---') return -1;
   for (let i = 1; i < linhas.length; i++) if (linhas[i].trim() === '---') return i;

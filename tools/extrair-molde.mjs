@@ -13,7 +13,7 @@
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, rmSync } from 'node:fs';
 import { join, basename } from 'node:path';
-import { identificarMolde, separarMolde, CORTE_MOLDE_PADRAO } from '../src/molde-extract.js';
+import { identificarMolde, montarProtocolo, separarMolde, CORTE_MOLDE_PADRAO } from '../src/molde-extract.js';
 
 function parseArgs(argv) {
   const posicionais = [];
@@ -73,14 +73,8 @@ const remissao = `\`${protocoloId}\` — o protocolo desta área (leitura obriga
 // O protocolo canônico é a UNIÃO ordenada do que saiu, na ordem em que
 // aparece na skill mais completa: preserva a sequência que o autor deu ao
 // fluxo em vez de embaralhar as linhas por frequência.
-const maisCompleta = corpus.reduce((a, b) => (b.texto.length > a.texto.length ? b : a));
-const ordemCanonica = [];
-const vistas = new Set();
-for (const linha of maisCompleta.texto.split('\n')) {
-  const chave = linha.trim();
-  if (!chave || vistas.has(chave)) continue;
-  if (linhasDeMolde.has(chave) || /^#{1,6}\s/.test(linha)) { ordemCanonica.push(linha); vistas.add(chave); }
-}
+const protocoloTexto = montarProtocolo(corpus, linhasDeMolde);
+const ordemCanonica = protocoloTexto ? protocoloTexto.split('\n') : [];
 
 const resultados = corpus.map((skill) => {
   const r = separarMolde(skill.texto, { ...skill, linhasDeMolde, remissao });

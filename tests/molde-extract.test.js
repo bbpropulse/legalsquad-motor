@@ -4,6 +4,7 @@ import { normalizarTema } from '../src/skill-originality.js';
 import {
   CORTE_MOLDE_PADRAO,
   identificarMolde,
+  montarProtocolo,
   separarMolde,
 } from '../src/molde-extract.js';
 
@@ -52,6 +53,45 @@ test('linha repetida acima do corte é molde; abaixo do corte é matéria', () =
 
   for (const linha of PROTOCOLO) assert.ok(molde.has(linha), `deveria ser molde: ${linha}`);
   assert.ok(!molde.has('Regra específica número 7.'));
+});
+
+test('o protocolo carrega TODA linha de molde removida — nada some do sistema', () => {
+  // Bug real, encontrado depois de publicar: o protocolo era montado varrendo
+  // só a skill mais longa, então linha de molde ausente dela nunca entrava.
+  // Medido no lote médico: 858 linhas removidas das skills, 30 preservadas na
+  // best-practice — 96% do protocolo evaporava sem nenhum aviso.
+  const corpus = [
+    ...corpusSintetico(25, { protocolo: ['Comum a todas.'], materiaDe: (i) => [`m${i}`] }),
+    // Bloco de molde que só existe num subgrupo — e num arquivo curto, para
+    // que a heurística "mais longa" não o alcance.
+    ...corpusSintetico(25, { protocolo: ['Comum a todas.', 'Só do subgrupo.'], materiaDe: () => [] })
+      .map((s, i) => ({ ...s, id: `sub-${i}`, titulo: `Sub ${i}` })),
+  ];
+
+  const molde = identificarMolde(corpus, { corte: 21 });
+  const protocolo = montarProtocolo(corpus, molde);
+  const linhasDoProtocolo = new Set(protocolo.split('\n').map((l) => l.trim()));
+
+  for (const linha of molde) {
+    assert.ok(linhasDoProtocolo.has(linha), `linha de molde perdida: ${linha}`);
+  }
+});
+
+test('o protocolo não repete linha nem inventa conteúdo', () => {
+  const corpus = corpusSintetico(30, { protocolo: PROTOCOLO, materiaDe: (i) => [`m${i}`] });
+  const molde = identificarMolde(corpus, { corte: 21 });
+  const linhas = montarProtocolo(corpus, molde).split('\n').filter((l) => l.trim());
+
+  assert.equal(new Set(linhas).size, linhas.length, 'nenhuma linha repetida');
+  // Comparação contra o corpus NORMALIZADO: o protocolo grava a forma com o
+  // tema neutralizado de propósito — gravar a original levaria o tema de uma
+  // skill arbitrária para dentro do protocolo comum a todas.
+  const doCorpus = new Set(
+    corpus.flatMap((s) => normalizarTema(s.texto, { id: s.id, titulo: s.titulo }).split('\n').map((l) => l.trim()))
+  );
+  for (const linha of linhas) {
+    assert.ok(doCorpus.has(linha.trim()), `linha que não veio do corpus: ${linha}`);
+  }
 });
 
 test('o corte é ABSOLUTO, não proporcional — molde de família também é molde', () => {
