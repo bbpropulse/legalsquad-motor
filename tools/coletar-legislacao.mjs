@@ -189,13 +189,25 @@ for (const lei of alvo) {
     'utf8'
   );
 
+  // A ÚLTIMA ocorrência de um artigo é a redação VIGENTE — o texto compilado
+  // lista as alterações em ordem cronológica. O nome canônico
+  // (<sigla>-art-<n>.md) tem de ser dela: é o arquivo que o enriquecedor
+  // carrega e que qualquer pessoa abre primeiro. Gravar ali a primeira
+  // ocorrência entregava a redação REVOGADA como se fosse a lei vigente —
+  // medido na Lei 9.099 art. 61, cuja redação original ("um ano", com
+  // ressalva de procedimento especial) inverte quais crimes eleitorais são
+  // de menor potencial ofensivo em relação à vigente ("2 anos", sem ressalva).
+  const totalPorNumero = new Map();
+  for (const a of artigos) totalPorNumero.set(a.numero, (totalPorNumero.get(a.numero) || 0) + 1);
   const ocorrencias = new Map();
   for (const artigo of artigos) {
     // Redação revogada e vigente coexistem no texto compilado: sufixo -b, -c…
     // preserva as duas em vez de a segunda sobrescrever a primeira em silêncio.
     const n = (ocorrencias.get(artigo.numero) || 0) + 1;
     ocorrencias.set(artigo.numero, n);
-    const sufixo = n > 1 ? `-${String.fromCharCode(96 + n)}` : '';
+    // Última ocorrência → nome canônico; anteriores → sufixo cronológico.
+    const ehVigente = n === totalPorNumero.get(artigo.numero);
+    const sufixo = ehVigente ? '' : `-${String.fromCharCode(96 + n)}`;
     const slug = `${lei.sigla.toLowerCase()}-art-${artigo.numero.toLowerCase()}${sufixo}`;
     writeFileSync(
       join(dir, `${slug}.md`),

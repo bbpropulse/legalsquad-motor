@@ -119,3 +119,24 @@ test('"art." em minúscula no meio da frase NÃO abre artigo novo', () => {
   assert.deepEqual(artigos.map((a) => a.numero), ['10', '11']);
   assert.match(artigos[0].texto, /no art\. 5º desta Lei/);
 });
+
+test('a ÚLTIMA ocorrência do artigo é a vigente — a primeira é redação revogada', () => {
+  // Achado em campo, custoso: o texto compilado do Planalto lista as redações
+  // em ordem cronológica, então a PRIMEIRA ocorrência de um artigo alterado é
+  // a redação ORIGINAL, já revogada. Medido na Lei 9.099: o art. 61 original
+  // dizia "pena máxima não superior a um ano, excetuados os casos em que a lei
+  // preveja procedimento especial"; a vigente (Lei 11.313/2006) diz "não
+  // superior a 2 (dois) anos" e derrubou a ressalva — o que INVERTE quais
+  // crimes eleitorais são de menor potencial ofensivo.
+  //
+  // Quem gravasse a primeira ocorrência com o nome canônico entregaria a
+  // regra revogada como se fosse a lei vigente.
+  const artigos = fatiarArtigos([
+    'Art. 61. Pena máxima não superior a um ano, excetuados procedimento especial.',
+    'Art. 61. Pena máxima não superior a 2 (dois) anos. (Redação dada pela Lei nº 11.313, de 2006)',
+  ].join('\n'));
+
+  assert.equal(artigos.length, 2, 'as duas redações são preservadas');
+  assert.match(artigos.at(-1).texto, /2 \(dois\) anos/, 'a última é a vigente');
+  assert.match(artigos[0].texto, /um ano/, 'a primeira é a revogada');
+});

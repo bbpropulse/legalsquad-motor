@@ -129,11 +129,13 @@ function casamentoLocal(alvo, termos) {
 function semRepetirArtigo(artigos) {
   const vistos = new Set();
   const unicos = [];
-  for (const artigo of artigos) {
+  // Percorre de trás para frente: a ÚLTIMA ocorrência é a redação vigente.
+  for (let i = artigos.length - 1; i >= 0; i--) {
+    const artigo = artigos[i];
     const chave = `${artigo.sigla}|${artigo.numero}`;
     if (vistos.has(chave)) continue;
     vistos.add(chave);
-    unicos.push(artigo);
+    unicos.unshift(artigo);
   }
   return unicos.slice(0, MAXIMO_DE_DISPOSITIVOS);
 }
