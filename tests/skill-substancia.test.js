@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { discoverSkillCatalog, renderSkillIndex } from '../src/skill-catalog.js';
 import { lerSubstanciaDoIndice, ehTituloOco, LIMITE_TITULO_OCO } from '../src/skill-substancia.js';
 import { montarBaseLegal } from '../src/base-legal.js';
+import { montarPrecedentes } from '../src/precedentes.js';
 
 // O Arquiteto decide REUSAR ou CRIAR a partir da shortlist. Hoje a shortlist
 // diz que a skill existe, é `active` e tem descrição impecável — e não diz que
@@ -96,6 +97,34 @@ test('substância ausente do índice NÃO é tratada como oca — ausência não
 // sem tocar no mecanismo de detecção de molde de template (que continua
 // certo para o caso que resolvia).
 // ---------------------------------------------------------------------------
+
+test('skill com PRECEDENTES identificados NÃO é título oco', () => {
+  // Mesmo defeito, do outro lado: 4.169 skills ganharam precedentes com
+  // número de processo, relator, órgão e data — dado de catálogo, exato,
+  // verificado contra o acervo — e 4.517 continuavam `titulo_oco: true`
+  // porque `ehTituloOco` só olhava `linhas_proprias` e `base_legal_verificada`.
+  // O trabalho existia no arquivo e era invisível para o Arquiteto.
+  const bloco = montarPrecedentes([{
+    tribunal: 'STJ', processo: 'REsp 1.823.077-SP', relator: 'Nancy Andrighi',
+    orgao: 'Terceira Turma', data: '30/08/2022',
+    tese: 'Plano de saúde. Negativa de cobertura.', fonte: 'https://stj/x',
+  }]);
+  const skillsDir = corpus({
+    'negativa-de-cobertura': `# Negativa de cobertura\n\n${bloco}`,
+    'cobertura-obrigatoria': `# Cobertura obrigatória\n\n${bloco}`,
+  });
+
+  const substancia = lerSubstanciaDoIndice(renderSkillIndex(discoverSkillCatalog(skillsDir)));
+  assert.equal(ehTituloOco(substancia.get('negativa-de-cobertura')), false);
+});
+
+test('heading "Precedentes" sem identificação de processo NÃO conta', () => {
+  const skillsDir = corpus({
+    'so-o-titulo': '# Skill\n\n## Precedentes a conferir\n\nHá julgados sobre o tema.',
+  });
+  const substancia = lerSubstanciaDoIndice(renderSkillIndex(discoverSkillCatalog(skillsDir)));
+  assert.equal(ehTituloOco(substancia.get('so-o-titulo')), true);
+});
 
 test('skill com base legal verificada NÃO é título oco, mesmo com linhas_proprias baixo', () => {
   const corpoLegal = montarBaseLegal('Mandado de segurança coletivo', [

@@ -42,6 +42,7 @@ export const LIMITE_TITULO_OCO = 25;
  */
 export function ehTituloOco(substancia) {
   if (substancia?.baseLegalVerificada === true) return false;
+  if (substancia?.precedentesIdentificados === true) return false;
   const proprias = substancia?.linhasProprias;
   if (!Number.isFinite(proprias)) return false;
   return proprias < LIMITE_TITULO_OCO;
@@ -65,7 +66,7 @@ export function lerSubstanciaDoIndice(indice) {
     const nome = linha.match(/^ {2}- name:\s*(\S+)\s*$/);
     if (nome) {
       atual = nome[1];
-      mapa.set(atual, { linhasProprias: undefined, originalidade: undefined, baseLegalVerificada: false });
+      mapa.set(atual, { linhasProprias: undefined, originalidade: undefined, baseLegalVerificada: false, precedentesIdentificados: false });
       continue;
     }
     if (!atual) continue;
@@ -81,12 +82,14 @@ export function lerSubstanciaDoIndice(indice) {
       continue;
     }
     const baseLegal = linha.match(/^ {4}base_legal_verificada:\s*true\s*$/);
-    if (baseLegal) mapa.get(atual).baseLegalVerificada = true;
+    if (baseLegal) { mapa.get(atual).baseLegalVerificada = true; continue; }
+    const precedentes = linha.match(/^ {4}precedentes_identificados:\s*true\s*$/);
+    if (precedentes) mapa.get(atual).precedentesIdentificados = true;
   }
 
   // Entradas sem nenhuma medida são ruído de parsing, não skills.
   for (const [id, valores] of mapa) {
-    if (valores.linhasProprias === undefined && valores.originalidade === undefined && !valores.baseLegalVerificada) mapa.delete(id);
+    if (valores.linhasProprias === undefined && valores.originalidade === undefined && !valores.baseLegalVerificada && !valores.precedentesIdentificados) mapa.delete(id);
   }
   return mapa;
 }

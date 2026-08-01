@@ -31,6 +31,31 @@
 
 const MAXIMO_DE_PRECEDENTES = 5;
 
+// Mesma string que abre o bloco em `montarPrecedentes` — exportada para que
+// `contemPrecedentesIdentificados` detecte pelo texto real gerado, nunca por
+// uma cópia que pode divergir em silêncio.
+export const MARCADOR_PRECEDENTES = '## Precedentes a conferir';
+
+/**
+ * A skill traz precedente REALMENTE identificado?
+ *
+ * Terceira porta de substância, ao lado de `linhas_proprias` e
+ * `base_legal_verificada`. Necessária pelo mesmo motivo das outras duas:
+ * skills irmãs do mesmo tema citam o MESMO julgado (legitimamente), então
+ * nenhuma linha conta como "própria" e 4.517 skills com precedente real
+ * apareciam como título oco — trabalho feito e invisível para o Arquiteto.
+ *
+ * Exige o marcador, a linha de **Identificação** e a de **Fonte**: um heading
+ * solto dizendo "há julgados sobre o tema" não identifica nada e continua
+ * sendo lacuna.
+ */
+export function contemPrecedentesIdentificados(texto) {
+  const conteudo = String(texto || '');
+  if (!conteudo.includes(MARCADOR_PRECEDENTES)) return false;
+  const apos = conteudo.slice(conteudo.indexOf(MARCADOR_PRECEDENTES));
+  return /^- \*\*Identificação:\*\*\s+\S/m.test(apos) && /^- \*\*Fonte:\*\*\s+`https?:\/\//m.test(apos);
+}
+
 function campoDoFrontmatter(raw, nome) {
   const m = String(raw).match(new RegExp(`^${nome}:\\s*"?(.*?)"?\\s*$`, 'm'));
   const valor = (m?.[1] || '').trim();
@@ -89,7 +114,7 @@ export function montarPrecedentes(precedentes) {
   if (!validos.length) return '';
 
   const linhas = [
-    '## Precedentes a conferir',
+    MARCADOR_PRECEDENTES,
     '',
     'Identificação extraída dos **informativos oficiais** dos tribunais, no acervo',
     'local. O número do processo, o relator, o órgão julgador e a data são dados',

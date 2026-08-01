@@ -162,6 +162,7 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
       // esvaziar o conteúdo — isto é o que faz `titulo_oco` ser `false`
       // mesmo com `linhas_proprias` baixo nesse caso.
       base_legal_verificada: sub?.baseLegalVerificada === true,
+      precedentes_identificados: sub?.precedentesIdentificados === true,
       local: entry.local === true,
       lifecycle: entry.metadata.lifecycle,
       quality_status: quality?.qualityStatus || entry.metadata.qualityStatus,
