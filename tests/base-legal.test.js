@@ -20,6 +20,39 @@ const CORPUS = [
   },
 ];
 
+test('empate grande desempata por DENSIDADE em vez de recusar tudo', () => {
+  // Medido nas 322 cascas restantes: "auditoria de licitações públicas" casa
+  // com dezenas de artigos da Lei 14.133 — a lei inteira é sobre licitação —
+  // e o seletor recusava todos. Recusar é certo quando não há como escolher;
+  // aqui há: o artigo CURTO e focado no tema é mais informativo que o artigo
+  // longo que menciona tudo de passagem. Densidade = termos por caractere.
+  // DOZE artigos empatados no número de termos — bem acima do limite que
+  // dispara a recusa. Onze são artigos-catálogo longos; um é curto e focado.
+  const corpus = [
+    { sigla: 'X', url: 'u', numero: '1', texto: 'Art. 1º Licitação de obras públicas segue rito próprio.' },
+    ...Array.from({ length: 11 }, (_, i) => ({
+      sigla: 'X', url: 'u', numero: String(i + 2),
+      texto: `Art. ${i + 2}º ${'Disposição sobre matéria diversa e alheia ao ponto. '.repeat(15)} Licitação de obras públicas aparece de passagem.`,
+    })),
+  ];
+  const achados = selecionarDispositivos('Auditoria de licitações de obras públicas', corpus, {
+    acoes: ['auditoria'],
+  });
+  assert.ok(achados.length, 'não pode recusar quando a densidade distingue');
+  assert.equal(achados[0].numero, '1', 'o artigo focado vem antes do artigo-catálogo');
+});
+
+test('a recusa por empate permanece quando a densidade também empata', () => {
+  // Vinte artigos igualmente curtos e igualmente sobre o tema: aí não há
+  // critério, e apresentar seis como se fossem "a" base legal seria sorteio
+  // disfarçado de escolha.
+  const corpus = Array.from({ length: 20 }, (_, i) => ({
+    sigla: 'X', url: 'u', numero: String(i + 1),
+    texto: `Art. ${i + 1}º Licitação de obras públicas tem regra.`,
+  }));
+  assert.deepEqual(selecionarDispositivos('Licitação de obras públicas', corpus), []);
+});
+
 test('expande sinônimos do vocabulário da área antes de casar', () => {
   // Medido nas 174 cascas de constitucional: os títulos usam SIGLA ("adi",
   // "adpf", "hc") e as leis usam o nome por extenso — a Lei 9.868 nunca

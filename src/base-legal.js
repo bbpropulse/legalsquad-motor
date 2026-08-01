@@ -130,18 +130,33 @@ export function selecionarDispositivos(tema, corpus, opcoes = {}) {
 
   if (!pontuados.length) return [];
 
-  // Empate grande no topo não é seleção — é a expressão do tema sendo comum
-  // demais no corpus para discriminar ("fundo partidário" aparece próximo em
-  // dezenas de artigos por razões legítimas e distintas). Cortar nos N
-  // primeiros pela ordem em que apareceram no corpus seria sorteio disfarçado
-  // de escolha. Melhor recusar e deixar a lacuna visível do que apresentar
-  // seis candidatos arbitrários como se fossem "a" base legal do tema.
-  const melhorBruto = Math.max(...pontuados.map((p) => p.casados));
-  if (pontuados.filter((p) => p.casados === melhorBruto).length > MAXIMO_DE_DISPOSITIVOS) return [];
-
   // Só sobrevive quem casa tanto quanto o melhor: um artigo que casa 2 de 5
   // termos ao lado de outro que casa 5 é ruído, não alternativa.
   const melhor = Math.max(...pontuados.map((p) => p.casados));
+  const empatados = pontuados.filter((p) => p.casados === melhor);
+
+  // Empate grande no topo é a expressão do tema sendo comum demais no corpus
+  // ("licitação" numa lei inteira sobre licitação). Antes isso recusava tudo,
+  // e o custo medido foram 322 skills sem base legal alguma.
+  //
+  // Há um critério antes de desistir: DENSIDADE. Um artigo curto e focado no
+  // tema informa mais que um artigo-catálogo longo que o menciona de
+  // passagem. Quando a densidade separa, ela decide; quando também empata
+  // (artigos igualmente curtos e igualmente sobre o tema), aí não há escolha
+  // possível e a recusa continua — apresentar seis como "a" base legal seria
+  // sorteio disfarçado.
+  if (empatados.length > MAXIMO_DE_DISPOSITIVOS) {
+    const comDensidade = empatados.map((p) => ({ ...p, densidade: p.casados / Math.max(p.artigo.texto.length, 1) }));
+    const maiorDensidade = Math.max(...comDensidade.map((p) => p.densidade));
+    // Tolerância de 20% para não fatiar por diferença de pontuação irrelevante.
+    const destacados = comDensidade.filter((p) => p.densidade >= maiorDensidade * 0.8);
+    if (destacados.length > MAXIMO_DE_DISPOSITIVOS) return [];
+    return destacados
+      .sort((a, b) => b.densidade - a.densidade)
+      .slice(0, MAXIMO_DE_DISPOSITIVOS)
+      .map((p) => p.artigo);
+  }
+
   return pontuados
     .filter((p) => p.casados === melhor)
     .slice(0, MAXIMO_DE_DISPOSITIVOS)

@@ -50,6 +50,13 @@ const ACOES = [
   'auditoria', 'auditar', 'gestao', 'gerir', 'controle', 'checklist', 'roteiro',
   'estrategia', 'plano', 'modelo', 'minuta', 'peticao', 'elaboracao', 'redacao',
   'preparacao', 'revisao', 'avaliacao', 'verificacao', 'triagem', 'cabimento',
+  // Genéricos do vocabulário jurídico: aparecem em quase toda skill E em
+  // quase todo artigo, então não discriminam nada e só diluem o casamento.
+  // Medido: "acao rescisoria eleitoral" casou com a Lei 9.504 art. 57-C
+  // (propaganda na internet) porque "acao" e "eleitoral" batem em qualquer
+  // lugar da lei eleitoral, e só "rescisoria" discriminava.
+  'acao', 'acoes', 'processo', 'processual', 'procedimento', 'atuacao',
+  'aplicacao', 'defesa', 'pedido', 'requerimento', 'juridica', 'juridico',
 ];
 
 // Sigla → nome por extenso. As leis escrevem o instituto inteiro e as skills
