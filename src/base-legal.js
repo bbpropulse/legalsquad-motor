@@ -49,14 +49,36 @@ function semAcento(texto) {
 }
 
 /**
- * Termos materiais do tema — o que sobra depois de tirar preposição e palavra
- * curta demais para discriminar.
+ * Termos materiais do tema — o que sobra depois de tirar preposição, palavra
+ * curta demais para discriminar e verbo de ação, mais o que as siglas da área
+ * rendem por extenso.
+ *
+ * As duas listas de domínio (`sinonimos`, `acoes`) vêm do CHAMADOR e são
+ * opcionais: o motor não conhece os institutos de área nenhuma — essa é a
+ * fronteira núcleo × pacote do projeto. Aqui elas são só um mapa e um
+ * conjunto; quem sabe que "ADI" quer dizer "ação direta de
+ * inconstitucionalidade" é a ferramenta de área, não este módulo.
+ *
+ * @param {string} tema
+ * @param {{sinonimos?: Record<string,string[]>, acoes?: string[]}} [opcoes]
  */
-export function termosDoTema(tema) {
+export function termosDoTema(tema, opcoes = {}) {
+  const { sinonimos = {}, acoes = [] } = opcoes;
+  const descartaveis = new Set(acoes.map(semAcento));
+
+  const palavras = semAcento(tema).split(/[^a-z0-9]+/).filter(Boolean);
+
+  // Sigla rende os termos do nome por extenso — sem isso, "análise de
+  // cabimento de ADI" não casa com a Lei 9.868, que nunca escreve "ADI".
+  const expandidas = [];
+  for (const palavra of palavras) {
+    const expansao = sinonimos[palavra];
+    if (expansao) expandidas.push(...expansao.flatMap((frase) => semAcento(frase).split(/[^a-z0-9]+/)));
+  }
+
   return [...new Set(
-    semAcento(tema)
-      .split(/[^a-z0-9]+/)
-      .filter((t) => t.length >= TAMANHO_MINIMO && !VAZIAS.has(t))
+    [...palavras, ...expandidas]
+      .filter((t) => t.length >= TAMANHO_MINIMO && !VAZIAS.has(t) && !descartaveis.has(t))
   )];
 }
 
@@ -98,8 +120,8 @@ function casamentoLocal(alvo, termos) {
   return melhorJanela;
 }
 
-export function selecionarDispositivos(tema, corpus) {
-  const termos = termosDoTema(tema).map(radical).filter(Boolean);
+export function selecionarDispositivos(tema, corpus, opcoes = {}) {
+  const termos = termosDoTema(tema, opcoes).map(radical).filter(Boolean);
   if (termos.length < TERMOS_MINIMOS) return [];
 
   const pontuados = corpus
@@ -199,8 +221,8 @@ export function contemBaseLegalVerificada(texto) {
 /**
  * Bloco markdown com a base legal, ou `''` quando não há casamento forte.
  */
-export function montarBaseLegal(tema, corpus) {
-  const achados = selecionarDispositivos(tema, corpus);
+export function montarBaseLegal(tema, corpus, opcoes = {}) {
+  const achados = selecionarDispositivos(tema, corpus, opcoes);
   if (!achados.length) return '';
 
   const porSigla = new Map(corpus.map((a) => [a.sigla, a.url]));

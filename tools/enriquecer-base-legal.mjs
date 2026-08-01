@@ -40,6 +40,49 @@ const NORMAS_POR_AREA = {
   'advocacia-extrajudicial': ['CC', 'L6015', 'CPC'],
 };
 
+// Verbos do que a skill FAZ, não do que ela trata. "análise de cláusula
+// pétrea" tem por tema a cláusula pétrea; "análise" não aparece em lei
+// nenhuma e, contado como termo material, dilui o casamento e afunda o termo
+// que de fato discrimina. Medido nas 174 cascas de constitucional: 27
+// começavam com "analise".
+const ACOES = [
+  'analise', 'analisar', 'diagnostico', 'diagnosticar', 'monitoramento', 'monitorar',
+  'auditoria', 'auditar', 'gestao', 'gerir', 'controle', 'checklist', 'roteiro',
+  'estrategia', 'plano', 'modelo', 'minuta', 'peticao', 'elaboracao', 'redacao',
+  'preparacao', 'revisao', 'avaliacao', 'verificacao', 'triagem', 'cabimento',
+];
+
+// Sigla → nome por extenso. As leis escrevem o instituto inteiro e as skills
+// usam a abreviação: a Lei 9.868 nunca diz "ADI", diz "ação direta de
+// inconstitucionalidade". Sem esta ponte o tema não casa com a própria lei
+// que o rege — foi a causa medida de boa parte das cascas de constitucional.
+//
+// Isto é matéria jurídica e vive aqui, na ferramenta de área, nunca em
+// `src/`: o motor não conhece os institutos de área nenhuma.
+const SINONIMOS = {
+  adi: ['acao direta de inconstitucionalidade'],
+  adin: ['acao direta de inconstitucionalidade'],
+  adc: ['acao declaratoria de constitucionalidade'],
+  adpf: ['arguicao de descumprimento de preceito fundamental'],
+  ado: ['acao direta de inconstitucionalidade por omissao'],
+  hc: ['habeas corpus'],
+  ms: ['mandado de seguranca'],
+  mi: ['mandado de injuncao'],
+  acp: ['acao civil publica'],
+  air: ['impugnacao registro candidatura'],
+  airc: ['impugnacao registro candidatura'],
+  aije: ['investigacao judicial eleitoral'],
+  aime: ['impugnacao mandato eletivo'],
+  rcl: ['reclamacao'],
+  re: ['recurso extraordinario'],
+  resp: ['recurso especial'],
+  respe: ['recurso especial eleitoral'],
+  fefc: ['fundo especial financiamento campanha'],
+  sus: ['sistema unico saude'],
+  tac: ['termo ajustamento conduta'],
+  lgpd: ['protecao dados pessoais'],
+};
+
 const args = process.argv.slice(2);
 const posicionais = args.filter((a) => !a.startsWith('--'));
 const [dirArea, raizAcervo] = posicionais;
@@ -113,7 +156,7 @@ for (const id of ids) {
   candidatas++;
 
   const titulo = (original.match(/^#\s+(.+)$/m) || [])[1] || id.replace(/-/g, ' ');
-  const bloco = montarBaseLegal(titulo, corpus);
+  const bloco = montarBaseLegal(titulo, corpus, { sinonimos: SINONIMOS, acoes: ACOES });
   if (!bloco) { semCasamento.push(id); continue; }
 
   preenchidas++;

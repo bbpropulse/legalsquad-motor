@@ -20,6 +20,36 @@ const CORPUS = [
   },
 ];
 
+test('expande sinônimos do vocabulário da área antes de casar', () => {
+  // Medido nas 174 cascas de constitucional: os títulos usam SIGLA ("adi",
+  // "adpf", "hc") e as leis usam o nome por extenso — a Lei 9.868 nunca
+  // escreve "ADI", escreve "ação direta de inconstitucionalidade". Sem
+  // expandir, o tema não casa com a própria lei que o rege.
+  //
+  // O dicionário é matéria jurídica e vem de FORA do módulo: o motor não
+  // conhece os institutos de nenhuma área (ver CLAUDE.md, fronteira
+  // núcleo × pacote). Aqui ele é só um mapa que o chamador fornece.
+  const sinonimos = { adi: ['acao direta de inconstitucionalidade'] };
+  const termos = termosDoTema('Análise de cabimento de ADI', { sinonimos });
+  assert.ok(termos.includes('inconstitucionalidade'), 'a sigla precisa render os termos por extenso');
+});
+
+test('descarta prefixo de AÇÃO — o tema é o objeto, não o verbo', () => {
+  // "analise-de-cabimento-de-adi" tem como tema a ADI; "analise" e "cabimento"
+  // são o que a skill FAZ, e não aparecem no texto de lei nenhuma. Contá-los
+  // como termos materiais dilui o casamento e afunda o termo que discrimina.
+  const acoes = ['analise', 'diagnostico', 'monitoramento', 'auditoria'];
+  const termos = termosDoTema('Análise de cláusula pétrea', { acoes });
+  assert.ok(!termos.includes('analise'));
+  assert.ok(termos.includes('clausula'));
+});
+
+test('sem opções, o comportamento é o de antes — nada quebra', () => {
+  const termos = termosDoTema('Destinação de sobras de campanha');
+  assert.ok(termos.includes('sobras'));
+  assert.ok(termos.includes('campanha'));
+});
+
 test('extrai termos materiais do tema e descarta palavra vazia', () => {
   const termos = termosDoTema('Destinação de sobras de campanha');
   assert.ok(termos.includes('sobras'));
