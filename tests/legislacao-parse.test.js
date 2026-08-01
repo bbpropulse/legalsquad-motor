@@ -140,3 +140,46 @@ test('a ÚLTIMA ocorrência do artigo é a vigente — a primeira é redação r
   assert.match(artigos.at(-1).texto, /2 \(dois\) anos/, 'a última é a vigente');
   assert.match(artigos[0].texto, /um ano/, 'a primeira é a revogada');
 });
+
+test('"Art. 248 - O cancelamento" — travessão + inicial de frase NÃO é sufixo de artigo', () => {
+  // Bug real, achado por um subagente ao enriquecer skill de registros
+  // públicos: a Lei 6.015 usa "Art. 248 - O cancelamento efetuar-se-á..." e o
+  // parser lia o "O" como sufixo, gravando `l6015-art-248-o.md`. O artigo
+  // canônico 248 deixava de existir — e como são os arts. 248-259 que regem o
+  // cancelamento de registro, a skill inteira ficava sem seus dispositivos
+  // centrais.
+  //
+  // A distinção é o que vem DEPOIS da letra: em "5º-A Dispositivo", a letra é
+  // seguida de espaço e outra palavra maiúscula do dispositivo; em "248 - O
+  // cancelamento", a letra é seguida de palavra minúscula — é artigo definido
+  // iniciando a frase, não sufixo.
+  const artigos = fatiarArtigos([
+    'Art. 248 - O cancelamento efetuar-se-á a requerimento do interessado.',
+    'Art. 251-A. Dispositivo autônomo incluído pela Lei 14.382/2022.',
+  ].join('\n'));
+
+  assert.equal(artigos[0].numero, '248', 'o "O" de "O cancelamento" não é sufixo');
+  assert.equal(artigos[1].numero, '251-A', 'mas o -A de 251-A é sufixo de verdade');
+});
+
+test('ADCT é corpo SEPARADO — seu art. 5º não é "redação vigente" do art. 5º da CF', () => {
+  // Bug que a correção "última ocorrência = vigente" INTRODUZIU: a página da
+  // Constituição traz o ADCT no fim, então o art. 5º do ADCT (disposições
+  // transitórias, 1988) virava o nome canônico e o art. 5º real — com os
+  // direitos fundamentais e o inciso XXIV — ia para o sufixado.
+  //
+  // Isso é pior que perder o artigo: o gate validaria a citação contra o
+  // texto errado e devolveria VERIFICADA para afirmação materialmente falsa.
+  // A heurística cronológica só vale DENTRO do mesmo corpo normativo.
+  const artigos = fatiarArtigos([
+    'Art. 5º Todos são iguais perante a lei.',
+    'XXIV - a lei estabelecerá o procedimento para desapropriação;',
+    'ATO DAS DISPOSIÇÕES CONSTITUCIONAIS TRANSITÓRIAS',
+    'Art. 5º Não se aplicará às eleições previstas para 15 de novembro de 1988.',
+  ].join('\n'));
+
+  const doCorpo = artigos.filter((a) => a.numero === '5' && a.corpo !== 'ADCT');
+  assert.equal(doCorpo.length, 1, 'só um art. 5º pertence ao corpo permanente');
+  assert.match(doCorpo[0].texto, /iguais perante a lei/);
+  assert.equal(artigos.at(-1).corpo, 'ADCT', 'o do ADCT é marcado como outro corpo');
+});

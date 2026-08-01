@@ -142,7 +142,10 @@ export function classificarCitacoes(citacoes, contexto = {}) {
     // ausência de contraprova local seria exatamente o fail-open que este
     // módulo existe para impedir. Só a fonte declaradamente aberta libera.
     if (citacao.tipo === 'lei') {
-      const fonte = fontesAbertas.find((url) => /planalto\.gov\.br/i.test(url));
+      // Vale a URL oficial OU o caminho do acervo de legislação: aquele
+      // acervo foi coletado do Planalto e cada arquivo guarda a fonte_url de
+      // origem, então ler de lá é reproduzível — mais verificável, não menos.
+      const fonte = fontesAbertas.find((url) => /planalto\.gov\.br/i.test(url) || /acervo\/legislacao\//i.test(url));
       return fonte
         ? { ...citacao, status: 'VERIFICADA', fonte }
         : { ...citacao, status: 'FONTE_NAO_DECLARADA', fonte: null };

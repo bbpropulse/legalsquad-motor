@@ -66,7 +66,7 @@ export function htmlParaTexto(entrada) {
 // caía por backtracking no artigo 30, porque o ponto depois do "A" não era
 // aceito. O 30-A da Lei 9.504 é dispositivo autônomo e dos mais citados da
 // matéria eleitoral; confundi-lo com o 30 entrega o texto errado como certo.
-const ABERTURA = /^[ \t]*Art\.[ \t]*(\d{1,3}(?:\.\d{3})+|\d+)[ºo°]?\.?(?:[ \t]*-[ \t]*([A-Z]))?(?![\p{L}\p{N}])/u;
+const ABERTURA = /^[ \t]*Art\.[ \t]*(\d{1,3}(?:\.\d{3})+|\d+)[ºo°]?\.?(?:[ \t]*-[ \t]*([A-Z])(?![ \t]+\p{Ll}))?(?![\p{L}\p{N}])/u;
 
 /**
  * @param {string} texto
@@ -77,12 +77,23 @@ export function fatiarArtigos(texto) {
   const linhas = String(texto || '').split('\n');
   const artigos = [];
   let atual = null;
+  // A página da Constituição traz o ADCT no fim. Sem separar os corpos, o
+  // art. 5º do ADCT vira "redação vigente" do art. 5º da CF — e o gate
+  // validaria a citação contra o texto errado, devolvendo VERIFICADA para
+  // afirmação materialmente falsa.
+  let corpo = '';
+  // O título do ADCT aparece DUAS vezes na página: uma no sumário, no topo, e
+  // outra onde o ato de fato começa. Marcar na primeira jogaria a Constituição
+  // inteira para dentro do ADCT — medido: 501 de 514 artigos.
+  const MARCADOR_ADCT = /^\s*(ATO DAS DISPOSI[ÇC][ÕO]ES CONSTITUCIONAIS TRANSIT[ÓO]RIAS|ADCT)\s*$/i;
+  const inicioDoAdct = linhas.reduce((ultimo, linha, i) => (MARCADOR_ADCT.test(linha) ? i : ultimo), -1);
 
-  for (const linha of linhas) {
+  for (const [indice, linha] of linhas.entries()) {
+    if (inicioDoAdct >= 0 && indice >= inicioDoAdct) corpo = 'ADCT';
     const abre = linha.match(ABERTURA);
     if (abre) {
       const numero = abre[1].replace(/\./g, '');
-      atual = { numero: abre[2] ? `${numero}-${abre[2]}` : numero, linhas: [linha] };
+      atual = { numero: abre[2] ? `${numero}-${abre[2]}` : numero, corpo, linhas: [linha] };
       artigos.push(atual);
       continue;
     }
@@ -91,8 +102,9 @@ export function fatiarArtigos(texto) {
     if (atual) atual.linhas.push(linha);
   }
 
-  return artigos.map(({ numero, linhas: corpo }) => ({
+  return artigos.map(({ numero, corpo, linhas: linhasDoArtigo }) => ({
     numero,
-    texto: corpo.join('\n').replace(/\n{3,}/g, '\n\n').trim(),
+    corpo,
+    texto: linhasDoArtigo.join('\n').replace(/\n{3,}/g, '\n\n').trim(),
   }));
 }

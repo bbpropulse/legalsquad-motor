@@ -136,3 +136,24 @@ test('acórdão com fonte oficial declarada resolve, como já ocorria com a lei'
   });
   assert.equal(r[0].status, 'VERIFICADA');
 });
+
+test('lei lida do ACERVO LOCAL conta como fonte aberta', () => {
+  // O acervo de legislação foi coletado do Planalto e cada arquivo guarda a
+  // `fonte_url` de origem. Ler o artigo de lá é MAIS verificável que abrir
+  // online — é reproduzível. Exigir a URL http quando o autor declarou o
+  // caminho local reprova quem seguiu a instrução de usar o acervo, que é
+  // exatamente o comportamento que o projeto quer incentivar.
+  const r = classificarCitacoes(extrairCitacoes('CPC, art. 1.009 e art. 203.'), {
+    acervo: [],
+    fontesAbertas: ['acervo/legislacao/CPC/cpc-art-1009.md'],
+  });
+  assert.ok(r.every((c) => c.status === 'VERIFICADA'), 'caminho do acervo de legislação vale como fonte');
+});
+
+test('caminho que NÃO é do acervo de legislação continua não bastando', () => {
+  const [r] = classificarCitacoes(extrairCitacoes('CPC, art. 1.009'), {
+    acervo: [],
+    fontesAbertas: ['notas-pessoais/rascunho.md'],
+  });
+  assert.equal(r.status, 'FONTE_NAO_DECLARADA');
+});
