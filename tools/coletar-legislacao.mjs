@@ -51,6 +51,11 @@ const LEIS = [
   { sigla: 'L9099', nome: 'Juizados Especiais — Lei 9.099/1995', area: 'civil', url: 'leis/l9099.htm' },
   { sigla: 'L9868', nome: 'Lei da ADI e ADC — Lei 9.868/1999', area: 'constitucional', url: 'leis/l9868.htm' },
   { sigla: 'L9882', nome: 'Lei da ADPF — Lei 9.882/1999', area: 'constitucional', url: 'leis/l9882.htm' },
+  { sigla: 'L13300', nome: 'Mandado de Injunção — Lei 13.300/2016', area: 'constitucional', url: '_ato2015-2018/2016/lei/l13300.htm' },
+  { sigla: 'L1079', nome: 'Crimes de Responsabilidade — Lei 1.079/1950', area: 'constitucional', url: 'leis/l1079.htm' },
+  { sigla: 'L12846', nome: 'Lei Anticorrupção — Lei 12.846/2013', area: 'administrativo', url: '_ato2011-2014/2013/lei/l12846.htm' },
+  { sigla: 'L4717', nome: 'Lei da Ação Popular — Lei 4.717/1965', area: 'administrativo', url: 'leis/l4717.htm' },
+  { sigla: 'L7853', nome: 'Apoio a Pessoas com Deficiência — Lei 7.853/1989', area: 'administrativo', url: 'leis/l7853.htm' },
 ];
 
 // Uma lei real tem dezenas de artigos. Um punhado é sinal de que a página veio

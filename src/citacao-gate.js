@@ -36,9 +36,15 @@ const PADROES = [
   },
   {
     tipo: 'acordao',
-    // "REspe nº 6373", "AgR-REspEI nº 060020820", "RE 190.364", "HC 123456"
-    regex: /\b((?:AgR-)?(?:REspe?(?:EI)?|RE|HC|MS|ADI|ADPF|RHC|AREsp|EDcl)[A-Za-z-]*)\s+n?[º°]?\s*([\d.\-/]{4,})/g,
-    campos: (m) => ({ classe: m[1].toUpperCase(), numero: m[2].replace(/\D/g, '') }),
+    // "REspe nº 6373", "AgR-REspEI nº 060020820", "RE 190.364", "MS 17.526-DF"
+    //
+    // O número para em dígitos/pontos/barra e a UF é capturada à parte. Antes o
+    // hífen entrava no número: `MS 17.526-DF` virava `MS 17.526-`, o "DF" ficava
+    // de fora e `17526` não casava com o path do acervo (`ms-17-526-df`) —
+    // 182 skills receberam NAO_ENCONTRADA para citação que existia, que é o
+    // erro mais caro do gate: leva a remover fundamentação correta.
+    regex: /\b((?:AgR-)?(?:REspe?(?:EI)?|RE|HC|MS|ADI|ADPF|RHC|AREsp|EDcl)[A-Za-z-]*)\s+n?[º°]?\s*([\d][\d./]{3,})(?:-([A-Z]{2}))?/g,
+    campos: (m) => ({ classe: m[1].toUpperCase(), numero: m[2].replace(/\D/g, ''), uf: m[3] || '' }),
   },
 ];
 
@@ -89,10 +95,20 @@ function casaNoAcervo(citacao, acervo) {
 
   return acervo.find((entrada) => {
     const campo = `${entrada.tema || ''} ${entrada.path || ''}`;
+    // O acervo grava o número do processo com separadores variáveis: o tema
+    // traz "MS 17.526-DF" e o path traz "ms-17-526-df". Comparar só a forma
+    // literal faria a citação certa não casar com o próprio documento dela.
+    //
+    // A normalização junta os GRUPOS DE DÍGITOS separados por ponto ou hífen
+    // ("17-526" e "17.526" viram "17526") preservando a fronteira com letras —
+    // remover os separadores de tudo grudaria "MS17526DF" e a borda de palavra
+    // rejeitaria o próprio número que deveria casar.
+    const campoSoDigitos = campo.replace(/(\d)[.-](?=\d)/g, '$1');
     return alvo.every((termo) => {
       // Número: borda dos DOIS lados — "49" casaria dentro de "1949".
       if (/^\d+$/.test(termo)) {
-        return new RegExp(`(?<![\\p{L}\\p{N}])${termo}(?![\\p{L}\\p{N}])`, 'iu').test(campo);
+        const borda = new RegExp(`(?<![\\p{L}\\p{N}])${termo}(?![\\p{L}\\p{N}])`, 'iu');
+        return borda.test(campo) || borda.test(campoSoDigitos);
       }
       // Classe: borda só à ESQUERDA. O acervo grava a classe completa
       // ("agr-respei"), e exigir borda à direita rejeitaria o próprio acórdão

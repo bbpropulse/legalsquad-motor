@@ -2,6 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { extrairCitacoes, classificarCitacoes } from '../src/citacao-gate.js';
 
+test('número de acórdão com sufixo de UF não é truncado no hífen', () => {
+  // Falha real, medida em 182 skills: `MS 17.526-DF` era extraído como
+  // `MS 17.526-` (o hífen entrava no número e o "DF" ficava de fora), e
+  // depois `17526` não casava com o path do acervo, que grava `ms-17-526-df`.
+  // O processo EXISTIA — o gate reportava NAO_ENCONTRADA para citação boa,
+  // que é o modo de falha mais caro: leva a remover fundamentação correta.
+  const [c] = extrairCitacoes('Ver o MS 17.526-DF, Rel. Manoel Erhardt.');
+  assert.equal(c.tipo, 'acordao');
+  assert.equal(c.numero, '17526');
+  assert.equal(c.uf, 'DF');
+});
+
+test('acórdão com UF resolve contra o acervo que grava a UF no path', () => {
+  const acervo = [{
+    path: 'jurisprudencia/direito-administrativo/stj/stj-0008E-ms-17-526-df-anistia-politica.md',
+    tema: 'MS 17.526-DF — anistia política',
+  }];
+  const [r] = classificarCitacoes(extrairCitacoes('MS 17.526-DF'), { acervo });
+  assert.equal(r.status, 'VERIFICADA');
+});
+
 test('extrai lei com artigo, súmula e acórdão', () => {
   const texto = [
     'O prazo é de 5 dias (LC 64/90, art. 3º).',
