@@ -49,6 +49,8 @@ const LEIS = [
   { sigla: 'L8245', nome: 'Lei do Inquilinato — Lei 8.245/1991', area: 'imobiliario', url: 'leis/l8245.htm' },
   { sigla: 'L7347', nome: 'Lei da Ação Civil Pública — Lei 7.347/1985', area: 'administrativo', url: 'leis/l7347orig.htm' },
   { sigla: 'L9099', nome: 'Juizados Especiais — Lei 9.099/1995', area: 'civil', url: 'leis/l9099.htm' },
+  { sigla: 'L9868', nome: 'Lei da ADI e ADC — Lei 9.868/1999', area: 'constitucional', url: 'leis/l9868.htm' },
+  { sigla: 'L9882', nome: 'Lei da ADPF — Lei 9.882/1999', area: 'constitucional', url: 'leis/l9882.htm' },
 ];
 
 // Uma lei real tem dezenas de artigos. Um punhado é sinal de que a página veio

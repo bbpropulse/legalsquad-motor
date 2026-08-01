@@ -23,7 +23,7 @@ import { htmlParaTexto, fatiarArtigos } from '../src/legislacao-parse.js';
 // — melhor não fazer nada do que casar tema contra corpo de lei alheio.
 const NORMAS_POR_AREA = {
   eleitoral: ['CE', 'LC64', 'L9504'],
-  'direito-constitucional': ['CF', 'L12016'],
+  'direito-constitucional': ['CF', 'L12016', 'L9868', 'L9882'],
   'direito-administrativo': ['L8112', 'L14133', 'L9784', 'L8429', 'L7347'],
   'direito-civil': ['CC', 'CPC', 'L9099'],
   'direito-previdenciario': ['L8213'],
