@@ -26,12 +26,18 @@ const NORMAS_POR_AREA = {
   'direito-constitucional': ['CF', 'L12016', 'L9868', 'L9882', 'L13300', 'L1079'],
   'direito-administrativo': ['L8112', 'L14133', 'L9784', 'L8429', 'L7347', 'L12846', 'L4717', 'L7853'],
   'direito-civil': ['CC', 'CPC', 'L9099'],
-  'direito-previdenciario': ['L8213'],
-  'direito-do-consumidor': ['CDC'],
-  'direito-imobiliario': ['L6015', 'L8245'],
+  'direito-previdenciario': ['L8213', 'L13146'],
+  'direito-do-consumidor': ['CDC', 'L9099'],
+  'direito-imobiliario': ['L6015', 'L8245', 'CC'],
   'direito-tributario': ['CTN'],
   'direito-trabalhista': ['CLT'],
   'direito-penal': ['CP', 'CPP'],
+  // Saúde combina o regime sanitário (SUS, planos, ato médico) com o
+  // consumerista e o civil: erro médico é responsabilidade civil, negativa de
+  // cobertura é relação de consumo, e fila de cirurgia é direito à saúde.
+  // Restringir a uma só família deixaria a maior parte dos temas sem norma.
+  'medica-saude': ['L8080', 'L9656', 'L8142', 'L12842', 'L13146', 'CDC', 'CC', 'CF'],
+  'advocacia-extrajudicial': ['CC', 'L6015', 'CPC'],
 };
 
 const args = process.argv.slice(2);
@@ -85,15 +91,26 @@ function corpoProprio(texto) {
     .filter((l) => l && !/^#\s/.test(l) && !/^> \*\*Protocolo operacional/.test(l));
 }
 
-let vazias = 0;
+// Por padrão só preenche skill SEM corpo próprio — o desenho conservador que
+// nasceu para não sobrescrever autoria. Mas ACRESCENTAR uma seção ao fim não
+// sobrescreve nada, e áreas inteiras (médica, civil, previdenciário) têm corpo
+// próprio e nenhum dispositivo transcrito. `--incluir-com-conteudo` estende o
+// alcance a elas mantendo a mesma garantia: o texto existente fica intacto e a
+// base legal entra depois dele.
+const incluirComConteudo = args.includes('--incluir-com-conteudo');
+
+let candidatas = 0;
 let preenchidas = 0;
 const semCasamento = [];
 
 for (const id of ids) {
   const caminho = join(skillsDir, id, 'SKILL.md');
   const original = readFileSync(caminho, 'utf8');
-  if (corpoProprio(original).length) continue;
-  vazias++;
+  const temCorpo = corpoProprio(original).length > 0;
+  if (temCorpo && !incluirComConteudo) continue;
+  // Idempotência: rodar duas vezes não duplica a seção.
+  if (original.includes('## Base legal — dispositivos a conferir')) continue;
+  candidatas++;
 
   const titulo = (original.match(/^#\s+(.+)$/m) || [])[1] || id.replace(/-/g, ' ');
   const bloco = montarBaseLegal(titulo, corpus);
@@ -106,7 +123,7 @@ for (const id of ids) {
 
 console.log(`ENRIQUECER:${area}`);
 console.log(`  normas carregadas:  ${new Set(corpus.map((c) => c.sigla)).size} (${corpus.length} artigos)`);
-console.log(`  skills vazias:      ${vazias}`);
-console.log(`  base legal montada: ${preenchidas} (${vazias ? ((preenchidas / vazias) * 100).toFixed(0) : 0}%)`);
-console.log(`  sem casamento forte: ${semCasamento.length} — seguem vazias, marcadas como lacuna`);
+console.log(`  candidatas:         ${candidatas}${incluirComConteudo ? ' (inclui skills com corpo próprio)' : ' (só as vazias)'}`);
+console.log(`  base legal montada: ${preenchidas} (${candidatas ? ((preenchidas / candidatas) * 100).toFixed(0) : 0}%)`);
+console.log(`  sem casamento forte: ${semCasamento.length} — seguem sem base legal, marcadas como lacuna`);
 if (!aplicar) console.log('\n  (dry-run — use --aplicar)');

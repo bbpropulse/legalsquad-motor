@@ -22,19 +22,30 @@ import { contemBaseLegalVerificada } from '../src/base-legal.js';
 
 const args = process.argv.slice(2);
 const posicionais = args.filter((a) => !a.startsWith('--'));
-const [dirArea, raizAcervo, ramo] = posicionais;
+const [dirArea, raizAcervo, ...ramos] = posicionais;
 const aplicar = args.includes('--aplicar');
 
-if (!dirArea || !raizAcervo || !ramo) {
-  console.error('uso: enriquecer-precedentes.mjs <dir-da-area> <raiz-com-acervo> <ramo> [--aplicar]');
-  console.error('  <ramo> é o diretório em acervo/jurisprudencia/ (ex.: direito-eleitoral)');
+// Por padrão exige base legal na skill — precedente sem o dispositivo que ele
+// interpreta é citação solta. Mas há área cujo vocabulário de título não casa
+// com o das leis e casa muito bem com o dos julgados: medido na área médica,
+// o título "negativa de cobertura plano de saúde" não encontra artigo da Lei
+// 9.656 (que fala em "operadora", "produto", "beneficiário") e encontra na
+// hora o REsp 1.823.077-SP, cujo assunto é literalmente "Plano de saúde.
+// Negativa de cobertura". Nessas áreas a skill já tem corpo próprio, e o
+// precedente complementa em vez de ficar solto.
+const semExigirBaseLegal = args.includes('--sem-exigir-base-legal');
+
+if (!dirArea || !raizAcervo || !ramos.length) {
+  console.error('uso: enriquecer-precedentes.mjs <dir-da-area> <raiz-com-acervo> <ramo...> [--aplicar] [--sem-exigir-base-legal]');
+  console.error('  <ramo...> um ou mais diretórios em acervo/jurisprudencia/ (ex.: direito-eleitoral)');
   process.exit(1);
 }
 
-const jurisDir = join(raizAcervo, 'acervo', 'jurisprudencia', ramo);
-if (!existsSync(jurisDir)) {
-  console.error(`ENRIQUECER_PRECEDENTES:ERRO — ramo inexistente: ${jurisDir}`);
-  process.exit(1);
+for (const ramo of ramos) {
+  if (!existsSync(join(raizAcervo, 'acervo', 'jurisprudencia', ramo))) {
+    console.error(`ENRIQUECER_PRECEDENTES:ERRO — ramo inexistente: ${ramo}`);
+    process.exit(1);
+  }
 }
 
 // Carrega o acervo do ramo. O texto usado para CASAR é o `assunto` do
@@ -54,10 +65,11 @@ function walk(dir) {
     corpus.push({ sigla: precedente.tribunal, url: precedente.fonte, numero: precedente.processo, texto: assunto, precedente });
   }
 }
-walk(jurisDir);
+for (const ramo of ramos) walk(join(raizAcervo, 'acervo', 'jurisprudencia', ramo));
 
 console.log(`ENRIQUECER_PRECEDENTES:${basename(dirArea)}`);
-console.log(`  acervo do ramo:     ${corpus.length} precedentes identificáveis`);
+console.log(`  ramos:              ${ramos.join(', ')}`);
+console.log(`  acervo dos ramos:   ${corpus.length} precedentes identificáveis`);
 
 const skillsDir = join(dirArea, 'skills');
 const ids = readdirSync(skillsDir).filter((d) => existsSync(join(skillsDir, d, 'SKILL.md')));
@@ -68,8 +80,10 @@ let comPrecedente = 0;
 for (const id of ids) {
   const caminho = join(skillsDir, id, 'SKILL.md');
   const original = readFileSync(caminho, 'utf8');
-  // Precedente sem o dispositivo que ele interpreta é citação solta.
-  if (!contemBaseLegalVerificada(original)) continue;
+  // Precedente sem o dispositivo que ele interpreta é citação solta — salvo
+  // quando a skill já traz corpo próprio com fundamentação (ver a nota sobre
+  // `--sem-exigir-base-legal` no topo).
+  if (!semExigirBaseLegal && !contemBaseLegalVerificada(original)) continue;
   if (original.includes('## Precedentes a conferir')) continue;
   elegiveis++;
 

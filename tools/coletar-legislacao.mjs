@@ -56,6 +56,11 @@ const LEIS = [
   { sigla: 'L12846', nome: 'Lei Anticorrupção — Lei 12.846/2013', area: 'administrativo', url: '_ato2011-2014/2013/lei/l12846.htm' },
   { sigla: 'L4717', nome: 'Lei da Ação Popular — Lei 4.717/1965', area: 'administrativo', url: 'leis/l4717.htm' },
   { sigla: 'L7853', nome: 'Apoio a Pessoas com Deficiência — Lei 7.853/1989', area: 'administrativo', url: 'leis/l7853.htm' },
+  { sigla: 'L8080', nome: 'Lei Orgânica da Saúde (SUS) — Lei 8.080/1990', area: 'medica-saude', url: 'leis/l8080.htm' },
+  { sigla: 'L9656', nome: 'Planos e Seguros de Saúde — Lei 9.656/1998', area: 'medica-saude', url: 'leis/l9656.htm' },
+  { sigla: 'L8142', nome: 'Participação da Comunidade no SUS — Lei 8.142/1990', area: 'medica-saude', url: 'leis/l8142.htm' },
+  { sigla: 'L12842', nome: 'Ato Médico — Lei 12.842/2013', area: 'medica-saude', url: '_ato2011-2014/2013/lei/l12842.htm' },
+  { sigla: 'L13146', nome: 'Estatuto da Pessoa com Deficiência — Lei 13.146/2015', area: 'medica-saude', url: '_ato2015-2018/2015/lei/l13146.htm' },
 ];
 
 // Uma lei real tem dezenas de artigos. Um punhado é sinal de que a página veio
