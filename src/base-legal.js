@@ -120,6 +120,24 @@ function casamentoLocal(alvo, termos) {
   return melhorJanela;
 }
 
+/**
+ * O texto compilado traz a redação revogada e a vigente do MESMO artigo em
+ * arquivos separados (`l8213-art-143`, `-143-b`, `-143-c`). Sem deduplicar,
+ * a base legal saía com o art. 143 três vezes, ocupando as vagas que outros
+ * dispositivos do tema poderiam usar.
+ */
+function semRepetirArtigo(artigos) {
+  const vistos = new Set();
+  const unicos = [];
+  for (const artigo of artigos) {
+    const chave = `${artigo.sigla}|${artigo.numero}`;
+    if (vistos.has(chave)) continue;
+    vistos.add(chave);
+    unicos.push(artigo);
+  }
+  return unicos.slice(0, MAXIMO_DE_DISPOSITIVOS);
+}
+
 export function selecionarDispositivos(tema, corpus, opcoes = {}) {
   const termos = termosDoTema(tema, opcoes).map(radical).filter(Boolean);
   if (termos.length < TERMOS_MINIMOS) return [];
@@ -151,16 +169,10 @@ export function selecionarDispositivos(tema, corpus, opcoes = {}) {
     // Tolerância de 20% para não fatiar por diferença de pontuação irrelevante.
     const destacados = comDensidade.filter((p) => p.densidade >= maiorDensidade * 0.8);
     if (destacados.length > MAXIMO_DE_DISPOSITIVOS) return [];
-    return destacados
-      .sort((a, b) => b.densidade - a.densidade)
-      .slice(0, MAXIMO_DE_DISPOSITIVOS)
-      .map((p) => p.artigo);
+    return semRepetirArtigo(destacados.sort((a, b) => b.densidade - a.densidade).map((p) => p.artigo));
   }
 
-  return pontuados
-    .filter((p) => p.casados === melhor)
-    .slice(0, MAXIMO_DE_DISPOSITIVOS)
-    .map((p) => p.artigo);
+  return semRepetirArtigo(empatados.map((p) => p.artigo));
 }
 
 function trecho(texto, limite = 900) {
