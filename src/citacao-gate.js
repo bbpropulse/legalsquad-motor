@@ -21,6 +21,10 @@
 
 const MARCA_NAO_VERIFICADO = /\[NÃO VERIFICADO\]/i;
 
+// "(Vide ADIN 2332)", "(Vide ADI 6096)" — remissão que o próprio texto
+// consolidado traz dentro do dispositivo, não citação de quem escreveu.
+const NOTA_EDITORIAL = /\(\s*Vide\s$/i;
+
 const PADROES = [
   {
     tipo: 'sumula',
@@ -67,6 +71,12 @@ export function extrairCitacoes(texto) {
     for (const m of conteudo.matchAll(padrao.regex)) {
       const linha = linhaDe(conteudo, m.index);
       if (MARCA_NAO_VERIFICADO.test(linhas[linha] || '')) continue;
+      // Nota editorial DO PLANALTO dentro do dispositivo transcrito — o texto
+      // consolidado insere "(Vide ADIN 6096)" no corpo do art. 103 da Lei
+      // 8.213. Quem transcreve fielmente carrega a nota junto; tratá-la como
+      // citação do autor reprova transcrição correta e ensina a truncar a
+      // fonte para passar no gate.
+      if (NOTA_EDITORIAL.test(conteudo.slice(Math.max(0, m.index - 8), m.index))) continue;
       encontradas.push({ tipo: padrao.tipo, bruto: m[0].trim(), linha: linha + 1, ...padrao.campos(m) });
     }
   }
@@ -136,6 +146,15 @@ export function classificarCitacoes(citacoes, contexto = {}) {
       return fonte
         ? { ...citacao, status: 'VERIFICADA', fonte }
         : { ...citacao, status: 'FONTE_NAO_DECLARADA', fonte: null };
+    }
+
+    // Precedente aberto no portal oficial do tribunal tem a mesma qualidade
+    // de verificação que a lei aberta no Planalto. Exigir que ALÉM disso
+    // esteja no acervo local de informativos rejeitaria tese de repercussão
+    // geral — justamente a mais citável.
+    if (citacao.tipo === 'acordao') {
+      const oficial = fontesAbertas.find((url) => /(stf|stj|tse|tst)\.jus\.br/i.test(url));
+      if (oficial) return { ...citacao, status: 'VERIFICADA', fonte: oficial };
     }
 
     if (!Array.isArray(acervo)) {

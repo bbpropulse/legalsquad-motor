@@ -113,3 +113,26 @@ test('resumo separa o que passou do que bloqueia', () => {
   assert.equal(resultados.filter((r) => r.status === 'VERIFICADA').length, 1);
   assert.equal(resultados.filter((r) => r.status !== 'VERIFICADA').length, 1);
 });
+
+test('nota editorial DENTRO do texto transcrito não é citação do autor', () => {
+  // Falso positivo real: o Planalto insere "(Vide ADIN 6096)" DENTRO do texto
+  // do art. 103 da Lei 8.213. Uma skill que transcreve o dispositivo
+  // fielmente carrega essa nota junto — e o gate a tratava como se o autor
+  // estivesse citando a ADI. Reprovar transcrição fiel é o pior resultado
+  // possível: ensina a truncar a fonte para passar no gate.
+  const texto = '> Art. 103. O prazo é de 10 anos. (Redação dada pela Lei nº 13.846, de 2019) (Vide ADIN 6096)';
+  const acordaos = extrairCitacoes(texto).filter((c) => c.tipo === 'acordao');
+  assert.deepEqual(acordaos, []);
+});
+
+test('acórdão com fonte oficial declarada resolve, como já ocorria com a lei', () => {
+  // O gate aceitava fonte declarada só para legislação. Mas precedente aberto
+  // no portal oficial do tribunal tem a mesma qualidade de verificação — e
+  // exigir que ele ALÉM disso esteja no acervo local de informativos rejeita
+  // tese de repercussão geral legítima, que é justamente a mais citável.
+  const r = classificarCitacoes(extrairCitacoes('Tema 414/STF, RE 638.483 RG.'), {
+    acervo: [],
+    fontesAbertas: ['https://portal.stf.jus.br/jurisprudencia/sumariosumulas.asp?base=30&sumula=1604'],
+  });
+  assert.equal(r[0].status, 'VERIFICADA');
+});
