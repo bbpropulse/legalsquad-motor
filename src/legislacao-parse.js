@@ -59,7 +59,14 @@ export function htmlParaTexto(entrada) {
 // `[\d.]` aceita a forma com separador de milhar ("Art.1.048."), encontrada na
 // Lei 14.133. Lida como "artigo 1", o gate resolveria a citação contra outro
 // dispositivo e devolveria VERIFICADA — pior que não verificar.
-const ABERTURA = /^[ \t]*Art\.[ \t]*(\d[\d.]*?)\.?(?:[ºo°])?(?:[ \t]*-[ \t]*([A-Z]))?(?=[ \t]|$|[^\d.])/;
+// O número casa de forma gulosa como grupos de milhar OU dígitos corridos, e o
+// ponto final do dispositivo fica FORA da captura — assim "Art.1.048." é o
+// artigo 1048 e não o artigo 1. O sufixo de letra é opcional, e o lookahead
+// final só exige que não venha letra ou dígito colado: sem isso, "Art. 30-A."
+// caía por backtracking no artigo 30, porque o ponto depois do "A" não era
+// aceito. O 30-A da Lei 9.504 é dispositivo autônomo e dos mais citados da
+// matéria eleitoral; confundi-lo com o 30 entrega o texto errado como certo.
+const ABERTURA = /^[ \t]*Art\.[ \t]*(\d{1,3}(?:\.\d{3})+|\d+)[ºo°]?\.?(?:[ \t]*-[ \t]*([A-Z]))?(?![\p{L}\p{N}])/u;
 
 /**
  * @param {string} texto

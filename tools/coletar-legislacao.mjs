@@ -17,7 +17,7 @@
 // grava** e entra no relatório. Meia lei no acervo é pior que lei nenhuma:
 // o verificador devolveria NÃO ENCONTRADA para dispositivo que existe.
 
-import { mkdirSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { htmlParaTexto, fatiarArtigos } from '../src/legislacao-parse.js';
@@ -127,8 +127,17 @@ for (const lei of alvo) {
   const dir = join(destinoBase, lei.sigla);
   // Encolher em relação ao que já existe indica fonte degradada, não lei
   // revogada — revogação mantém o artigo com a marca "(Revogado)".
+  //
+  // A contagem anterior vem do frontmatter da coleta passada, NÃO de contar
+  // arquivos no diretório: um parser corrigido muda o agrupamento e o disco
+  // fica com órfãos da versão antiga. Contando arquivos, o conserto do
+  // `Art. 30-A` fez o guard ler 234 arquivos contra 199 artigos e recusar
+  // gravar a versão correta — bloqueando justamente a melhoria.
   if (existsSync(dir)) {
-    const antes = readdirSync(dir).filter((f) => f.includes('-art-')).length;
+    const anterior = existsSync(join(dir, `${lei.sigla}.md`))
+      ? Number((readFileSync(join(dir, `${lei.sigla}.md`), 'utf8').match(/^artigos:\s*(\d+)$/m) || [])[1])
+      : 0;
+    const antes = Number.isFinite(anterior) ? anterior : 0;
     if (antes && artigos.length < antes * 0.9) {
       relatorio.push({ sigla: lei.sigla, ok: false, motivo: `encolheu ${antes}→${artigos.length}` });
       console.log(`  ✖ ${lei.sigla.padEnd(8)} encolheu ${antes}→${artigos.length} — não gravado`);
@@ -140,6 +149,14 @@ for (const lei of alvo) {
   console.log(`  ✔ ${lei.sigla.padEnd(8)} ${String(artigos.length).padStart(4)} artigos · ${(bytes.length / 1024).toFixed(0)}KB`);
   if (dryRun) continue;
 
+  // Apaga a coleta anterior antes de regravar. Sem isto, um parser corrigido
+  // deixa órfãos da versão antiga convivendo com os novos — foi o que
+  // aconteceu ao consertar o `Art. 30-A`: o diretório ficou com 234 arquivos
+  // para 199 artigos, e na passada seguinte o guard leu isso como "a lei
+  // encolheu" e recusou gravar. Pior que o falso alarme seria o silêncio: um
+  // `art-30-b` obsoleto continuaria respondendo à busca com texto de um
+  // agrupamento que não existe mais.
+  if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   const hash = createHash('sha256').update(bytes).digest('hex');
 

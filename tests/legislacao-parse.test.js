@@ -72,6 +72,17 @@ test('fatia por artigo e leva junto incisos e parágrafos até o artigo seguinte
   assert.equal(artigos[1].numero, '6');
 });
 
+test('"Art. 30-A." com ponto após a letra também é entrada própria', () => {
+  // Medido no acervo real: o art. 30-A da Lei 9.504/1997 — representação por
+  // captação ou gasto ilícito, um dos dispositivos mais citados da matéria
+  // eleitoral — virava "art. 30" e ficava indistinguível de uma redação
+  // revogada do 30. Quem buscasse 30-A não acharia, e quem abrisse o "30"
+  // leria outro dispositivo achando que era aquele.
+  const artigos = fatiarArtigos('Art. 30. Prazo.\nArt. 30-A. Representação por gasto ilícito.');
+  assert.deepEqual(artigos.map((a) => a.numero), ['30', '30-A']);
+  assert.match(artigos[1].texto, /gasto ilícito/);
+});
+
 test('artigo com letra (5º-A) é entrada PRÓPRIA, não uma segunda ocorrência do 5º', () => {
   // Confundir 5º-A com 5º faria o gate validar uma citação contra o texto errado
   // — pior que não validar, porque devolve VERIFICADA com o conteúdo de outro
