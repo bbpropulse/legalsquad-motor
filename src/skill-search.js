@@ -157,6 +157,11 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
       // O que o Arquiteto usa para decidir REUSAR × ENRIQUECER × CRIAR.
       linhas_proprias: sub?.linhasProprias ?? null,
       titulo_oco: ehTituloOco(sub),
+      // Sinal independente de `linhas_proprias`: skills irmãs que citam o
+      // MESMO dispositivo legítimo derrubam a exclusividade de ambas sem
+      // esvaziar o conteúdo — isto é o que faz `titulo_oco` ser `false`
+      // mesmo com `linhas_proprias` baixo nesse caso.
+      base_legal_verificada: sub?.baseLegalVerificada === true,
       local: entry.local === true,
       lifecycle: entry.metadata.lifecycle,
       quality_status: quality?.qualityStatus || entry.metadata.qualityStatus,

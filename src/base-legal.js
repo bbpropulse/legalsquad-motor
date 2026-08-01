@@ -171,6 +171,31 @@ function siglasCitadasNoTexto(texto) {
   return siglas;
 }
 
+// A mesma string que abre o bloco em `montarBaseLegal` — exportada para que
+// `contemBaseLegalVerificada` (e qualquer outro leitor) detecte pelo texto
+// real gerado, nunca por uma cópia que pode divergir silenciosamente.
+export const MARCADOR_BASE_LEGAL = '## Base legal — dispositivos a conferir';
+
+/**
+ * `linhas_proprias` mede exclusividade no corpus inteiro — desenhado para
+ * achar molde de template repetido sem relação com o tema. Base legal
+ * transcrita é outra coisa: quando duas skills IRMÃS do mesmo tema citam o
+ * mesmo dispositivo (ex.: duas skills de mandado de segurança coletivo
+ * citando a CF art. 5º LXIX), a linha aparece nas duas e nenhuma conta como
+ * "própria" — mas ambas têm conteúdo real, verificado contra fonte aberta.
+ *
+ * Este sinal é independente: exige o marcador do bloco, pelo menos uma
+ * transcrição em blockquote e a lista de fontes abertas. Um heading solto
+ * sem o resto não conta — evita que qualquer um escreva "## Base legal" para
+ * escapar do sinal de vazio.
+ */
+export function contemBaseLegalVerificada(texto) {
+  const conteudo = String(texto || '');
+  if (!conteudo.includes(MARCADOR_BASE_LEGAL)) return false;
+  const apos = conteudo.slice(conteudo.indexOf(MARCADOR_BASE_LEGAL));
+  return /^>\s+\S/m.test(apos) && /\*\*Fontes abertas:\*\*/.test(apos) && /`https?:\/\//.test(apos);
+}
+
 /**
  * Bloco markdown com a base legal, ou `''` quando não há casamento forte.
  */
@@ -187,7 +212,7 @@ export function montarBaseLegal(tema, corpus) {
   }
   const fontes = [...new Set([...achados.map((a) => a.url), ...fontesCitadas])];
   const linhas = [
-    '## Base legal — dispositivos a conferir',
+    MARCADOR_BASE_LEGAL,
     '',
     'Transcrição **literal** da fonte oficial, selecionada por correspondência de',
     'tema. É **ponto de partida, não rol exaustivo**: confirme que o dispositivo',

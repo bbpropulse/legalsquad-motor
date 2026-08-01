@@ -13,6 +13,7 @@ import {
 import { auditSkillCatalogQuality } from './skill-quality.js';
 import { parseBestPracticesCatalog } from './best-practices-catalog.js';
 import { medirOriginalidade } from './skill-originality.js';
+import { contemBaseLegalVerificada } from './base-legal.js';
 
 // O agrupamento é mecanismo — serve para o agente de roteamento ler o catálogo
 // em blocos em vez de uma lista plana. A TAXONOMIA, porém, é da área: o motor
@@ -188,6 +189,11 @@ export function renderSkillIndex(catalog) {
         yaml += `    linhas_proprias: ${substancia.linhasExclusivas}\n`;
         yaml += `    originalidade: ${substancia.originalidade.toFixed(3)}\n`;
       }
+      // Sinal independente de exclusividade: duas skills irmãs que citam o
+      // MESMO dispositivo (legítimo) fariam `linhas_proprias` cair a zero
+      // para as duas, mesmo com conteúdo real e verificado contra fonte
+      // aberta. Ver `contemBaseLegalVerificada` para o porquê.
+      if (contemBaseLegalVerificada(entry.raw)) yaml += '    base_legal_verificada: true\n';
       if (meta.version) yaml += `    version: ${yamlString(meta.version)}\n`;
       if (meta.categories.length) yaml += `    categories: ${yamlList(meta.categories)}\n`;
       if (meta.aliases.length) yaml += `    aliases: ${yamlList(meta.aliases)}\n`;
