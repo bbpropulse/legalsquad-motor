@@ -258,3 +258,158 @@ test('a seção de fontes continua alimentando as fontes abertas, só não gera 
   const [r] = classificarCitacoes(extrairCitacoes(texto), { acervo: [], fontesAbertas: fontes });
   assert.equal(r.status, 'VERIFICADA');
 });
+
+test('súmula resolve contra o DOCUMENTO DA SÚMULA, não contra um acórdão que só a menciona', () => {
+  // Falso positivo real, medido no acervo de produção: "Súmula Vinculante 10"
+  // casava com uma Reclamação cujo TEMA é "... e Ofensa à Súmula Vinculante
+  // 10" — um acórdão que discute a violação da súmula, não o enunciado dela.
+  // O documento certo (tipo: sumula, em sumulas/STF-VINCULANTE/) vinha
+  // DEPOIS no índice e nunca era alcançado, porque `find` pára no primeiro
+  // candidato textual.
+  //
+  // A mesma armadilha se generaliza: qualquer acórdão que cite "Súmula
+  // Vinculante N" na ementa vira candidato textual válido, e o mais antigo do
+  // índice sempre ganha da fonte certa — não é caso de canto, é sistemático.
+  const acervo = [
+    {
+      path: 'jurisprudencia/direito-constitucional/stf/stf-0585-rcl-8150-...-a47dbf27.md',
+      tipo: 'jurisprudencia',
+      tema: 'Reclamação: Inconstitucionalidade do Art. 71 e Ofensa à Súmula Vinculante 10',
+    },
+    // `tema` vem do H1 do arquivo (é assim que `scripts/indexar-acervo.js`
+    // preenche o índice de verdade) — "" aqui seria um índice que este
+    // projeto nunca produz.
+    { path: 'sumulas/STF-VINCULANTE/stf-sv-10.md', tipo: 'sumula', tema: 'Súmula Vinculante 10 do STF' },
+  ];
+  const [r] = classificarCitacoes(extrairCitacoes('Súmula Vinculante 10'), { acervo });
+  assert.equal(r.status, 'VERIFICADA');
+  assert.equal(r.fonte, 'sumulas/STF-VINCULANTE/stf-sv-10.md', 'aponta pro documento da súmula, não pro acórdão que a cita');
+});
+
+test('sem documento tipo=sumula no acervo, cai para o candidato textual (compatibilidade)', () => {
+  // Preserva o comportamento já testado acima ("súmula resolve contra o
+  // acervo quando o enunciado está lá"): quando não há candidato "forte"
+  // (tipo sumula, ou caminho que denuncia ser a própria súmula), o texto
+  // continua bastando — não regride para ACERVO_AUSENTE por excesso de rigor.
+  const acervo = [{ path: 'jurisprudencia/tse/sumula-49.md', tema: 'Súmula TSE 49 — registro de candidatura' }];
+  const [r] = classificarCitacoes(extrairCitacoes('Súmula 49 do TSE'), { acervo });
+  assert.equal(r.status, 'VERIFICADA');
+});
+
+test('o nome de arquivo abreviado (sv-N) basta, sem depender do tema vir do H1', () => {
+  // `ehDocumentoDaSumula` não pode depender só do `tema` (que vem do H1 do
+  // arquivo, via `scripts/indexar-acervo.js`). Se o H1 estiver ausente,
+  // truncado, ou o índice for regenerado antes do arquivo terminar de
+  // gravar, a súmula fica ACHÁVEL só pelo nome do arquivo — que é o dado
+  // mais barato de manter correto, porque nasce do próprio coletor.
+  const acervo = [{ path: 'sumulas/STF-VINCULANTE/stf-sv-10.md', tipo: 'sumula', tema: '' }];
+  const [r] = classificarCitacoes(extrairCitacoes('Súmula Vinculante 10'), { acervo });
+  assert.equal(r.status, 'VERIFICADA');
+  assert.equal(r.fonte, 'sumulas/STF-VINCULANTE/stf-sv-10.md');
+});
+
+test('processo eleitoral no formato "classe-sequencial/UF" não perde o segundo grupo numérico', () => {
+  // Falha real, achada ao gatear skills de ações eleitorais: "REspe
+  // 1323-32/GO" e "AgR-REspe 26.276/CE" bloqueavam porque o número capturado
+  // parava no primeiro hífen ou não incluía a UF depois da barra — a barra
+  // ficava fora do número (correto) mas a UF nunca chegava ao terceiro grupo,
+  // porque esse só reconhecia hífen antes da UF, não barra.
+  //
+  // O formato "1323-32/GO" é comum em numeração de processo eleitoral do TSE
+  // (classe-sequencial, sem os pontos de milhar do formato mais recente).
+  const [c] = extrairCitacoes('Ver o REspe 1323-32/GO, julgado em sessão.');
+  assert.equal(c.numero, '132332', 'os dois grupos numéricos se combinam, como já ocorre com ponto/barra');
+  assert.equal(c.uf, 'GO');
+});
+
+test('"MS 17.526-DF" continua funcionando depois da mudança acima', () => {
+  // Não pode regredir o caso original: aqui o hífen é seguido de LETRA (a
+  // UF direto), não de outro grupo numérico.
+  const [c] = extrairCitacoes('Ver o MS 17.526-DF, Rel. Manoel Erhardt.');
+  assert.equal(c.numero, '17526');
+  assert.equal(c.uf, 'DF');
+});
+
+test('acervo com o path "1323-32-go" resolve a citação "REspe 1323-32/GO"', () => {
+  const acervo = [{
+    path: 'jurisprudencia/direito-eleitoral/tse/tse-respe-1323-32-go-aije-gravidade.md',
+    tema: 'REspe 1323-32/GO — AIJE, gravidade das circunstâncias',
+  }];
+  const [r] = classificarCitacoes(extrairCitacoes('REspe 1323-32/GO'), { acervo });
+  assert.equal(r.status, 'VERIFICADA');
+});
+
+test('classe por extenso no acervo resolve citação em sigla — "REspe" casa com "Recurso Especial Eleitoral"', () => {
+  // Achado real ao gatear skills de ações eleitorais: informativos antigos do
+  // TSE (Ano06_n31 etc.) gravam a classe por EXTENSO no tema/path, nunca a
+  // sigla — "recurso-especial-eleitoral-no-23-100-sp", nunca "respe-23100".
+  // Medido: 747 documentos no acervo com classe só por extenso (Recurso
+  // Especial Eleitoral, Mandado de Segurança, Habeas Corpus, Agravo
+  // Regimental). O número casava (a normalização de hífen entre dígitos já
+  // funcionava); a CLASSE que nunca batia, porque "RESPE" não é substring de
+  // "recurso especial eleitoral" nem de perto.
+  //
+  // O mapa sigla↔extenso NÃO mora no núcleo (ver o comentário em
+  // `casaClasseNoCampo`, em src/citacao-gate.js) — é vocabulário de
+  // nomenclatura processual, então cada teste que precisa dele o declara
+  // aqui, como um script de gate real faria.
+  const sinonimosClasse = { RESPE: 'recurso especial eleitoral' };
+  const acervo = [{
+    path: 'jurisprudencia/direito-eleitoral/tse/tse-Ano06_n31-recurso-especial-eleitoral-no-23-100-sp-compulsando-melhor-os-autos-verifica-se-que-nao-houve-impugnacao-forma-200a6349.md',
+    tema: 'Recurso Especial Eleitoral no 23.100-SP',
+  }];
+  const [r] = classificarCitacoes(extrairCitacoes('REspe 23.100/SP'), { acervo, sinonimosClasse });
+  assert.equal(r.status, 'VERIFICADA');
+});
+
+test('sem "sinonimosClasse" declarado, a classe por extenso NÃO resolve — o núcleo não embute vocabulário de área', () => {
+  // O mesmo acervo do teste acima, mas sem passar o mapa: comportamento
+  // padrão é reconhecer só a sigla. Prova que o sinônimo é aditivo e vem de
+  // fora, não um fallback escondido dentro do módulo.
+  const acervo = [{
+    path: 'jurisprudencia/direito-eleitoral/tse/tse-Ano06_n31-recurso-especial-eleitoral-no-23-100-sp-...md',
+    tema: 'Recurso Especial Eleitoral no 23.100-SP',
+  }];
+  const [r] = classificarCitacoes(extrairCitacoes('REspe 23.100/SP'), { acervo });
+  assert.equal(r.status, 'NAO_ENCONTRADA');
+});
+
+test('"MS" casa com "Mandado de Segurança" por extenso, via sinonimosClasse', () => {
+  const acervo = [{ path: 'jurisprudencia/tse/algum-arquivo-9988.md', tema: 'Mandado de Segurança nº 9988' }];
+  const r = classificarCitacoes(extrairCitacoes('MS 9988'), {
+    acervo,
+    sinonimosClasse: { MS: 'mandado de seguranca' },
+  })[0];
+  assert.equal(r.status, 'VERIFICADA');
+});
+
+test('classe por extenso não vira porta aberta — outra classe continua rejeitada', () => {
+  // "EDcl 9988" (embargos de declaração) citado contra um acervo que só tem
+  // "Mandado de Segurança" com o MESMO número não pode resolver: habilitar o
+  // sinônimo por extenso de MS não pode abrir a porta para qualquer classe.
+  const acervo = [{ path: 'jurisprudencia/tse/algum-arquivo-9988.md', tema: 'Mandado de Segurança nº 9988' }];
+  const r = classificarCitacoes(extrairCitacoes('EDcl 9988'), {
+    acervo,
+    sinonimosClasse: { MS: 'mandado de seguranca', EDCL: 'embargos de declaracao' },
+  })[0];
+  assert.equal(r.status, 'NAO_ENCONTRADA');
+});
+
+test('sinônimo por extenso casa mesmo quando só o PATH carrega a classe, com hífen no lugar do espaço', () => {
+  // Achado real, medido no acervo de produção: `REspe 35.980/MG` continuava
+  // NAO_ENCONTRADA mesmo com o sinônimo habilitado, porque o `tema` real do
+  // índice é "RECURSO ESPECIAL. INVESTIGAÇÃO JUDICIAL ELEITORAL" (não contém
+  // "eleitoral" logo após "especial") — só o PATH do arquivo carrega a
+  // sequência certa, e como nome de arquivo: "recurso-especial-eleitoral",
+  // com HÍFEN separando as palavras, não espaço. O sinônimo comparava contra
+  // "recurso especial eleitoral" com espaço e nunca batia no path.
+  const acervo = [{
+    path: 'jurisprudencia/direito-eleitoral/tse/tse-Ano12_n08-recurso-especial-eleitoral-no-35-980-mg-recurso-especial-investigacao-judicial-eleitoral-0ed7202c.md',
+    tema: 'RECURSO ESPECIAL. INVESTIGAÇÃO JUDICIAL ELEITORAL',
+  }];
+  const [r] = classificarCitacoes(extrairCitacoes('REspe 35.980/MG'), {
+    acervo,
+    sinonimosClasse: { RESPE: 'recurso especial eleitoral' },
+  });
+  assert.equal(r.status, 'VERIFICADA');
+});

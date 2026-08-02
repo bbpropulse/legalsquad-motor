@@ -53,12 +53,19 @@ const PADROES = [
     tipo: 'acordao',
     // "REspe nº 6373", "AgR-REspEI nº 060020820", "RE 190.364", "MS 17.526-DF"
     //
-    // O número para em dígitos/pontos/barra e a UF é capturada à parte. Antes o
-    // hífen entrava no número: `MS 17.526-DF` virava `MS 17.526-`, o "DF" ficava
-    // de fora e `17526` não casava com o path do acervo (`ms-17-526-df`) —
-    // 182 skills receberam NAO_ENCONTRADA para citação que existia, que é o
-    // erro mais caro do gate: leva a remover fundamentação correta.
-    regex: /\b((?:AgR-)?(?:REspe?(?:EI)?|RE|HC|MS|ADI|ADPF|RHC|AREsp|EDcl)[A-Za-z-]*)\s+n?[º°]?\s*([\d][\d./]{3,})(?:-([A-Z]{2}))?/g,
+    // O número para em dígitos/pontos e a UF é capturada à parte, atrás de
+    // HÍFEN OU BARRA. Antes o hífen entrava no número: `MS 17.526-DF` virava
+    // `MS 17.526-`, o "DF" ficava de fora e `17526` não casava com o path do
+    // acervo (`ms-17-526-df`) — 182 skills receberam NAO_ENCONTRADA para
+    // citação que existia, que é o erro mais caro do gate: leva a remover
+    // fundamentação correta.
+    //
+    // Numeração eleitoral do TSE tem uma forma a mais: "classe-sequencial/UF"
+    // — ex. `REspe 1323-32/GO`, dois grupos numéricos separados por hífen,
+    // terminados por barra+UF. O hífen do meio só é "parte do número" quando
+    // seguido de DÍGITO (lookahead); seguido de LETRA maiúscula, continua
+    // sendo o separador da UF do caso original.
+    regex: /\b((?:AgR-)?(?:REspe?(?:EI)?|RE|HC|MS|ADI|ADPF|RHC|AREsp|EDcl)[A-Za-z-]*)\s+n?[º°]?\s*([\d](?:[\d.]|-(?=\d)){3,})(?:[-/]([A-Z]{2}))?/g,
     campos: (m) => ({ classe: m[1].toUpperCase(), numero: m[2].replace(/\D/g, ''), uf: m[3] || '' }),
   },
 ];
@@ -122,10 +129,54 @@ export function extrairCitacoes(texto) {
 // RO virar REspe. Reduzir à raiz mantém o casamento tolerante ao prefixo de
 // agravo/embargos sem afrouxar a distinção entre classes diferentes.
 function raizDaClasse(classe) {
-  return String(classe || '')
-    .replace(/^(AGR|EDCL|EMBDECL|AGRG)-?/i, '')
-    .replace(/EI$/i, '')
-    .toUpperCase();
+  const bruta = String(classe || '').toUpperCase();
+  const semPrefixo = bruta.replace(/^(AGR|EDCL|EMBDECL|AGRG)-?/i, '').replace(/EI$/i, '');
+  // Quando a classe INTEIRA é um dos prefixos ("EDcl" sozinho, sem outra
+  // classe-base depois), a remoção zera a string — e a checagem de classe
+  // usa essa raiz numa regex; raiz vazia CASA EM QUALQUER LUGAR, então
+  // "EDcl 9988" resolvia contra um acervo que só tinha "MS 9988". Sem sobra
+  // não há prefixo real para descontar: mantém a classe como veio.
+  return semPrefixo || bruta;
+}
+
+// Informativos antigos do TSE gravam a classe processual POR EXTENSO no
+// tema/path, nunca a sigla — "recurso-especial-eleitoral-no-23-100-sp",
+// nunca "respe-23100". Medido: 747 documentos no acervo só com a forma por
+// extenso. A sigla e a forma escrita não têm nenhuma letra em comum o
+// bastante pra "RESPE" ser substring de "recurso especial eleitoral" — sem
+// reconhecer as duas formas, toda citação a esses 747 documentos batia no
+// número (que já casava) e falhava só na classe, saindo NAO_ENCONTRADA para
+// citação real.
+//
+// O MAPA em si (qual sigla corresponde a qual nome por extenso) não mora
+// aqui: é vocabulário de nomenclatura processual, o mesmo motivo pelo qual
+// `base-legal.js: termosDoTema` recebe `sinonimos`/`acoes` de fora em vez de
+// embuti-los. Medido em campo: fixar esse mapa no núcleo derruba
+// `tests/fronteira.test.js` — o guard de `MATERIA` ali bloqueia, de
+// propósito, o nome por extenso de um certo writ constitucional dentro deste
+// diretório (ver o comentário no topo daquele arquivo de teste para o porquê;
+// e `tools/sinonimos-classe-processual.mjs`, onde o mapa de fato mora, para o
+// exemplo concreto). Reconhecer o FORMATO "sigla ou nome por extenso" é
+// mecanismo; o par sigla↔nome de cada classe é dado de vocabulário, e vem de
+// quem chama.
+
+function semAcentoCitacao(texto) {
+  return String(texto || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+
+function casaClasseNoCampo(classe, campo, sinonimosPorExtenso) {
+  const raiz = raizDaClasse(classe);
+  if (new RegExp(`(?<![\\p{L}\\p{N}])${raiz}`, 'iu').test(campo)) return true;
+  const porExtenso = sinonimosPorExtenso[raiz];
+  if (!porExtenso) return false;
+  // O `tema` grava a classe com espaço ("Recurso Especial. Investigação...");
+  // o PATH grava o nome do arquivo com HÍFEN ("recurso-especial-eleitoral").
+  // Medido no acervo real: o tema de um documento tinha um PONTO entre
+  // "especial" e a palavra seguinte (não era "eleitoral" ali) — só o path
+  // carregava a sequência certa, com hífen. Trocar hífen por espaço antes do
+  // teste faz o sinônimo enxergar as duas formas.
+  const semHifen = semAcentoCitacao(campo).replace(/-/g, ' ');
+  return new RegExp(`(?<![\\p{L}\\p{N}])${porExtenso}(?![\\p{L}\\p{N}])`, 'iu').test(semHifen);
 }
 
 /**
@@ -144,20 +195,42 @@ function raizDaClasse(classe) {
  */
 function ehDocumentoDaSumula(entrada, numero) {
   const campo = `${entrada.tema || ''} ${entrada.path || ''}`;
-  return new RegExp(`s[úu]mula[\\s-]*(?:vinculante[\\s-]*)?n?[º°]?[\\s-]*${numero}(?![\\p{L}\\p{N}])`, 'iu').test(campo);
+  if (new RegExp(`s[úu]mula[\\s-]*(?:vinculante[\\s-]*)?n?[º°]?[\\s-]*${numero}(?![\\p{L}\\p{N}])`, 'iu').test(campo)) {
+    return true;
+  }
+  // Segunda porta, só sobre o NOME DO ARQUIVO: reconhece o padrão abreviado
+  // `sv-<numero>` (Súmula Vinculante) que o próprio coletor usa. Não depende
+  // de `tema` — que vem do H1 do arquivo e pode faltar se o H1 estiver
+  // ausente, truncado, ou o índice for gerado antes da gravação terminar.
+  // O nome do arquivo é o dado mais barato de manter correto, porque nasce
+  // do coletor, não de extração de texto livre.
+  const nomeArquivo = String(entrada.path || '').split('/').pop() || '';
+  return new RegExp(`(?:^|[-_])sv[-_]${numero}(?![\\p{L}\\p{N}])`, 'iu').test(nomeArquivo);
 }
 
-function casaNoAcervo(citacao, acervo) {
+function casaNoAcervo(citacao, acervo, sinonimosClasse) {
   // Súmula tem porta própria: o vínculo é com o documento que a enuncia, e o
   // órgão continua exigido para não entregar a Súmula 7 do TST como se fosse
   // a do STJ — enunciados diferentes, mesmo número.
   if (citacao.tipo === 'sumula') {
-    return acervo.find((entrada) => {
+    const candidatos = acervo.filter((entrada) => {
       if (!ehDocumentoDaSumula(entrada, citacao.numero)) return false;
       if (!citacao.orgao) return true;
       const campo = `${entrada.tema || ''} ${entrada.path || ''}`;
       return new RegExp(`(?<![\\p{L}\\p{N}])${citacao.orgao}(?![\\p{L}\\p{N}])`, 'iu').test(campo);
     });
+    if (!candidatos.length) return undefined;
+
+    // Entre os candidatos, o documento CANÔNICO da súmula (tipo `sumula`, ou
+    // caminho que se declara como tal) vence qualquer acórdão que apenas a
+    // MENCIONE. Medido no acervo real: a Rcl 8150/STF tem no tema "... e
+    // Ofensa à Súmula Vinculante 10" e vinha ANTES do arquivo
+    // `sumulas/STF-VINCULANTE/stf-sv-10.md` no índice — sem esta prioridade,
+    // `find` para no acórdão e a citação nunca alcança a fonte certa. É
+    // sistemático, não caso de canto: qualquer súmula citada em ementa de
+    // acórdão colide assim.
+    const ehCanonico = (entrada) => entrada.tipo === 'sumula' || /(^|\/)sumulas?\//i.test(entrada.path || '');
+    return candidatos.find(ehCanonico) || candidatos[0];
   }
 
   // Número sozinho não identifica decisão. Medido contra 64.459 documentos:
@@ -183,21 +256,25 @@ function casaNoAcervo(citacao, acervo) {
         const borda = new RegExp(`(?<![\\p{L}\\p{N}])${termo}(?![\\p{L}\\p{N}])`, 'iu');
         return borda.test(campo) || borda.test(campoSoDigitos);
       }
-      // Classe: borda só à ESQUERDA. O acervo grava a classe completa
-      // ("agr-respei"), e exigir borda à direita rejeitaria o próprio acórdão
-      // que a citação nomeia. À esquerda a borda continua impedindo que "RESP"
-      // case dentro de outra palavra.
-      return new RegExp(`(?<![\\p{L}\\p{N}])${termo}`, 'iu').test(campo);
+      // Classe: sigla (borda só à ESQUERDA — o acervo grava a classe completa
+      // como "agr-respei", e exigir borda à direita rejeitaria o próprio
+      // acórdão que a citação nomeia) OU a forma por extenso equivalente.
+      return casaClasseNoCampo(termo, campo, sinonimosClasse);
     });
   });
 }
 
 /**
  * @param {ReturnType<extrairCitacoes>} citacoes
- * @param {{acervo: {path: string, tema: string}[] | null, fontesAbertas?: string[]}} contexto
+ * @param {{acervo: {path: string, tema: string}[] | null, fontesAbertas?: string[],
+ *   sinonimosClasse?: Record<string, string>}} contexto `sinonimosClasse` mapeia a
+ *   RAIZ da sigla (ver `raizDaClasse`) ao nome por extenso equivalente, em
+ *   minúsculas e sem acento — ex. `{ RESPE: 'recurso especial eleitoral' }`.
+ *   Vem de fora porque é vocabulário de nomenclatura processual, não
+ *   mecanismo; ver o comentário acima de `casaClasseNoCampo`.
  */
 export function classificarCitacoes(citacoes, contexto = {}) {
-  const { acervo, fontesAbertas = [] } = contexto;
+  const { acervo, fontesAbertas = [], sinonimosClasse = {} } = contexto;
 
   return citacoes.map((citacao) => {
     // Legislação é consultada online no Planalto, no ato da redação. O gate
@@ -227,7 +304,7 @@ export function classificarCitacoes(citacoes, contexto = {}) {
       return { ...citacao, status: 'ACERVO_AUSENTE', fonte: null };
     }
 
-    const achado = casaNoAcervo(citacao, acervo);
+    const achado = casaNoAcervo(citacao, acervo, sinonimosClasse);
     return achado
       ? { ...citacao, status: 'VERIFICADA', fonte: achado.path }
       : { ...citacao, status: 'NAO_ENCONTRADA', fonte: null };
