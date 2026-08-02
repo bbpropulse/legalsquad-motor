@@ -157,3 +157,30 @@ test('caminho que NÃO é do acervo de legislação continua não bastando', () 
   });
   assert.equal(r.status, 'FONTE_NAO_DECLARADA');
 });
+
+test('"CESSAÇÃO" não é o Código Eleitoral: a sigla exige fronteira à direita', () => {
+  // Falso positivo real, medido em 6.276 skills: o título "CESSAÇÃO – ALCANCE
+  // DO ARTIGO 11" era extraído como "CE, art. 11" porque a sigla `CE` casava
+  // dentro de CESSAÇÃO e o `[^\n.;]{0,20}?` engolia o resto até "ARTIGO 11".
+  // A skill era reprovada por citar uma lei que ela não cita.
+  //
+  // Reprovar por citação inexistente é o erro mais caro do gate: ensina a
+  // mutilar o texto até passar.
+  assert.deepEqual(extrairCitacoes('CESSAÇÃO – ALCANCE DO ARTIGO 11'), []);
+  assert.deepEqual(extrairCitacoes('CCB art. 186'), [], 'sigla dentro de outra sigla também não vale');
+});
+
+test('"lei" como substantivo comum não é citação de lei', () => {
+  // Outro falso positivo real: "...previsto em lei. Inteligência do art. 96"
+  // virava "Lei ., art. 96". A palavra "lei" só nomeia diploma quando vem
+  // seguida de número.
+  assert.deepEqual(extrairCitacoes('previsto em lei. Inteligência do art. 96'), []);
+});
+
+test('a sigla de código continua valendo sem número, e a lei com número também', () => {
+  // A guarda não pode custar o caso normal.
+  assert.equal(extrairCitacoes('CPC, art. 300')[0]?.artigo, '300');
+  assert.equal(extrairCitacoes('CF art. 5º')[0]?.artigo, '5');
+  assert.equal(extrairCitacoes('Lei nº 9.504/1997, art. 41')[0]?.numeroLei, '9.504/1997');
+  assert.equal(extrairCitacoes('LEI Nº 9.868/99 (ART. 7')[0]?.artigo, '7');
+});

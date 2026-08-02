@@ -22,22 +22,37 @@ import { htmlParaTexto, fatiarArtigos } from '../src/legislacao-parse.js';
 // Quais normas alimentam cada área. Sem entrada aqui, a área não é enriquecida
 // — melhor não fazer nada do que casar tema contra corpo de lei alheio.
 const NORMAS_POR_AREA = {
-  eleitoral: ['CE', 'LC64', 'L9504'],
-  'direito-constitucional': ['CF', 'L12016', 'L9868', 'L9882', 'L13300', 'L1079'],
-  'direito-administrativo': ['L8112', 'L14133', 'L9784', 'L8429', 'L7347', 'L12846', 'L4717', 'L7853'],
-  'direito-civil': ['CC', 'CPC', 'L9099', 'L8245', 'L6015'],
-  'direito-previdenciario': ['L8213', 'L13146', 'L9784'],
-  'direito-do-consumidor': ['CDC', 'L9099'],
+  eleitoral: ['CE', 'LC64', 'L9504', 'L12288', 'L11419'],
+  'direito-constitucional': ['CF', 'L12016', 'L9868', 'L9882', 'L13300', 'L1079', 'L11417', 'L12288'],
+  // Controle externo, finanças públicas e concessões entram porque as cascas
+  // remanescentes dessa área são majoritariamente de TCU, gestão fiscal e
+  // PPP — sem essas normas o casamento não tinha onde acontecer.
+  'direito-administrativo': [
+    'L8112', 'L14133', 'L9784', 'L8429', 'L7347', 'L12846', 'L4717', 'L7853',
+    'L8443', 'LC101', 'L4320', 'L8987', 'L11079', 'L9491', 'L13334', 'L9873',
+    'D20910', 'L9394',
+  ],
+  'direito-civil': ['CC', 'CPC', 'L9099', 'L8245', 'L6015', 'L10259', 'L12153', 'L11419', 'L10741', 'L8906'],
+  // A EC 103 e a LOAS respondem pela maior parte das cascas previdenciárias
+  // (regras de transição, pedágio, BPC); a Lei 8.212 traz o custeio, que é
+  // metade do que se discute em contribuição e MEI.
+  'direito-previdenciario': ['L8213', 'L8212', 'EC103', 'L8742', 'L9717', 'LC142', 'LC123', 'L13146', 'L9784'],
+  'direito-do-consumidor': ['CDC', 'L9099', 'L12965', 'L11419'],
   'direito-imobiliario': ['L6015', 'L8245', 'CC'],
-  'direito-tributario': ['CTN'],
+  'direito-tributario': ['CTN', 'L6830', 'LC123'],
   'direito-trabalhista': ['CLT'],
   'direito-penal': ['CP', 'CPP'],
   // Saúde combina o regime sanitário (SUS, planos, ato médico) com o
   // consumerista e o civil: erro médico é responsabilidade civil, negativa de
   // cobertura é relação de consumo, e fila de cirurgia é direito à saúde.
   // Restringir a uma só família deixaria a maior parte dos temas sem norma.
-  'medica-saude': ['L8080', 'L9656', 'L8142', 'L12842', 'L13146', 'CDC', 'CC', 'CF'],
-  'advocacia-extrajudicial': ['CC', 'L6015', 'CPC'],
+  // O bloco de vigilância sanitária (6.437, 6.360, 9.782, 5.991) e o de
+  // pesquisa/telessaúde/prontuário cobrem as famílias de casca que sobraram.
+  'medica-saude': [
+    'L8080', 'L9656', 'L8142', 'L12842', 'L13146', 'CDC', 'CC', 'CF',
+    'L6437', 'L6360', 'L9782', 'L5991', 'L14874', 'L14510', 'L13787', 'L10741',
+  ],
+  'advocacia-extrajudicial': ['CC', 'L6015', 'CPC', 'L8906', 'L14063'],
 };
 
 // Verbos do que a skill FAZ, não do que ela trata. "análise de cláusula
@@ -149,11 +164,34 @@ function corpoProprio(texto) {
 // base legal entra depois dele.
 const incluirComConteudo = args.includes('--incluir-com-conteudo');
 
+// `--somente <arquivo>` restringe a uma lista de ids (um por linha, ou
+// `area<TAB>id`). Existe porque `--incluir-com-conteudo` passou a alcançar
+// skills escritas à mão por subagentes, que já transcrevem dispositivo
+// escolhido com julgamento: acrescentar ali um bloco de casamento mecânico é
+// ruído no melhor caso, e dispositivo próximo-mas-errado ao lado de análise
+// correta no pior. Mirar só nas cascas mantém o ganho sem esse custo.
+const arquivoSomente = (args.find((a) => a.startsWith('--somente=')) || '').split('=')[1]
+  || (args.includes('--somente') ? args[args.indexOf('--somente') + 1] : null);
+// Aceita `id`, `area<TAB>id` e `area<TAB>id<TAB>qualquer-métrica`: o id é o
+// segundo campo quando há mais de um. Pegar o ÚLTIMO campo parecia natural e
+// silenciosamente selecionava a métrica em vez do id — zero candidatas, e o
+// relatório dizia "0 (0%)" como se não houvesse o que enriquecer.
+const somente = arquivoSomente
+  ? new Set(readFileSync(arquivoSomente, 'utf8').trim().split('\n')
+    .map((l) => { const campos = l.split('\t'); return (campos.length > 1 ? campos[1] : campos[0]).trim(); })
+    .filter(Boolean))
+  : null;
+if (arquivoSomente && !somente.size) {
+  console.error(`--somente ${arquivoSomente} está vazio; recusando enriquecer o catálogo inteiro por engano`);
+  process.exit(1);
+}
+
 let candidatas = 0;
 let preenchidas = 0;
 const semCasamento = [];
 
 for (const id of ids) {
+  if (somente && !somente.has(id)) continue;
   const caminho = join(skillsDir, id, 'SKILL.md');
   const original = readFileSync(caminho, 'utf8');
   const temCorpo = corpoProprio(original).length > 0;

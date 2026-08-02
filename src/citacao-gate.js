@@ -35,8 +35,19 @@ const PADROES = [
   {
     tipo: 'lei',
     // "LC 64/90, art. 3º", "Lei 9.504/1997 art. 41", "CF art. 5º", "CPC, art. 300"
-    regex: /\b(LC|Lei(?:\s+Complementar)?|CF|CPC|CPP|CLT|CDC|CTN|CP|CC|CE)\s*n?[º°]?\s*([\d.]+(?:\/\d{2,4})?)?[^\n.;]{0,20}?art(?:igo)?\.?\s*(\d+)/gi,
-    campos: (m) => ({ diploma: m[1].toUpperCase(), numeroLei: m[2] || '', artigo: m[3] }),
+    //
+    // Duas guardas, ambas nascidas de falso positivo medido no corpus inteiro:
+    //
+    // `(?![\p{L}])` — a sigla precisa de fronteira à DIREITA. Sem ela, "CE"
+    // casava dentro de "CESSAÇÃO" e o título "CESSAÇÃO – ALCANCE DO ARTIGO 11"
+    // virava uma citação ao art. 11 do Código Eleitoral.
+    //
+    // Número obrigatório no ramo `Lei`/`LC` — "lei" é substantivo comum, e
+    // "...previsto em lei. Inteligência do art. 96" virava "Lei ., art. 96".
+    // Sigla de código dispensa número porque `CF`/`CPC` já identificam o
+    // diploma sozinhas.
+    regex: /\b(?:(LC|Lei\s+Complementar|Lei)(?![\p{L}])\s*n?[º°]?\s*(\d[\d.]*(?:\/\d{2,4})?)|(CF|CPC|CPP|CLT|CDC|CTN|CP|CC|CE)(?![\p{L}]))[^\n.;]{0,20}?art(?:igo)?\.?\s*(\d+)/giu,
+    campos: (m) => ({ diploma: (m[1] || m[3]).toUpperCase(), numeroLei: m[2] || '', artigo: m[4] }),
   },
   {
     tipo: 'acordao',
