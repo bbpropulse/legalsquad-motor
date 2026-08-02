@@ -236,3 +236,30 @@ test('"Art ." com espaço antes do ponto ainda abre artigo', () => {
   );
   assert.deepEqual(fatiarArtigos(htmlParaTexto(html)).map((a) => a.numero), ['1', '2', '3']);
 });
+
+test('traço ESPAÇADO nunca é sufixo — nem quando a palavra seguinte é maiúscula', () => {
+  // O guard anterior olhava se depois da letra vinha palavra minúscula, e só
+  // funcionava nesse caso. Medido no acervo: 78 arquivos sufixados falsos,
+  // porque "Art. 126 - O Ministro do Trabalho" e "Art. 13 - A Carteira de
+  // Trabalho" trazem MAIÚSCULA depois. Pior ainda quando a fonte quebra a
+  // linha logo após a letra ("Art. 13 - O" / "auto de infração"), como faz a
+  // Lei 6.437 — aí não há nada na linha para olhar.
+  //
+  // O sinal que separa os dois casos é o ESPAÇAMENTO: a redação legislativa
+  // grafa o sufixo colado ("Art. 1.080-A.", "Art. 5º-A"), e usa o traço com
+  // espaços como pontuação entre o número e o texto do dispositivo.
+  //
+  // O custo do erro era grande: `cf-art-40-b.md` guardava o art. 40 da
+  // Constituição — o dispositivo central de todo o regime próprio de
+  // previdência — enquanto o nome canônico ficava com outra coisa.
+  const artigos = fatiarArtigos([
+    'Art. 126 - O Ministro do Trabalho expedirá instruções.',
+    'Art. 13 - A Carteira de Trabalho é obrigatória.',
+    'Art. 132 - O',
+    'prazo será contado em dias úteis.',
+    'Art. 1.080-A. O sócio poderá votar a distância.',
+  ].join('\n'));
+
+  assert.deepEqual(artigos.map((a) => a.numero), ['126', '13', '132', '1080-A']);
+  assert.match(artigos[2].texto, /prazo será contado/, 'a letra órfã fica no texto do artigo');
+});

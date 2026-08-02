@@ -73,14 +73,37 @@ function linhaDe(texto, indice) {
  *   `[NÃO VERIFICADO]` — quem declarou a incerteza cumpriu o contrato, e
  *   re-listá-la afogaria o relatório justamente nas que se dizem certas.
  */
+// A seção onde o autor declara o que abriu — e, por contrato, **o que não
+// conseguiu abrir**. Citação que aparece ali não é fundamentação: é o nome da
+// lacuna.
+//
+// Falso positivo medido: cinco skills reprovadas por "Súmula 347/STF" numa
+// linha que dizia "busquei por texto e por número no acervo; não há documento
+// que a enuncie". Reprovar quem nomeia a própria lacuna ensina a silenciá-la
+// para passar no gate — exatamente o contrário do que este projeto quer.
+//
+// A seção continua sendo lida para `fontesAbertas` (regex separada, sobre o
+// texto inteiro): é dali que sai a URL que LIBERA a citação do corpo.
+const SECAO_DE_FONTES = /^##+\s+(?:Fontes\b|Lacunas\b|O que n[ãa]o\b)/i;
+const SECAO_QUALQUER = /^##+\s+/;
+
 export function extrairCitacoes(texto) {
   const conteudo = String(texto || '');
   const linhas = conteudo.split('\n');
   const encontradas = [];
 
+  // Quais linhas caem dentro de uma seção de fontes/lacunas.
+  const emSecaoDeFontes = new Set();
+  let dentro = false;
+  for (const [i, linha] of linhas.entries()) {
+    if (SECAO_QUALQUER.test(linha)) dentro = SECAO_DE_FONTES.test(linha);
+    if (dentro) emSecaoDeFontes.add(i);
+  }
+
   for (const padrao of PADROES) {
     for (const m of conteudo.matchAll(padrao.regex)) {
       const linha = linhaDe(conteudo, m.index);
+      if (emSecaoDeFontes.has(linha)) continue;
       if (MARCA_NAO_VERIFICADO.test(linhas[linha] || '')) continue;
       // Nota editorial DO PLANALTO dentro do dispositivo transcrito — o texto
       // consolidado insere "(Vide ADIN 6096)" no corpo do art. 103 da Lei
@@ -105,14 +128,43 @@ function raizDaClasse(classe) {
     .toUpperCase();
 }
 
+/**
+ * A entrada é o documento DA súmula citada — não um vizinho que por acaso tem
+ * o mesmo número em algum lugar.
+ *
+ * Falso positivo grave, medido contra 67.708 documentos: "Súmula 7 do STJ"
+ * casava com um informativo administrativo cujo path continha "7" e "stj", e
+ * "Súmula 347 do STF" casava com um acórdão cujo NÚMERO DE PROCESSO era 347 —
+ * as duas saíam VERIFICADA apontando para documento que não enuncia súmula
+ * nenhuma. Isso é pior que `NAO_ENCONTRADA`: "não encontrei" manda conferir,
+ * "verificada" encerra a conferência.
+ *
+ * O que passa a ser exigido é que o número venha COLADO à palavra súmula —
+ * `sumula-7`, `Súmula 7`, `Súmula Vinculante 7` — em vez de solto no texto.
+ */
+function ehDocumentoDaSumula(entrada, numero) {
+  const campo = `${entrada.tema || ''} ${entrada.path || ''}`;
+  return new RegExp(`s[úu]mula[\\s-]*(?:vinculante[\\s-]*)?n?[º°]?[\\s-]*${numero}(?![\\p{L}\\p{N}])`, 'iu').test(campo);
+}
+
 function casaNoAcervo(citacao, acervo) {
-  const alvo = citacao.tipo === 'sumula'
-    ? [citacao.numero, citacao.orgao].filter(Boolean)
-    // Número sozinho não identifica decisão. Medido contra 64.459 documentos:
-    // "REspe nº 6373" do TSE casou com um "RO 6373" do TST — outro tribunal,
-    // outra classe, outra matéria — e saiu VERIFICADA. Carimbar citação
-    // inventada como conferida é pior que não ter gate nenhum.
-    : [citacao.numero, raizDaClasse(citacao.classe)];
+  // Súmula tem porta própria: o vínculo é com o documento que a enuncia, e o
+  // órgão continua exigido para não entregar a Súmula 7 do TST como se fosse
+  // a do STJ — enunciados diferentes, mesmo número.
+  if (citacao.tipo === 'sumula') {
+    return acervo.find((entrada) => {
+      if (!ehDocumentoDaSumula(entrada, citacao.numero)) return false;
+      if (!citacao.orgao) return true;
+      const campo = `${entrada.tema || ''} ${entrada.path || ''}`;
+      return new RegExp(`(?<![\\p{L}\\p{N}])${citacao.orgao}(?![\\p{L}\\p{N}])`, 'iu').test(campo);
+    });
+  }
+
+  // Número sozinho não identifica decisão. Medido contra 64.459 documentos:
+  // "REspe nº 6373" do TSE casou com um "RO 6373" do TST — outro tribunal,
+  // outra classe, outra matéria — e saiu VERIFICADA. Carimbar citação
+  // inventada como conferida é pior que não ter gate nenhum.
+  const alvo = [citacao.numero, raizDaClasse(citacao.classe)];
 
   return acervo.find((entrada) => {
     const campo = `${entrada.tema || ''} ${entrada.path || ''}`;

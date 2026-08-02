@@ -184,3 +184,77 @@ test('a sigla de código continua valendo sem número, e a lei com número tamb�
   assert.equal(extrairCitacoes('Lei nº 9.504/1997, art. 41')[0]?.numeroLei, '9.504/1997');
   assert.equal(extrairCitacoes('LEI Nº 9.868/99 (ART. 7')[0]?.artigo, '7');
 });
+
+test('súmula só resolve contra documento que É da súmula, não contra qualquer arquivo com o número', () => {
+  // Falso positivo grave, medido contra o acervo de 67.708 documentos: a
+  // citação "Súmula 7 do STJ" casava com um informativo administrativo
+  // qualquer cujo path continha "7" e "stj", e saía VERIFICADA apontando para
+  // documento que não enuncia súmula nenhuma. "Súmula 347 do STF" resolvia
+  // contra `...-347-sp-re-e-perda-do-objeto...` — um acórdão com 347 no
+  // número do processo — mesmo com o acervo não tendo aquele enunciado.
+  //
+  // É o pior resultado que este gate pode dar: confiança onde não há. Pior que
+  // NAO_ENCONTRADA, porque NAO_ENCONTRADA manda conferir e VERIFICADA não.
+  const acervo = [
+    { path: 'jurisprudencia/direito-administrativo/stj/stj-0007-disciplinar-suspeicao.md', tema: 'STJ 0007 — suspeição em disciplinar' },
+    { path: 'jurisprudencia/direito-constitucional/stf/stf-0134-347-sp-re-e-perda-do-objeto.md', tema: 'AR 347-SP — perda do objeto' },
+  ];
+  assert.equal(classificarCitacoes(extrairCitacoes('Súmula 7 do STJ'), { acervo })[0].status, 'NAO_ENCONTRADA');
+  assert.equal(classificarCitacoes(extrairCitacoes('Súmula 347 do STF'), { acervo })[0].status, 'NAO_ENCONTRADA');
+});
+
+test('súmula resolve quando o acervo tem o documento da própria súmula', () => {
+  const acervo = [
+    { path: 'sumulas/STJ/stj-sumula-7.md', tema: 'Súmula 7 do STJ — DIREITO PROCESSUAL CIVIL - DOS RECURSOS' },
+    { path: 'jurisprudencia/direito-administrativo/stj/stj-0007-disciplinar-suspeicao.md', tema: 'STJ 0007 — suspeição' },
+  ];
+  const [r] = classificarCitacoes(extrairCitacoes('Súmula 7 do STJ'), { acervo });
+  assert.equal(r.status, 'VERIFICADA');
+  assert.equal(r.fonte, 'sumulas/STJ/stj-sumula-7.md', 'e aponta para o documento da súmula, não para o vizinho');
+});
+
+test('a súmula do tribunal ERRADO não resolve', () => {
+  // Súmula 7 do STJ e Súmula 7 do TST são enunciados diferentes. Casar por
+  // número entregaria o texto de um tribunal como se fosse do outro.
+  const acervo = [{ path: 'sumulas/TST/tst-sumula-7.md', tema: 'Súmula 7 do TST — férias' }];
+  assert.equal(classificarCitacoes(extrairCitacoes('Súmula 7 do STJ'), { acervo })[0].status, 'NAO_ENCONTRADA');
+});
+
+test('citação dentro da seção de fontes/lacunas não é fundamentação — é declaração', () => {
+  // Falso positivo real: cinco skills escritas por subagentes foram reprovadas
+  // por "Súmula 347/STF" — numa linha que diz, literalmente, "busquei por
+  // texto e por número no acervo e NÃO encontrei". O contrato manda o autor
+  // nomear o que não conseguiu abrir; o gate lia a lacuna declarada como
+  // afirmação apoiada nela.
+  //
+  // Reprovar quem nomeia a própria lacuna é o pior incentivo possível: ensina
+  // a silenciar o que falta para passar no gate.
+  const texto = [
+    '## O que decide a questão',
+    'Aplica-se a Súmula 7 do STJ ao caso.',
+    '',
+    '## Fontes abertas nesta redação',
+    '- **Súmula 347/STF e Súmula Vinculante 3.** Busquei por texto e por número no acervo;',
+    '  não há documento que enuncie nenhuma das duas. Não transcritas, não parafraseadas.',
+  ].join('\n');
+
+  const citacoes = extrairCitacoes(texto);
+  assert.equal(citacoes.length, 1, 'só a do corpo conta');
+  assert.equal(citacoes[0].numero, '7');
+});
+
+test('a seção de fontes continua alimentando as fontes abertas, só não gera pendência', () => {
+  // A URL declarada ali é o que LIBERA a citação de lei do corpo. Se a seção
+  // fosse ignorada por inteiro, o gate passaria a reprovar quem declarou a
+  // fonte no lugar certo.
+  const texto = [
+    '## O que decide a questão',
+    'O prazo é o do CPC, art. 1.003.',
+    '',
+    '## Fontes abertas nesta redação',
+    '- `https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2015/lei/l13105.htm`',
+  ].join('\n');
+  const fontes = [...texto.matchAll(/https?:\/\/[^\s`)]+/g)].map((m) => m[0]);
+  const [r] = classificarCitacoes(extrairCitacoes(texto), { acervo: [], fontesAbertas: fontes });
+  assert.equal(r.status, 'VERIFICADA');
+});

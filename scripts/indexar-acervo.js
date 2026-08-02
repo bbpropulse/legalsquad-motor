@@ -60,6 +60,7 @@ const TIPO_POR_PASTA = {
   jurisprudencia: 'jurisprudencia',
   doutrina: 'doutrina',
   legislacao: 'legislacao',
+  sumulas: 'sumula',
   teses: 'tese',
   'teses-modelos': 'modelo',
 };

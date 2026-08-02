@@ -86,7 +86,22 @@ export function htmlParaTexto(entrada) {
 // "Art. 200, texto". Sem essa guarda, o "...no prazo previsto no / Art. 200,
 // quando terá vista..." do Código Eleitoral — partido pela quebra de linha do
 // HTML — abria artigo e gravava o fim do art. 179 sob o nome do art. 200.
-const ABERTURA = /^[ \t]*Art\.[ \t]*(\d{1,3}(?:\.\d{3})+|\d+)[ºo°]?\.?(?:[ \t]*-[ \t]*([A-Z])(?![ \t]+\p{Ll}))?(?![\p{L}\p{N}])(?![ \t]*,)/u;
+// **O sufixo vem COLADO.** A redação legislativa grafa "Art. 1.080-A.",
+// "Art. 5º-A", "Art. 30-A" sem espaço; o traço com espaços em volta é
+// pontuação separando o número do texto do dispositivo — "Art. 126 - O
+// Ministro do Trabalho expedirá...".
+//
+// A guarda anterior olhava se depois da letra vinha palavra minúscula, e por
+// isso só pegava metade dos casos: em "Art. 13 - A Carteira de Trabalho" a
+// palavra seguinte é maiúscula, e na Lei 6.437 a fonte quebra a linha logo
+// depois da letra ("Art. 13 - O" / "auto de infração"), onde não há nada na
+// linha para olhar. Medido no acervo: **78 arquivos sufixados falsos** —
+// inclusive `cf-art-40-b.md`, que guardava o art. 40 da Constituição, o
+// dispositivo central de todo o regime próprio de previdência.
+//
+// A guarda da minúscula fica: cobre "Art. 30-A cancelamento", em que o traço
+// é colado mas a letra ainda é artigo definido.
+const ABERTURA = /^[ \t]*Art\.[ \t]*(\d{1,3}(?:\.\d{3})+|\d+)[ºo°]?\.?(?:-([A-Z])(?![ \t]+\p{Ll}))?(?![\p{L}\p{N}])(?![ \t]*,)/u;
 
 /**
  * @param {string} texto

@@ -17,7 +17,7 @@
 // grava** e entra no relatório. Meia lei no acervo é pior que lei nenhuma:
 // o verificador devolveria NÃO ENCONTRADA para dispositivo que existe.
 
-import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { htmlParaTexto, fatiarArtigos } from '../src/legislacao-parse.js';
@@ -208,12 +208,19 @@ for (const lei of alvo) {
   // encolheu" e recusou gravar. Pior que o falso alarme seria o silêncio: um
   // `art-30-b` obsoleto continuaria respondendo à busca com texto de um
   // agrupamento que não existe mais.
-  if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
-  mkdirSync(dir, { recursive: true });
+  //
+  // A troca é ATÔMICA: monta em `<dir>.novo` e só então substitui. Sem isso há
+  // uma janela — do `rm` ao último `write` — em que a lei existe pela metade
+  // no disco, e quem estiver lendo o acervo nesse instante conclui "não
+  // existe" a partir de um estado transitório. Com agentes lendo o acervo em
+  // paralelo isso deixa de ser hipótese e vira lacuna declarada por engano.
+  const dirNovo = `${dir}.novo`;
+  if (existsSync(dirNovo)) rmSync(dirNovo, { recursive: true, force: true });
+  mkdirSync(dirNovo, { recursive: true });
   const hash = createHash('sha256').update(bytes).digest('hex');
 
   writeFileSync(
-    join(dir, `${lei.sigla}.md`),
+    join(dirNovo, `${lei.sigla}.md`),
     frontmatter({
       id: `"legislacao-${lei.sigla.toLowerCase()}"`,
       tipo: 'legislacao',
@@ -253,7 +260,7 @@ for (const lei of alvo) {
     const prefixoCorpo = artigo.corpo ? `${artigo.corpo.toLowerCase()}-` : '';
     const slug = `${lei.sigla.toLowerCase()}-${prefixoCorpo}art-${artigo.numero.toLowerCase()}${sufixo}`;
     writeFileSync(
-      join(dir, `${slug}.md`),
+      join(dirNovo, `${slug}.md`),
       frontmatter({
         id: `"${slug}"`,
         tipo: 'legislacao',
@@ -268,6 +275,10 @@ for (const lei of alvo) {
       'utf8'
     );
   }
+
+  // Troca: a lei antiga só desaparece quando a nova está inteira no disco.
+  if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+  renameSync(dirNovo, dir);
 }
 
 const ok = relatorio.filter((r) => r.ok);
