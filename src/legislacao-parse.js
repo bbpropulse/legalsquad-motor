@@ -46,6 +46,11 @@ export function htmlParaTexto(entrada) {
   texto = texto.replace(/&([a-z]+);/gi, (todo, nome) => ENTIDADES[nome] ?? todo);
   texto = texto.replace(/[ \t\u00a0]+/g, ' ');
   texto = texto.replace(/[ \t]*\n[ \t]*/g, '\n').replace(/\n{3,}/g, '\n\n');
+  // "Art ." — espaço (ou quebra de linha) entre a abreviatura e o ponto.
+  // Medido na Lei 6.437/1977: das ~60 aberturas o parser reconhecia 4, e o
+  // guard recusava gravar a lei inteira. "Art" não é palavra do português
+  // jurídico, então colar o ponto nunca destrói texto legítimo.
+  texto = texto.replace(/\bArt[ \t]*\n?[ \t]*\./g, 'Art.');
   // Reúne o "Art." que ficou órfão do próprio número. Medido na Lei 14.133:
   // o HTML exportado do Word separa os dois, e as 194 aberturas viravam 194
   // linhas soltas com "Art." e nenhum artigo reconhecido.

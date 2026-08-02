@@ -61,6 +61,46 @@ const LEIS = [
   { sigla: 'L8142', nome: 'Participação da Comunidade no SUS — Lei 8.142/1990', area: 'medica-saude', url: 'leis/l8142.htm' },
   { sigla: 'L12842', nome: 'Ato Médico — Lei 12.842/2013', area: 'medica-saude', url: '_ato2011-2014/2013/lei/l12842.htm' },
   { sigla: 'L13146', nome: 'Estatuto da Pessoa com Deficiência — Lei 13.146/2015', area: 'medica-saude', url: '_ato2015-2018/2015/lei/l13146.htm' },
+
+  // Acrescentadas a partir das lacunas que os subagentes declararam ao
+  // enriquecer skills. Cada norma ausente do acervo é uma chance a mais de
+  // texto de lei escrito de memória — e uma citação que o gate não resolve.
+  { sigla: 'EC103', nome: 'Reforma da Previdência — EC 103/2019', area: 'previdenciario', url: 'constituicao/emendas/emc/emc103.htm' },
+  { sigla: 'L8212', nome: 'Custeio da Seguridade Social — Lei 8.212/1991', area: 'previdenciario', url: 'leis/l8212cons.htm' },
+  { sigla: 'L8742', nome: 'Lei Orgânica da Assistência Social (LOAS) — Lei 8.742/1993', area: 'previdenciario', url: 'leis/l8742.htm' },
+  { sigla: 'L9717', nome: 'Regras Gerais dos RPPS — Lei 9.717/1998', area: 'previdenciario', url: 'leis/l9717.htm' },
+  { sigla: 'LC142', nome: 'Aposentadoria da Pessoa com Deficiência — LC 142/2013', area: 'previdenciario', url: 'leis/lcp/lcp142.htm' },
+  { sigla: 'LC123', nome: 'Estatuto da Micro e Pequena Empresa (MEI) — LC 123/2006', area: 'tributario', url: 'leis/lcp/lcp123.htm' },
+  { sigla: 'L10259', nome: 'Juizados Especiais Federais — Lei 10.259/2001', area: 'civil', url: 'leis/leis_2001/l10259.htm' },
+  { sigla: 'L12153', nome: 'Juizados da Fazenda Pública — Lei 12.153/2009', area: 'civil', url: '_ato2007-2010/2009/lei/l12153.htm' },
+
+  { sigla: 'LC101', nome: 'Lei de Responsabilidade Fiscal — LC 101/2000', area: 'administrativo', url: 'leis/lcp/lcp101.htm' },
+  { sigla: 'L4320', nome: 'Normas Gerais de Direito Financeiro — Lei 4.320/1964', area: 'administrativo', url: 'leis/l4320.htm' },
+  { sigla: 'L8443', nome: 'Lei Orgânica do TCU — Lei 8.443/1992', area: 'administrativo', url: 'leis/l8443.htm' },
+  { sigla: 'L8987', nome: 'Concessões e Permissões — Lei 8.987/1995', area: 'administrativo', url: 'leis/l8987compilada.htm' },
+  { sigla: 'L11079', nome: 'Parcerias Público-Privadas — Lei 11.079/2004', area: 'administrativo', url: '_ato2004-2006/2004/lei/l11079.htm' },
+  { sigla: 'L9491', nome: 'Programa Nacional de Desestatização — Lei 9.491/1997', area: 'administrativo', url: 'leis/l9491.htm' },
+  { sigla: 'L13334', nome: 'Programa de Parcerias de Investimentos — Lei 13.334/2016', area: 'administrativo', url: '_ato2015-2018/2016/lei/l13334.htm' },
+  { sigla: 'L9873', nome: 'Prescrição da Ação Punitiva Federal — Lei 9.873/1999', area: 'administrativo', url: 'leis/l9873.htm' },
+  { sigla: 'D20910', nome: 'Prescrição contra a Fazenda — Decreto 20.910/1932', area: 'administrativo', url: 'decreto/antigos/d20910.htm' },
+  { sigla: 'L6830', nome: 'Lei de Execuções Fiscais — Lei 6.830/1980', area: 'tributario', url: 'leis/l6830.htm' },
+
+  { sigla: 'L6437', nome: 'Infrações à Legislação Sanitária — Lei 6.437/1977', area: 'medica-saude', url: 'leis/l6437.htm' },
+  { sigla: 'L6360', nome: 'Vigilância Sanitária de Medicamentos — Lei 6.360/1976', area: 'medica-saude', url: 'leis/l6360.htm' },
+  { sigla: 'L9782', nome: 'Sistema Nacional de Vigilância Sanitária (ANVISA) — Lei 9.782/1999', area: 'medica-saude', url: 'leis/l9782.htm' },
+  { sigla: 'L5991', nome: 'Comércio de Drogas e Medicamentos — Lei 5.991/1973', area: 'medica-saude', url: 'leis/l5991.htm' },
+  { sigla: 'L14874', nome: 'Pesquisa com Seres Humanos — Lei 14.874/2024', area: 'medica-saude', url: '_ato2023-2026/2024/lei/L14874.htm' },
+  { sigla: 'L14510', nome: 'Telessaúde — Lei 14.510/2022', area: 'medica-saude', url: '_ato2019-2022/2022/lei/L14510.htm' },
+  { sigla: 'L13787', nome: 'Prontuário do Paciente — Lei 13.787/2018', area: 'medica-saude', url: '_ato2015-2018/2018/lei/L13787.htm' },
+
+  { sigla: 'L11419', nome: 'Informatização do Processo Judicial — Lei 11.419/2006', area: 'civil', url: '_ato2004-2006/2006/lei/l11419.htm' },
+  { sigla: 'L11417', nome: 'Súmula Vinculante — Lei 11.417/2006', area: 'constitucional', url: '_ato2004-2006/2006/lei/l11417.htm' },
+  { sigla: 'L12288', nome: 'Estatuto da Igualdade Racial — Lei 12.288/2010', area: 'constitucional', url: '_ato2007-2010/2010/lei/l12288.htm' },
+  { sigla: 'L10741', nome: 'Estatuto da Pessoa Idosa — Lei 10.741/2003', area: 'civil', url: 'leis/2003/l10.741.htm' },
+  { sigla: 'L8906', nome: 'Estatuto da Advocacia e da OAB — Lei 8.906/1994', area: 'civil', url: 'leis/l8906.htm' },
+  { sigla: 'L12965', nome: 'Marco Civil da Internet — Lei 12.965/2014', area: 'digital', url: '_ato2011-2014/2014/lei/l12965.htm' },
+  { sigla: 'L14063', nome: 'Assinaturas Eletrônicas no Setor Público — Lei 14.063/2020', area: 'digital', url: '_ato2019-2022/2020/lei/L14063.htm' },
+  { sigla: 'L9394', nome: 'Diretrizes e Bases da Educação (LDB) — Lei 9.394/1996', area: 'administrativo', url: 'leis/l9394.htm' },
 ];
 
 // Uma lei real tem dezenas de artigos. Um punhado é sinal de que a página veio

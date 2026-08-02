@@ -220,3 +220,19 @@ test('número partido entre linhas ("Art. 5" + "7.") é o artigo 57, não o 5º'
   assert.match(artigos[0].texto, /Para os fins desta Lei/, 'o art. 5º mantém o próprio texto');
   assert.match(artigos[1].texto, /VETADO/);
 });
+
+test('"Art ." com espaço antes do ponto ainda abre artigo', () => {
+  // Medido na Lei 6.437/1977 — a lei das infrações sanitárias, base de seis
+  // skills de defesa em auto de infração. A página do Planalto escreve
+  // "Art . 1º - As infrações..." com espaço entre "Art" e o ponto, e às vezes
+  // quebra a linha ali. Das ~60 aberturas, o parser reconhecia 4.
+  //
+  // O guard de aberturas-não-reconhecidas pegou e recusou gravar — fail-closed
+  // funcionando —, mas o efeito prático era a lei inteira ficar fora do acervo,
+  // e "não baixado" convida a escrever de memória.
+  const html = Buffer.from(
+    '<p>Art . 1º - As infrações à legislação sanitária.<p>Art<br>. 2º - As infrações são punidas.<p>Art. 3º - Normal.',
+    'utf8'
+  );
+  assert.deepEqual(fatiarArtigos(htmlParaTexto(html)).map((a) => a.numero), ['1', '2', '3']);
+});
