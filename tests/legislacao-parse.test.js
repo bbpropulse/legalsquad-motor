@@ -183,3 +183,40 @@ test('ADCT é corpo SEPARADO — seu art. 5º não é "redação vigente" do art
   assert.match(doCorpo[0].texto, /iguais perante a lei/);
   assert.equal(artigos.at(-1).corpo, 'ADCT', 'o do ADCT é marcado como outro corpo');
 });
+
+test('"Art. 200," com vírgula é REMISSÃO no meio da frase, não abertura', () => {
+  // Bug real, achado por subagente ao enriquecer skill de totalização eleitoral:
+  // o § 6º do art. 179 do Código Eleitoral termina com "...no prazo previsto no
+  // Art. 200, quando terá vista do relatório da Comissão Apuradora". A quebra de
+  // linha do HTML jogou "Art. 200," para o início de uma linha, e o parser abriu
+  // artigo ali — gravando o FIM do art. 179 sob o nome do art. 200.
+  //
+  // Pior que perder o artigo: quem citasse o art. 200 leria os parágrafos de
+  // outro dispositivo, e o gate carimbaria VERIFICADA.
+  //
+  // A distinção é a vírgula: a redação legislativa brasileira abre com
+  // "Art. 200." ou "Art. 200º", nunca com "Art. 200, texto".
+  const artigos = fatiarArtigos([
+    'Art. 179. Caput do artigo.',
+    '§ 6º O prazo é o previsto no',
+    'Art. 200, quando terá vista do relatório.',
+    'Art. 201. Dispositivo seguinte.',
+  ].join('\n'));
+
+  assert.deepEqual(artigos.map((a) => a.numero), ['179', '201'], 'a remissão não abre artigo');
+  assert.match(artigos[0].texto, /vista do relatório/, 'o texto fica no artigo a que pertence');
+});
+
+test('número partido entre linhas ("Art. 5" + "7.") é o artigo 57, não o 5º', () => {
+  // Bug real, medido na LGPD: o art. 57 é "(VETADO)" e o HTML quebrou o número
+  // no meio — "Art. 5" numa linha, "7." na seguinte. O parser leu artigo 5, e
+  // como a ÚLTIMA ocorrência é que leva o nome canônico, `l13709-art-5.md`
+  // passou a conter o fragmento do 57 em vez das definições do art. 5º — o
+  // dispositivo mais citado da lei, incluindo o conceito de dado sensível.
+  const html = Buffer.from('<p>Art. 5º Para os fins desta Lei.<p>Art. 5<p>7.<p>(VETADO).', 'utf8');
+  const artigos = fatiarArtigos(htmlParaTexto(html));
+
+  assert.deepEqual(artigos.map((a) => a.numero), ['5', '57']);
+  assert.match(artigos[0].texto, /Para os fins desta Lei/, 'o art. 5º mantém o próprio texto');
+  assert.match(artigos[1].texto, /VETADO/);
+});

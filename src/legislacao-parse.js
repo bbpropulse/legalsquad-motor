@@ -50,6 +50,16 @@ export function htmlParaTexto(entrada) {
   // o HTML exportado do Word separa os dois, e as 194 aberturas viravam 194
   // linhas soltas com "Art." e nenhum artigo reconhecido.
   texto = texto.replace(/\bArt\.[ \t]*\n+[ \t]*(?=\d)/g, 'Art. ');
+  // O número em si também parte entre linhas: "Art. 5" numa, "7." na outra.
+  // Medido na LGPD — o art. 57 ("(VETADO)") virava um segundo "artigo 5", e
+  // como a ÚLTIMA ocorrência leva o nome canônico, o fragmento expulsava as
+  // definições do art. 5º do arquivo `l13709-art-5.md`.
+  //
+  // O lookahead exige que a continuação PAREÇA fim de número de artigo —
+  // marcador ordinal, ponto final não seguido de dígito, ou sufixo de letra.
+  // Sem isso, "Art. 5" seguido de "1.500 (mil e quinhentos)" viraria o artigo
+  // 51.500: trocar um erro por outro maior.
+  texto = texto.replace(/\bArt\.[ \t]*(\d+)[ \t]*\n+[ \t]*(?=\d+(?:[ºo°]|\.(?!\d)|-[A-Z]))/g, 'Art. $1');
   return texto.trim();
 }
 
@@ -66,7 +76,12 @@ export function htmlParaTexto(entrada) {
 // caía por backtracking no artigo 30, porque o ponto depois do "A" não era
 // aceito. O 30-A da Lei 9.504 é dispositivo autônomo e dos mais citados da
 // matéria eleitoral; confundi-lo com o 30 entrega o texto errado como certo.
-const ABERTURA = /^[ \t]*Art\.[ \t]*(\d{1,3}(?:\.\d{3})+|\d+)[ºo°]?\.?(?:[ \t]*-[ \t]*([A-Z])(?![ \t]+\p{Ll}))?(?![\p{L}\p{N}])/u;
+// A vírgula logo após o número denuncia REMISSÃO, não abertura: a redação
+// legislativa brasileira abre com "Art. 200." ou "Art. 200º", nunca com
+// "Art. 200, texto". Sem essa guarda, o "...no prazo previsto no / Art. 200,
+// quando terá vista..." do Código Eleitoral — partido pela quebra de linha do
+// HTML — abria artigo e gravava o fim do art. 179 sob o nome do art. 200.
+const ABERTURA = /^[ \t]*Art\.[ \t]*(\d{1,3}(?:\.\d{3})+|\d+)[ºo°]?\.?(?:[ \t]*-[ \t]*([A-Z])(?![ \t]+\p{Ll}))?(?![\p{L}\p{N}])(?![ \t]*,)/u;
 
 /**
  * @param {string} texto
