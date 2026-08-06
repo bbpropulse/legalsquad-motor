@@ -184,6 +184,10 @@ Quando o usuário pede sync — `/legalsquad sync`, "faça o sync", "sincronize"
 3. Se não houver licença configurada, **não trate como erro do sistema** — explique que falta ativar a licença e ofereça fazer isso (ver "Ativar a Licença").
 4. Se a licença estiver vencida, explique que o que já foi baixado **continua funcionando** (somente leitura) e que o que parou foi a atualização. Nunca sugira que o conteúdo foi perdido.
 
+**Sync padrão × sync completo.** Por design, a primeira sincronização baixa só o **catálogo** (metadados finos — o que existe, não o conteúdo) e o **conteúdo completo** de cada pacote só desce depois, sob demanda. Isso é proposital: instalação rápida, sem baixar de cara tudo que o usuário talvez nunca use.
+
+Quando o usuário pedir explicitamente **tudo de uma vez** — "baixa tudo", "quero o acervo completo", "sync completo", "traz as jurisprudências também", "não quero baixar aos poucos" — rode com a flag de conteúdo: `npx legalsquad acervo sync --content`. Isso baixa de uma vez as skills completas de **todas** as áreas licenciadas e o acervo de jurisprudência/legislação/súmulas inteiro (pode levar mais tempo e usar bem mais disco — avise antes se o catálogo indicar volume grande). O sync padrão (sem `--content`) continua sendo a resposta certa para "faça o sync"/"tem área nova?" sem qualificação — só use `--content` quando o pedido for claramente por tudo.
+
 **Não confunda com `indexar-acervo`.** São duas coisas diferentes que ambas falam em "acervo":
 
 | Pedido | O que é | Comando |
