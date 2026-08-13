@@ -3,7 +3,11 @@ import { join } from 'node:path';
 import { discoverSkillCatalog } from './skill-catalog.js';
 import { auditSkillCatalogQuality } from './skill-quality.js';
 import { queryTokens, rankSkills } from './skill-rank.js';
-import { defaultBestPracticesCatalogPath, parseBestPracticesCatalog } from './best-practices-catalog.js';
+import {
+  defaultBestPracticesDir,
+  parseBestPracticesCatalog,
+  parseBestPracticesCatalogDir,
+} from './best-practices-catalog.js';
 import { ehTituloOco, lerSubstanciaDoIndice } from './skill-substancia.js';
 
 const DEFAULT_LIMIT = 8;
@@ -34,8 +38,12 @@ function clipped(value, max = 220) {
  * graciosa de toda leitura de `_legalsquad/core/best-practices/` no motor.
  */
 function searchBestPractices(query, rootDir, options) {
-  const catalogPath = options.bestPracticesCatalogPath || defaultBestPracticesCatalogPath(rootDir);
-  const entradas = parseBestPracticesCatalog(catalogPath);
+  // A pasta inteira, não um arquivo: uma instalação tem N áreas e cada pacote
+  // traz o seu catálogo. Ler só `_catalog.yaml` enxergava a última área
+  // instalada e escondia as demais da busca.
+  const entradas = options.bestPracticesCatalogPath
+    ? parseBestPracticesCatalog(options.bestPracticesCatalogPath)
+    : parseBestPracticesCatalogDir(defaultBestPracticesDir(rootDir));
   if (!entradas.length) return [];
 
   const ranked = rankSkills(

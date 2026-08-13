@@ -17,8 +17,8 @@
 // razão de `frontmatter.js:extractFrontMatter`: sem isso, um arquivo salvo no
 // Notepad/Word perde o catálogo INTEIRO em silêncio — indistinguível de "área
 // não instalada", que é a confusão que este motor promete nunca cometer.
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 function semAspas(valor) {
   return String(valor || '').trim().replace(/^["']|["']$/g, '');
@@ -82,4 +82,45 @@ export function parseBestPracticesCatalog(catalogPath) {
 /** Caminho de INSTALAÇÃO do catálogo (§6.2.1) — nunca o de autoria. */
 export function defaultBestPracticesCatalogPath(rootDir) {
   return join(rootDir, '_legalsquad', 'core', 'best-practices', '_catalog.yaml');
+}
+
+/** `_catalog.yaml` (legado) ou `_catalog.<area>.yaml` (um por área instalada). */
+const NOME_DE_CATALOGO = /^_catalog(\.[^/]+)?\.yaml$/;
+
+/**
+ * Lê TODOS os catálogos da pasta de best-practices e funde num só registro.
+ *
+ * Uma instalação tem N áreas, e cada pacote de área traz o seu catálogo. Enquanto
+ * o nome era fixo (`_catalog.yaml`), os N gravavam no mesmo caminho de destino e
+ * a última área instalada sobrescrevia as anteriores: medido numa instalação
+ * real, o catálogo listava UMA entrada quando deveria listar quinze. Os arquivos
+ * `.md` continuavam no disco, mas nada os referenciava — as best-practices
+ * viravam invisíveis para a busca e para o campo `obrigatoria`.
+ *
+ * A leitura é em ordem alfabética de arquivo, e o primeiro id vence. Sem essa
+ * ordem o resultado dependeria da ordem do sistema de arquivos, e duas
+ * instalações idênticas divergiriam — o tipo de diferença que só aparece na
+ * máquina do usuário.
+ *
+ * Pasta ausente → `[]`: área não instalada é estado normal deste motor.
+ */
+export function parseBestPracticesCatalogDir(dir) {
+  if (!dir || !existsSync(dir)) return [];
+
+  const arquivos = readdirSync(dir)
+    .filter((nome) => NOME_DE_CATALOGO.test(nome))
+    .sort();
+
+  const porId = new Map();
+  for (const nome of arquivos) {
+    for (const entrada of parseBestPracticesCatalog(join(dir, nome))) {
+      if (!porId.has(entrada.id)) porId.set(entrada.id, entrada);
+    }
+  }
+  return [...porId.values()];
+}
+
+/** A pasta de instalação das best-practices — onde os catálogos de todas as áreas caem. */
+export function defaultBestPracticesDir(rootDir) {
+  return dirname(defaultBestPracticesCatalogPath(rootDir));
 }

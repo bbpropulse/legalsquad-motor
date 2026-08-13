@@ -213,3 +213,31 @@ test('area-id divergente do `_packs.yaml` falha o build', () => {
     'divergência entre argumento e declaração é engano, não algo a resolver em silêncio'
   );
 });
+
+// ---------------------------------------------------------------------------
+// Catálogo de best-practices: um nome por área, senão a última instalada vence
+// ---------------------------------------------------------------------------
+
+test('o catálogo de best-practices viaja com o NOME DA ÁREA no caminho de instalação', () => {
+  // Bug medido numa instalação real de 14 áreas: todas gravavam
+  // `_legalsquad/core/best-practices/_catalog.yaml`, o mesmo caminho, arquivo a
+  // arquivo. A última instalada sobrescrevia as outras treze e o catálogo
+  // passava a listar UMA entrada de quinze — os .md continuavam no disco, mas
+  // nada os referenciava, então sumiam da busca e do campo `obrigatoria`.
+  const { pacotes } = construir();
+  const caminhos = pacotes.flatMap((p) =>
+    p.entidades.flatMap((e) =>
+      e.file === 'best-practices.jsonl.zst' ? decodeEntity(e.buffer).map((a) => a.path) : [],
+    ),
+  );
+
+  const catalogos = caminhos.filter((c) => /_catalog[^/]*\.yaml$/.test(c));
+  assert.ok(catalogos.length > 0, 'a fixture tem um _catalog.yaml — ele precisa viajar');
+  for (const c of catalogos) {
+    assert.equal(
+      c,
+      '_legalsquad/core/best-practices/_catalog.demo.yaml',
+      'sem o nome da área, duas áreas colidem no mesmo caminho de destino',
+    );
+  }
+});

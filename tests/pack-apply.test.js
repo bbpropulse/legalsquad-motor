@@ -201,10 +201,15 @@ const INSTALACAO_PARA_AUTORIA = [
   ['.claude/agents/', 'core/agents/'],
 ];
 function caminhoDeAutoria(caminhoInstalado) {
+  // O catálogo de best-practices ganha o nome da área ao ser empacotado
+  // (`_catalog.yaml` → `_catalog.<area>.yaml`), porque N áreas instalam na mesma
+  // pasta e o nome fixo fazia a última sobrescrever as anteriores. A ida e volta
+  // continua fiel no CONTEÚDO; o que muda é o nome do arquivo no destino.
+  const semArea = caminhoInstalado.replace(/_catalog\.[^/]+\.yaml$/, '_catalog.yaml');
   for (const [instalacao, autoria] of INSTALACAO_PARA_AUTORIA) {
-    if (caminhoInstalado.startsWith(instalacao)) return autoria + caminhoInstalado.slice(instalacao.length);
+    if (semArea.startsWith(instalacao)) return autoria + semArea.slice(instalacao.length);
   }
-  return caminhoInstalado;
+  return semArea;
 }
 
 test('construir e aplicar reconstrói a árvore de origem byte a byte', () => {

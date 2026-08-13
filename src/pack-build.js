@@ -38,12 +38,30 @@ const CATALOGO = 'catalog.jsonl.zst';
  * que precisa bater com o que `pack-apply` vai escrever e com o que o motor
  * vai procurar.
  */
-function remapearParaInstalacao(arquivos) {
+function remapearParaInstalacao(arquivos, areaId) {
   return arquivos.map((arquivo) => {
     const subarvore = SUBARVORES.find((s) => arquivo.path.startsWith(s.prefixo));
     if (!subarvore || subarvore.destino === subarvore.prefixo) return arquivo;
-    return { ...arquivo, path: subarvore.destino + arquivo.path.slice(subarvore.prefixo.length) };
+    const relativo = nomeDeCatalogoPorArea(arquivo.path.slice(subarvore.prefixo.length), areaId);
+    return { ...arquivo, path: subarvore.destino + relativo };
   });
+}
+
+/**
+ * `_catalog.yaml` → `_catalog.<area>.yaml`.
+ *
+ * O nome fixo era uma colisão garantida: toda área traz o seu catálogo, todas
+ * gravam na MESMA pasta de instalação, e `pack-apply` escreve arquivo a arquivo
+ * com `rename`. Medido numa instalação de 14 áreas, o catálogo final listava uma
+ * entrada de quinze — a última área instalada vencia e as outras treze viravam
+ * invisíveis para a busca e para o campo `obrigatoria`, embora os `.md`
+ * estivessem todos no disco. Com o nome da área, não há dois no mesmo caminho;
+ * quem lê é `parseBestPracticesCatalogDir`, que funde a pasta inteira e ainda
+ * aceita o nome legado.
+ */
+function nomeDeCatalogoPorArea(relativo, areaId) {
+  if (relativo !== '_catalog.yaml' || !areaId) return relativo;
+  return `_catalog.${areaId}.yaml`;
 }
 
 /** Agrupa as entidades-arquivo por entidade de conteúdo, preservando a ordem. */
@@ -133,7 +151,10 @@ export function construirPacotes({
   // ordem não afeta o resultado porque só `skills/` participa do corte, e
   // `skills/` não é remapeado (destino === prefixo).
   const { transversal, area } = separarEntidades(lidos, corte.transversalSkills);
-  const arquivos = { transversal: remapearParaInstalacao(transversal), area: remapearParaInstalacao(area) };
+  const arquivos = {
+    transversal: remapearParaInstalacao(transversal, areaId),
+    area: remapearParaInstalacao(area, areaId),
+  };
 
   const base = { version: versao };
   const pacotes = [];
