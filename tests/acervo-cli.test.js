@@ -71,15 +71,16 @@ test('estado ilegível BLOQUEIA o comando em vez de reportar vazio', async () =>
   assert.match(saida, /BLOQUEADO/);
 });
 
-test('sync sem licença recusa — e o que falta é a LICENÇA, não servidor nem chave', async () => {
-  // URL do catálogo e chave pública passaram a ser embarcadas (SPEC §7.2),
-  // então a única coisa que o aluno precisa fornecer é a licença. A mensagem
-  // tem de dizer isso, e não mandá-lo configurar o que já vem configurado.
+test('sync sem config nenhuma NÃO é mais bloqueado por licença — o acesso é aberto', async () => {
+  // O acervo deixou de exigir ativação: URL, chave pública e token de acesso
+  // são embarcados, então instalar e sincronizar não pede passo nenhum. O que
+  // pode falhar aqui é rede/servidor — nunca "falta licença".
   const { resultado, saida } = await silenciar(() => acervoCli('sync', projeto()));
 
-  assert.equal(resultado.success, false);
-  assert.match(saida, /BLOQUEADO/);
-  assert.match(saida, /licen[çc]a/i);
+  assert.doesNotMatch(saida, /licen[çc]a/i, 'licença não pode mais ser motivo de bloqueio');
+  if (!resultado.success) {
+    assert.notEqual(resultado.error?.code, 'config-incompleta');
+  }
 });
 
 test('subcomando desconhecido é recusado, não ignorado', async () => {

@@ -7,6 +7,7 @@ import { createPublicKey } from 'node:crypto';
 import {
   CATALOG_URL_PADRAO,
   CHAVE_PUBLICA_PRODUCAO,
+  TOKEN_ACESSO_ABERTO,
   resolverConfigDeAcervo,
 } from '../src/acervo-config.js';
 
@@ -50,12 +51,51 @@ test('config só com a licença já basta — URL e chave vêm dos padrões emba
   assert.equal(config.ok, true);
 });
 
-test('sem arquivo de config nenhum, devolve ok:false com motivo — nunca inventa licença', () => {
+test('sem config nenhuma, cai no token de acesso aberto — instalar e sincronizar, sem ativação', () => {
+  delete process.env.LEGALSQUAD_LICENSE;
   const config = resolverConfigDeAcervo(projeto());
-  assert.equal(config.ok, false);
-  assert.match(config.motivo, /licen/i);
-  // Mas os padrões continuam preenchidos: a falta é só da licença.
+  assert.equal(config.ok, true, 'não há mais passo de ativação: o acervo é aberto');
+  assert.equal(config.license, TOKEN_ACESSO_ABERTO);
+  assert.equal(config.origemDaLicenca, 'embarcado');
   assert.equal(config.catalogUrl, CATALOG_URL_PADRAO);
+});
+
+test('licença do usuário na config VENCE o token embarcado', () => {
+  delete process.env.LEGALSQUAD_LICENSE;
+  const raiz = projeto();
+  escreverConfig(raiz, { license: 'LS-DONO-DA-CASA' });
+
+  const config = resolverConfigDeAcervo(raiz);
+  assert.equal(config.license, 'LS-DONO-DA-CASA');
+  assert.equal(config.origemDaLicenca, 'config');
+});
+
+test('LEGALSQUAD_LICENSE vence o embarcado, mas perde para a config do projeto', () => {
+  // A env existe para trocar/revogar o acesso sem republicar o pacote.
+  process.env.LEGALSQUAD_LICENSE = 'LS-DO-AMBIENTE';
+  try {
+    const semConfig = resolverConfigDeAcervo(projeto());
+    assert.equal(semConfig.license, 'LS-DO-AMBIENTE');
+    assert.equal(semConfig.origemDaLicenca, 'ambiente');
+
+    const raiz = projeto();
+    escreverConfig(raiz, { license: 'LS-DA-CONFIG' });
+    assert.equal(resolverConfigDeAcervo(raiz).license, 'LS-DA-CONFIG');
+  } finally {
+    delete process.env.LEGALSQUAD_LICENSE;
+  }
+});
+
+test('abrir o acesso NÃO afrouxou o fail-closed da chave pública', () => {
+  // O acervo virou aberto; a verificação de assinatura, não. São coisas
+  // distintas: qualquer um baixa, mas o pacote continua tendo de ser autêntico.
+  delete process.env.LEGALSQUAD_LICENSE;
+  const raiz = projeto();
+  escreverConfig(raiz, { signing_public_key_path: join(raiz, 'nao-existe.pem') });
+
+  const config = resolverConfigDeAcervo(raiz);
+  assert.equal(config.ok, false);
+  assert.match(config.motivo, /chave p[úu]blica/i);
 });
 
 test('config pode sobrescrever o catalog_url — servidor próprio/homologação', () => {

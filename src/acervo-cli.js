@@ -96,9 +96,10 @@ export async function acervoCli(sub, targetDir, values = {}, agora = Date.now())
   }
 
   if (!config.ok) {
-    // Fail-closed com o motivo verdadeiro. A URL e a chave já vêm embarcadas
-    // (SPEC §7.2), então o que falta aqui é sempre a licença — ou uma chave
-    // própria que o usuário declarou e está ilegível.
+    // Fail-closed com o motivo verdadeiro. URL, chave pública e token de acesso
+    // vêm embarcados, e o acesso é aberto — então licença NÃO chega mais aqui.
+    // O que sobra é a autenticidade: uma chave pública própria que o usuário
+    // declarou e está ilegível. Verificar assinatura continua inegociável.
     console.error(`ACERVO:BLOQUEADO — ${config.motivo}`);
     return { success: false, error: { code: 'config-incompleta', message: config.motivo } };
   }

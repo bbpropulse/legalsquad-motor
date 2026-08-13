@@ -40,10 +40,18 @@ Regra prática: **se depende de matéria jurídica, é pacote; se é mecanismo, 
    *"desatualizado há N dias"*. Da mesma família, e valendo para as **três** ausências: **"não
    baixado", "não tenho direito" e "não sei ler" nunca se apresentam como "não existe"**.
 4. **Uma área só vira pacote com curador de verdade.** Arquitetura ampla, vitrine estreita.
-5. **Quem compra leva tudo.** Licença válida libera **todas** as áreas — sem tier, sem entitlement
-   por área. Mas o **catálogo desce inteiro em qualquer estado de licença**, com `entitled` por
-   pack: é assim que a busca diz *"existe, sua licença não cobre"* em vez de mentir. Direito ≠ posse
-   — conteúdo desce sob demanda.
+5. **Acesso aberto (decisão de 12/08/2026).** Não há passo de ativação: o motor embarca um **token
+   de acesso aberto** (`LS-OPEN-ACCESS-2026`, em `src/acervo-config.js`) e o servidor o aceita como
+   licença ativa. Instalar e rodar `sync` basta. O token **não é segredo** — vive num repositório
+   público, e chamá-lo de chave seria mentir sobre o que ele protege; ele existe como **ponto de
+   corte**: trocar/limpar `ACESSO_ABERTO_TOKEN` no servidor fecha o acesso sem republicar o motor,
+   e `LEGALSQUAD_LICENSE` sobrepõe o embarcado numa instalação. A precedência é
+   **config do projeto > ambiente > embarcado**, então quem tem licença nominal nunca é atropelado.
+   O maquinário de licença por CPF+e-mail continua inteiro e funcionando — só deixou de ser
+   obrigatório. **O que NÃO foi afrouxado:** a verificação de assinatura Ed25519. Acesso aberto
+   responde *quem pode baixar*; a assinatura responde *isto veio mesmo de quem diz que veio* — e
+   essa continua fail-closed. O catálogo segue descendo inteiro com `entitled` por pack, para a
+   busca dizer *"existe, mas não está liberado"* em vez de mentir.
 6. **Motor novo só aqui.** O CriminalSquad está em manutenção (correção crítica apenas).
 
 ## Documentação

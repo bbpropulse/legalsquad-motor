@@ -15,6 +15,22 @@ import { join } from 'node:path';
 /** Servidor de distribuição oficial. HTTPS obrigatório: a licença vai no header. */
 export const CATALOG_URL_PADRAO = 'https://acervo-server-production.up.railway.app/v1/catalog';
 
+/**
+ * Token de acesso aberto embarcado — o acervo baixa sem passo de ativação.
+ *
+ * **Não é segredo, e é assim de propósito.** Ele vive num repositório público:
+ * quem lê o código o tem. Chamá-lo de "chave" seria mentir sobre o que ele
+ * protege — ele não protege, ele identifica. O que ele dá é um ponto de corte:
+ * trocar o valor aceito no servidor fecha o acesso de todo mundo que usa o
+ * embarcado, sem republicar o pacote; e `LEGALSQUAD_LICENSE` deixa uma
+ * instalação apontar para outra credencial sem editar arquivo nenhum.
+ *
+ * O que **não** foi afrouxado: a verificação de assinatura Ed25519 do pacote.
+ * Acesso aberto responde "quem pode baixar"; a assinatura responde "isto veio
+ * mesmo de quem diz que veio". Qualquer um baixa — ninguém entrega adulterado.
+ */
+export const TOKEN_ACESSO_ABERTO = 'LS-OPEN-ACCESS-2026';
+
 /** Ed25519, `kid: prod-2026-07`. Corresponde à privada guardada fora de qualquer git. */
 export const CHAVE_PUBLICA_PRODUCAO = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEABCuD8oG9/vEXU0NRKwZzHJu/9sfZAKxFz5wkWrs+/E4=
@@ -46,6 +62,15 @@ export function resolverConfigDeAcervo(rootDir) {
 
   const catalogUrl = bruto.catalog_url || CATALOG_URL_PADRAO;
 
+  // Precedência: o que o projeto configurou > o ambiente > o embarcado. Assim
+  // quem tem credencial própria nunca é sobreposto pelo padrão aberto.
+  const doAmbiente =
+    typeof process.env.LEGALSQUAD_LICENSE === 'string' && process.env.LEGALSQUAD_LICENSE.trim()
+      ? process.env.LEGALSQUAD_LICENSE.trim()
+      : null;
+  const license = bruto.license || doAmbiente || TOKEN_ACESSO_ABERTO;
+  const origemDaLicenca = bruto.license ? 'config' : doAmbiente ? 'ambiente' : 'embarcado';
+
   // Chave declarada e ilegível BLOQUEIA. Cair na embarcada em silêncio
   // trocaria a autoridade que o usuário escolheu por outra, sem avisar.
   let chavePublicaPem = CHAVE_PUBLICA_PRODUCAO;
@@ -56,24 +81,17 @@ export function resolverConfigDeAcervo(rootDir) {
       return {
         ok: false,
         motivo: `chave pública declarada em ${bruto.signing_public_key_path} está ilegível — ${erro.message}`,
-        license: bruto.license || null,
+        license,
+        origemDaLicenca,
         catalogUrl,
         chavePublicaPem: null,
       };
     }
   }
 
-  if (!bruto.license) {
-    return {
-      ok: false,
-      motivo: 'nenhuma licença configurada — informe a licença recebida na compra para ativar',
-      license: null,
-      catalogUrl,
-      chavePublicaPem,
-    };
-  }
-
-  return { ok: true, motivo: null, license: bruto.license, catalogUrl, chavePublicaPem };
+  // Licença ausente não bloqueia mais: o acesso é aberto por padrão. Só a
+  // autenticidade do pacote (assinatura) segue sendo condição para instalar.
+  return { ok: true, motivo: null, license, origemDaLicenca, catalogUrl, chavePublicaPem };
 }
 
 /** Grava a config de ativação. Só a licença — URL e chave vêm dos padrões. */

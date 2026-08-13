@@ -133,7 +133,7 @@ Parse user input and route to the appropriate action:
 | `/legalsquad edit-company` | Re-run company profile setup |
 | `/legalsquad show-company` | Display company.md contents |
 | `/legalsquad settings` | Show/edit preferences.md |
-| `/legalsquad ativar <licença>` (ou "minha licença é…", "ativar licença") | Gravar a licença e sincronizar — ver "Ativar a Licença" |
+| `/legalsquad ativar <licença>` (ou "minha licença é…", "ativar licença") | Só quando o usuário TRAZ uma licença própria — o acesso padrão é aberto, ver "Ativar a Licença" |
 | `/legalsquad sync` (ou "faça o sync", "baixar/atualizar as áreas", "tem área nova?") | **Baixar do servidor** as áreas licenciadas — ver "Sincronizar as Áreas" |
 | `/legalsquad indexar-acervo` (ou "indexar/reindexar acervo", "atualizei o acervo") | **Reindexar arquivos locais** que o usuário adicionou — ver "Indexar o Acervo" |
 | `/legalsquad indexar-skills` (ou "reindexar skills", "atualizar a biblioteca de skills") | Regerar o índice de skills — ver "Indexar as Skills" |
@@ -169,11 +169,13 @@ Para QUALQUER pedido em linguagem natural (tudo que não seja um `/legalsquad <c
 
 **Anti-padrões:** criar squad para tarefa única; rodar loop multi-agente quando um passo resolve; rotear sem registrar; pular o "sim" do usuário antes de criar/enviar.
 
-## Ativar a Licença
+## Ativar a Licença (opcional — o acesso é aberto)
 
-Quando o usuário informa uma licença — `/legalsquad ativar LS-…`, "minha licença é LS-…", "recebi a licença", ou cola uma chave no formato `LS-XXXX-XXXX-XXXX-XXXX` — FAÇA POR ELE. Ele nunca deve editar JSON à mão.
+**Não peça licença a ninguém.** O acervo é distribuído sem ativação: URL do servidor, chave de verificação e token de acesso já vêm embutidos. Quem acabou de instalar roda `sync` direto e baixa tudo. Se o usuário perguntar "preciso de licença?", a resposta é não.
 
-1. Grave a licença com a ferramenta Bash, na raiz do projeto: `npx legalsquad ativar <licença>`. A URL do servidor e a chave de verificação **já vêm embutidas** no LegalSquad — o usuário só precisa da licença.
+Só use este fluxo quando o usuário **informar espontaneamente** uma licença própria — `/legalsquad ativar LS-…`, "minha licença é LS-…", ou colar uma chave no formato `LS-XXXX-XXXX-XXXX-XXXX`. Aí sim FAÇA POR ELE (ele nunca deve editar JSON à mão), e a licença dele passa a valer no lugar do acesso padrão.
+
+1. Grave a licença com a ferramenta Bash, na raiz do projeto: `npx legalsquad ativar <licença>`.
 2. O comando já sincroniza em seguida. Reporte em português simples: quantas áreas foram baixadas e quantas skills ficaram disponíveis.
 3. Se a licença não for aceita, diga isso com todas as letras ("essa licença não foi reconhecida pelo servidor") e sugira conferir se foi copiada inteira. **Nunca** diga que deu certo quando não deu, e **nunca** invente uma licença.
 
