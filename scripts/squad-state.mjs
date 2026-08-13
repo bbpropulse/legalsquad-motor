@@ -404,9 +404,103 @@ function resumeReview(ledger) {
 }
 // <<< review-loop:end
 
+// ---------------------------------------------------------------------------
+// Estado durável do run — cópia VERBATIM de src/run-state.js.
+// Guarda o run_id em disco: sem ele, uma sessão caída faz o runner começar um
+// run novo e abandonar a pasta com os artefatos já produzidos.
+// A cópia é guardada por tests/run-state.test.js: se divergir, a suíte quebra.
+// ---------------------------------------------------------------------------
+// >>> run-state:begin
+/** Estados de um run. `running` é o único não-terminal. */
+const RUN_STATUSES = Object.freeze(['running', 'completed', 'failed']);
+
+/** Abre o ledger de um run. O `run_id` é obrigatório: é a chave de retomada. */
+function abrirRun({ runId, squad, total } = {}) {
+  if (typeof runId !== 'string' || !runId.trim()) {
+    throw new Error('run_id é obrigatório: um run sem id não é retomável depois de a sessão cair');
+  }
+  const totalNum = Number.isInteger(total) && total >= 0 ? total : 0;
+  return {
+    runId: runId.trim(),
+    squad: typeof squad === 'string' ? squad : '',
+    status: 'running',
+    step: { current: 0, total: totalNum, label: '' },
+    checkpoints: {},
+  };
+}
+
+/** Move o ponteiro do step. Preserva o `total` — perdê-lo cega a retomada. */
+function avancarRun(ledger, { current, label } = {}) {
+  const base = ledger || {};
+  const passo = base.step || {};
+  return {
+    ...base,
+    step: {
+      current: Number.isInteger(current) ? current : passo.current || 0,
+      total: passo.total || 0,
+      label: typeof label === 'string' ? label : passo.label || '',
+    },
+  };
+}
+
+/**
+ * Guarda a resposta do usuário num checkpoint.
+ *
+ * Sem isto, retomar um run interrompido obriga a reperguntar tudo o que já foi
+ * decidido — e uma segunda resposta pode não ser igual à primeira, o que muda o
+ * resultado sem ninguém perceber.
+ */
+function registrarCheckpoint(ledger, { step, resposta } = {}) {
+  const base = ledger || {};
+  if (typeof step !== 'string' || !step.trim()) return base;
+  return {
+    ...base,
+    checkpoints: { ...(base.checkpoints || {}), [step.trim()]: typeof resposta === 'string' ? resposta : '' },
+  };
+}
+
+/** Fecha o run. Só `completed` ou `failed` — fechar em `running` é contradição. */
+function fecharRun(ledger, { status } = {}) {
+  const terminais = RUN_STATUSES.filter((s) => s !== 'running');
+  if (!terminais.includes(status)) {
+    throw new Error(`status terminal inválido: "${status}" (use ${terminais.join(' ou ')})`);
+  }
+  return { ...(ledger || {}), status };
+}
+
+/**
+ * O que fazer com o ledger encontrado em disco.
+ *
+ * Três respostas, e nenhuma delas é um palpite: `none` (não há run), `resume`
+ * (interrompido — retome DESTE run_id) e `closed` (terminou). "Não sei" nunca
+ * vira "comece um run novo", que é o que produzia pastas órfãs.
+ */
+function retomarRun(ledger) {
+  if (!ledger || typeof ledger !== 'object' || !ledger.runId) return { action: 'none' };
+  const { runId, squad, status, step, checkpoints } = ledger;
+  if (status !== 'running') {
+    return { action: 'closed', runId, squad, status, step: step || null };
+  }
+  return {
+    action: 'resume',
+    runId,
+    squad,
+    status,
+    step: step || { current: 0, total: 0, label: '' },
+    checkpoints: checkpoints || {},
+  };
+}
+// <<< run-state:end
+
+
 function cmdInit(dir, flags) {
   const total = Number(flags.total);
   if (!Number.isInteger(total) || total < 0) die('init requer --total <N> (inteiro >= 0)');
+  // --run é opcional por retrocompatibilidade (squads antigos seguem valendo),
+  // mas o runner sempre o passa: é ele que torna o run retomável se a sessão cair.
+  if (typeof flags.run === 'string' && flags.run.trim()) {
+    writeJson(dir, RUN_LEDGER, { ...abrirRun({ runId: flags.run, squad: readSquadCode(dir), total }), updatedAt: now() });
+  }
   writeState(dir, {
     squad: readSquadCode(dir),
     status: 'idle',
@@ -446,6 +540,7 @@ function cmdStep(dir, flags) {
   if (!s.startedAt) s.startedAt = now();
   s.updatedAt = now();
   writeState(dir, s);
+  atualizarRunLedger(dir, (l) => avancarRun(l, { current, label: str(flags.label) }));
 }
 
 function cmdCheckpoint(dir, flags) {
@@ -455,6 +550,11 @@ function cmdCheckpoint(dir, flags) {
   s.agents = s.agents.map((a) => (a.id === flags.agent ? { ...a, status: 'checkpoint' } : a));
   s.updatedAt = now();
   writeState(dir, s);
+  // A resposta do usuário fica no ledger durável: retomar um run interrompido
+  // sem ela obriga a reperguntar, e a segunda resposta pode não ser a primeira.
+  if (typeof flags.step === 'string') {
+    atualizarRunLedger(dir, (l) => registrarCheckpoint(l, { step: flags.step, resposta: str(flags.resposta) }));
+  }
 }
 
 function clearActivity(agents, status) {
@@ -473,6 +573,7 @@ function cmdComplete(dir) {
   s.completedAt = now();
   s.updatedAt = now();
   writeState(dir, s);
+  atualizarRunLedger(dir, (l) => fecharRun(l, { status: 'completed' }));
 }
 
 function cmdFail(dir) {
@@ -482,6 +583,7 @@ function cmdFail(dir) {
   s.failedAt = now();
   s.updatedAt = now();
   writeState(dir, s);
+  atualizarRunLedger(dir, (l) => fecharRun(l, { status: 'failed' }));
 }
 
 // --- Loop de revisão: o ledger durável (review-state.json) --------------------
@@ -491,19 +593,45 @@ function cmdFail(dir) {
 // a uma sessão caída — por isso mora no seu próprio arquivo.
 const LEDGER = 'review-state.json';
 
-function loadLedger(dir, { required } = {}) {
+/**
+ * O ledger guarda UM laço por gate. O runner tem cinco laços com teto além da
+ * revisão — veto, Citation Gate, Redação Gate e os dois retries — e num step de
+ * redação mais de um está aberto ao mesmo tempo. Com um laço só, abrir o da
+ * citação apagava o da revisão e a contagem recomeçava do zero em silêncio.
+ */
+const GATE_PADRAO = 'revisao';
+
+function lerLedgerBruto(dir) {
   const p = join(dir, LEDGER);
-  if (!existsSync(p)) {
-    if (required) die(`${LEDGER} não existe — rode \`review-open\` antes de registrar vereditos`);
-    return null;
-  }
+  if (!existsSync(p)) return null;
   try {
     return JSON.parse(readFileSync(p, 'utf-8'));
   } catch {
-    // Ledger ilegível ≠ ledger ausente: seguir como se não houvesse loop
+    // Ledger ilegível ≠ ledger ausente: seguir como se não houvesse laço
     // reiniciaria a contagem de ciclos em silêncio. Fail-closed.
     return die(`${LEDGER} existente é JSON inválido — resolva à mão antes de continuar`);
   }
+}
+
+/** Nome do gate desta chamada. Sem --gate, é a revisão (uso legado). */
+function nomeDoGate(flags) {
+  return typeof flags.gate === 'string' && flags.gate.trim() ? flags.gate.trim() : GATE_PADRAO;
+}
+
+function loadLedger(dir, gate, { required } = {}) {
+  const bruto = lerLedgerBruto(dir);
+  const laco = bruto && bruto.loops ? bruto.loops[gate] : null;
+  if (!laco && required) {
+    // Abrir sozinho zeraria a contagem: cada REJECT viraria "ciclo 1" e o teto
+    // nunca chegaria — o laço giraria para sempre.
+    die(`gate "${gate}" não tem laço aberto — rode \`gate-open --gate ${gate}\` antes de registrar vereditos`);
+  }
+  return laco || null;
+}
+
+function saveLedger(dir, gate, laco) {
+  const bruto = lerLedgerBruto(dir) || {};
+  writeJson(dir, LEDGER, { loops: { ...(bruto.loops || {}), [gate]: laco }, updatedAt: now() });
 }
 
 // A saída dos comandos de revisão é JSON no stdout (o runner parseia) e o
@@ -515,17 +643,19 @@ function emitDecision(result) {
 }
 
 function cmdReviewOpen(dir, flags) {
-  if (typeof flags.loop !== 'string') die('review-open requer --loop <step-id do revisor>');
-  if (typeof flags.target !== 'string') die('review-open requer --target <step-id do on_reject>');
+  const gate = nomeDoGate(flags);
+  if (typeof flags.loop !== 'string') die('gate-open requer --loop <step-id do avaliador>');
+  if (typeof flags.target !== 'string') die('gate-open requer --target <step-id a refazer>');
   const max = flags.max === undefined ? undefined : Number(flags.max);
   if (max !== undefined && (!Number.isInteger(max) || max < 1)) die('--max precisa ser inteiro >= 1');
-  const ledger = openReview({ loop: flags.loop, target: flags.target, maxCycles: max });
-  writeJson(dir, LEDGER, { ...ledger, updatedAt: now() });
-  return emitDecision({ action: 'open', loop: ledger.loop, target: ledger.target, maxCycles: ledger.maxCycles });
+  const laco = openReview({ loop: flags.loop, target: flags.target, maxCycles: max });
+  saveLedger(dir, gate, laco);
+  return emitDecision({ action: 'open', gate, loop: laco.loop, target: laco.target, maxCycles: laco.maxCycles });
 }
 
 function cmdReviewVerdict(dir, flags) {
-  if (typeof flags.verdict !== 'string') die('review-verdict requer --verdict APPROVE|REJECT');
+  const gate = nomeDoGate(flags);
+  if (typeof flags.verdict !== 'string') die('gate-verdict requer --verdict APPROVE|REJECT');
   const expect = flags.expect === undefined ? 1 : Number(flags.expect);
   if (!Number.isInteger(expect) || expect < 1) die('--expect precisa ser inteiro >= 1');
   const entry = {
@@ -533,18 +663,48 @@ function cmdReviewVerdict(dir, flags) {
     verdict: flags.verdict,
     fixes: asList(flags.fix).filter((v) => typeof v === 'string'),
   };
-  const { ledger, result } = applyVerdict(loadLedger(dir, { required: true }), entry, { expect });
-  writeJson(dir, LEDGER, { ...ledger, updatedAt: now() });
-  return emitDecision(result);
+  const { ledger, result } = applyVerdict(loadLedger(dir, gate, { required: true }), entry, { expect });
+  saveLedger(dir, gate, ledger);
+  return emitDecision({ ...result, gate });
 }
 
-function cmdReviewStatus(dir) {
-  return emitDecision(resumeReview(loadLedger(dir)));
+function cmdReviewStatus(dir, flags) {
+  const gate = nomeDoGate(flags);
+  return emitDecision({ ...resumeReview(loadLedger(dir, gate)), gate });
+}
+
+// --- Estado durável do run (run-state.json) ---------------------------------
+// Mesma razão do review-state.json para ficar FORA do state.json: contrato
+// fechado lá, e o state.json é apagado no cleanup. Aqui mora o run_id.
+const RUN_LEDGER = 'run-state.json';
+
+function loadRunLedger(dir) {
+  const p = join(dir, RUN_LEDGER);
+  if (!existsSync(p)) return null;
+  try {
+    return JSON.parse(readFileSync(p, 'utf-8'));
+  } catch {
+    // Ilegível ≠ ausente: seguir em frente criaria um run novo e abandonaria a
+    // pasta com os artefatos já produzidos. Fail-closed.
+    return die(`${RUN_LEDGER} existente é JSON inválido — resolva à mão antes de continuar`);
+  }
+}
+
+/** Atualiza o ledger SE ele existir. Sem ledger, o comando segue normal. */
+function atualizarRunLedger(dir, transformar) {
+  const atual = loadRunLedger(dir);
+  if (!atual) return;
+  writeJson(dir, RUN_LEDGER, { ...transformar(atual), updatedAt: now() });
+}
+
+function cmdRunStatus(dir) {
+  console.log(JSON.stringify(retomarRun(loadRunLedger(dir)), null, 2));
+  return null;
 }
 
 const { command, dir, flags } = parseArgs(process.argv.slice(2));
 if (!command || !dir)
-  die('uso: squad-state <init|step|checkpoint|complete|fail|review-open|review-verdict|review-status> <squad-dir> [opções]');
+  die('uso: squad-state <init|step|checkpoint|complete|fail|review-open|review-verdict|review-status|run-status> <squad-dir> [opções]');
 if (!existsSync(dir)) die(`pasta do squad não existe: ${dir}`);
 
 const commands = {
@@ -556,6 +716,12 @@ const commands = {
   'review-open': cmdReviewOpen,
   'review-verdict': cmdReviewVerdict,
   'review-status': cmdReviewStatus,
+  // Nomes honestos para os laços que não são de revisão (citação, redação,
+  // veto, retry). Mesmos handlers — o que muda é só o --gate.
+  'gate-open': cmdReviewOpen,
+  'gate-verdict': cmdReviewVerdict,
+  'gate-status': cmdReviewStatus,
+  'run-status': cmdRunStatus,
 };
 if (!commands[command]) die(`comando desconhecido: ${command}`);
 // Comandos de revisão já imprimiram o JSON da decisão; os de estado confirmam

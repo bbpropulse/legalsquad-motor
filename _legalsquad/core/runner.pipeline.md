@@ -106,11 +106,17 @@ Before starting execution:
    - Create the folder using Bash: `mkdir -p squads/{name}/output/{run_id}`
    - Store `run_id` in working memory for this run — it will be used for ALL output paths
 6. **Initialize state.json** (escritor determinístico — preferido). State writes are always mandatory.
-   - **Varredura de run morto (ANTES do init):** se `squads/{name}/state.json` **já existe** com `status: running` ou `checkpoint`, a execução anterior foi **interrompida** (sessão caiu / IDE fechada) — sem isso o dashboard mostra o squad "trabalhando" para sempre e o histórico nunca fecha. Faça: (a) avise o usuário em linguagem simples ("a execução anterior foi interrompida no passo {current}/{total} — vou encerrá-la como Abortada"); (b) rode `node scripts/squad-state.mjs fail squads/{name}`; (c) arquive: copie o `state.json` para a pasta do run interrompido (`squads/{name}/output/<run_id mais recente sem state.json>/`), se identificável; (d) registre a linha `Abortado` no `_memory/runs.md` (formato do After Pipeline Completion 2b). Só então prossiga com o init do run novo.
+   - **Varredura de run morto (ANTES do init):** se `squads/{name}/state.json` **já existe** com `status: running` ou `checkpoint`, a execução anterior foi **interrompida** (sessão caiu / IDE fechada) — sem isso o dashboard mostra o squad "trabalhando" para sempre e o histórico nunca fecha. **Não adivinhe qual era o run**: pergunte ao ledger durável, que guarda o `run_id` em disco.
+     ```bash
+     node scripts/squad-state.mjs run-status squads/{name}
+     ```
+     - `action: "resume"` → o JSON traz o `runId` do run interrompido, o `step` onde parou e os `checkpoints` já respondidos. Ofereça ao usuário **retomar desse `runId`** (reaproveitando os artefatos já produzidos e as respostas já dadas) ou encerrá-lo como Abortado e começar outro. Retomar é o padrão: recomeçar joga fora trabalho que está no disco.
+     - `action: "none"` → não há ledger (squad antigo ou run nunca aberto). Aí sim caia no encerramento cego: (a) avise o usuário ("a execução anterior foi interrompida no passo {current}/{total} — vou encerrá-la como Abortada"); (b) `node scripts/squad-state.mjs fail squads/{name}`; (c) arquive o `state.json` na pasta do run, se identificável; (d) registre `Abortado` no `_memory/runs.md`.
+     - `action: "closed"` → o run anterior já terminou; o `state.json` órfão é resíduo. Siga para o init do run novo.
    - **IMPORTANT**: você DEVE atualizar `squads/{name}/state.json` antes de cada step e a cada handoff. Não-negociável; nunca pule.
    - Em vez de montar o JSON à mão, **chame o escritor** a partir da raiz do workspace (`{root}`):
      ```bash
-     node scripts/squad-state.mjs init squads/{name} --total {número de steps do pipeline.yaml}
+     node scripts/squad-state.mjs init squads/{name} --total {número de steps do pipeline.yaml} --run {run_id}
      ```
      Ele lê `squads/{name}/squad.yaml` (`code`) + `squad-party.csv` (id/name/icon, na ordem), atribui os desks (`col = índice%3+1`, `row = ⌊índice/3⌋+1`) e grava um `state.json` **válido** (status `idle`, todos os agentes `idle`, timestamp real) de forma atômica. O `id` deve casar com o `agent:` dos steps.
    - **Contrato:** `_legalsquad/core/state.schema.json` (mesmo shape lido pelo dashboard).
@@ -204,7 +210,7 @@ When an agent's `.agent.md` frontmatter contains a `tasks:` field:
    e. Check task veto conditions (same enforcement as step veto conditions below)
 
 3. **Final output**: The output of the LAST task in the chain becomes the step's output
-   - Apply the Output Path Transformation (Steps 1 and 2: run_id injection + version folder) to the `outputFile` path before saving — this applies regardless of whether the step runs as `execution: inline` or `execution: subagent`
+   - Resolva o `outputFile` com `squad-path.mjs --modo escrita` antes de salvar — vale igualmente para `execution: inline` e `execution: subagent`
    - Save to the **transformed** outputFile path
    - This is what the next step (or checkpoint) receives
 
@@ -216,42 +222,44 @@ When an agent's `.agent.md` frontmatter contains a `tasks:` field:
 5. **Backward compatibility**: If the agent's frontmatter does NOT contain a `tasks:` field,
    execute the agent monolithically as before (current behavior unchanged).
 
-### Output Path Transformation
+### Output Path Transformation — a conta é do CÓDIGO, não sua
 
-Before saving any output file in a step, apply these rules to determine the final path:
+**Não resolva caminho de cabeça.** Injetar o `run_id`, listar as versões e montar
+a pasta `vN` é manipulação de string e comparação de número — aritmética, e
+aritmética de cabeça erra em silêncio: o artefato vai parar numa pasta que
+ninguém procura e o step seguinte falha por "input não encontrado", longe da
+causa. Mesmo princípio do Review Loop. Quem resolve é `scripts/squad-path.mjs`:
 
-#### Step 1 — Insert run_id
+```bash
+node scripts/squad-path.mjs resolve "{caminho declarado no frontmatter}" \
+  --run {run_id} --modo {escrita|leitura|checkpoint} --print caminho
+```
 
-- If the path starts with `squads/{name}/output/`, insert `{run_id}/` immediately after `output/`
-  - Example: `squads/carousel/output/slides/draft.md` → `squads/carousel/output/2026-03-03-143022/slides/draft.md`
-  - Example: `squads/carousel/output/angles-brief.yaml` → `squads/carousel/output/2026-03-03-143022/angles-brief.yaml`
-- If the path does NOT start with `squads/{name}/output/`, leave it unchanged
+Ele imprime o caminho final, pronto para o Write, o Read ou o `test -s`. Sem
+`--print`, devolve o JSON completo (`{caminho, grupo, versao}`). Escolher o modo
+é a única decisão que continua sendo sua:
 
-#### Step 2 — Insert version folder
+| Modo | Pergunta que responde | Onde se usa |
+|------|----------------------|-------------|
+| `escrita` | "onde eu **gravo** agora?" | antes de todo Write de output de step |
+| `leitura` | "onde está o que o step anterior **gravou**?" | Pre-Step Input Validation |
+| `checkpoint` | como a escrita, mas **sem** versão | steps `type: checkpoint` com `outputFile` |
 
-Apply to every path that was transformed in Step 1:
+O que o script já garante — não reimplemente nem confira à mão:
 
-1. Determine the **output group** = the parent directory of the file (after Step 1 transformation)
-   - Example: `squads/carousel/output/2026-03-03-143022/slides/draft.md` → group is `squads/carousel/output/2026-03-03-143022/slides/`
-   - Example: `squads/carousel/output/2026-03-03-143022/angles-brief.yaml` → group is `squads/carousel/output/2026-03-03-143022/`
+- caminho fora de `squads/{name}/output/` volta **inalterado**;
+- `escrita` abre sempre a versão seguinte à **maior** existente — buraco na
+  sequência (`v1` e `v3`, sem `v2`) não é reaproveitado;
+- a comparação é **numérica**: `v10` é maior que `v9` (ordenação de texto diria
+  o contrário e faria o step seguinte ler uma versão velha);
+- caminho que já contém o `run_id` **não** recebe um segundo;
+- `run_id` ausente, modo desconhecido ou `--print` de campo inexistente
+  **falham** com exit ≠ 0, em vez de devolver algo plausível.
 
-2. Detect existing versions for this group using Bash:
-   ```bash
-   ls -1 squads/{name}/output/{run_id}/{relative-group}/ 2>/dev/null | grep -E '^v[0-9]+$' | sort -V | tail -1
-   ```
-   - If the command returns a version (e.g. `v2`) → use `v3`
-   (Always increment the highest version found, even if lower versions have gaps — e.g. if `v1` and `v3` exist, use `v4`)
-   - If the command returns nothing (no versions yet) → use `v1`
-   (`{relative-group}` is the portion of the group path after `squads/{name}/output/{run_id}/`, e.g. `slides/` or empty string for root-level files)
-
-3. Insert the version folder immediately before the filename:
-   - `squads/carousel/output/2026-03-03-143022/slides/draft.md` → `squads/carousel/output/2026-03-03-143022/slides/v1/draft.md`
-   - `squads/carousel/output/2026-03-03-143022/angles-brief.yaml` → `squads/carousel/output/2026-03-03-143022/v1/angles-brief.yaml`
-
-4. **Cache per group**: within a single step execution, once a version is determined for a group, reuse it for all subsequent files in that same group. Do not re-run the `ls` per file.
-   If the same file path is written twice within a step, both writes go to the same versioned path (the second write overwrites the first within that version).
-
-Apply this transformation consistently for every write in this step.
+**Cache por grupo:** dentro de um mesmo step, resolva uma vez por diretório-grupo
+(campo `grupo` do JSON) e reutilize para os demais arquivos daquele grupo. Se o
+mesmo caminho for escrito duas vezes no step, ambas as escritas vão para a mesma
+versão (a segunda sobrescreve a primeira dentro dela).
 
 ### For each pipeline step:
 
@@ -267,19 +275,12 @@ Apply this transformation consistently for every write in this step.
    O escritor faz tudo de uma vez (substitui o antigo handoff de dois passos): marca o `--working` como `working`, os anteriores como `done`, preserva os desks, seta `startedAt` no primeiro step e grava `updatedAt`. Use `--from`/`--message` **apenas** quando o step continua o output do agente anterior (omita no primeiro step → `handoff` fica `null`).
    - **Fallback** (Node indisponível): escreva à mão seguindo `_legalsquad/core/state.schema.json` (status `running`; `working`/`done`/`idle`; handoff só a partir do 2º step; preserve `desk` e `startedAt`).
 
-1. **Pre-Step Input Validation** — MANDATORY. If the step's frontmatter declares an `inputFile`, validate that the input exists before executing the step. Run via Bash tool:
+1. **Pre-Step Input Validation** — MANDATORY. If the step's frontmatter declares an `inputFile`, validate that the input exists before executing the step. Resolva em **modo `leitura`** — a versão vigente, nunca a próxima — e teste:
    ```bash
-   test -s "{transformed inputFile path}" && echo "VALIDATION:PASS" || echo "VALIDATION:FAIL"
+   ALVO=$(node scripts/squad-path.mjs resolve "{inputFile}" --run {run_id} --modo leitura --print caminho)
+   test -s "$ALVO" && echo "VALIDATION:PASS" || echo "VALIDATION:FAIL"
    ```
-   - **Resolva o `inputFile` do mesmo modo que o output foi gravado** — Step 1 (run_id) **e** Step 2 (pasta de versão). Aplicar só o Step 1 aqui é o erro que trava o pipeline inteiro: o step anterior gravou em `.../{run_id}/vN/arquivo.md` e a validação procura em `.../{run_id}/arquivo.md`, que não existe. Do segundo step em diante, **toda** validação de input falha.
-   - Depois do Step 1, descubra a **versão vigente** do grupo do input — a maior `vN` que existir — e valide contra ela:
-     ```bash
-     GRUPO="squads/{name}/output/{run_id}/{relative-group}"
-     V=$(ls -1 "$GRUPO" 2>/dev/null | grep -E '^v[0-9]+$' | sort -V | tail -1)
-     ALVO="${V:+$GRUPO/$V/}{filename}"; ALVO="${ALVO:-$GRUPO/{filename}}"
-     test -s "$ALVO" && echo "VALIDATION:PASS" || echo "VALIDATION:FAIL"
-     ```
-   - Se o grupo não tiver nenhuma pasta `vN` (step que grava direto no run_id), valide o caminho pós-Step 1, sem versão. **O caminho validado é o mesmo que o step vai ler** — nunca o caminho canônico do frontmatter.
+   O modo `leitura` existe exatamente para este ponto: o step anterior gravou em `.../{run_id}/vN/arquivo.md`, e procurar em `vN+1` — ou no caminho sem versão — é o erro que trava o pipeline do segundo step em diante. **O caminho validado é o mesmo que o step vai ler**, nunca o caminho canônico do frontmatter.
    - If the Bash output contains `VALIDATION:PASS` → proceed to execute the step.
    - If the Bash output contains `VALIDATION:FAIL` → do NOT execute the step. Present to user:
      ```
@@ -300,7 +301,7 @@ Apply this transformation consistently for every write in this step.
 - Inform user: `🔍 {Agent Name} is working in the background...`
 - Read the step's `model_tier` frontmatter field (if present).
   Valid values: `fast` or `powerful`. If absent or any other value: default to `powerful`.
-- **Before building the subagent prompt**: Apply the Output Path Transformation (Step 1: run_id injection + Step 2: version folder) to all output paths referenced in the step file. Store the transformed path(s) in working memory — they will be used both in the prompt and in post-completion verification. Never pass raw paths from the step file to the subagent.
+- **Before building the subagent prompt**: resolva com `squad-path.mjs --modo escrita` todos os caminhos de output do step file e guarde o resultado — ele é usado tanto no prompt quanto na verificação pós-conclusão. Nunca passe ao subagente o caminho cru do step file: quem resolve o caminho é o runner, uma vez, antes do fan-out.
 - Use the Task tool to dispatch the step as a subagent:
   - If `model_tier: fast`: use the fastest/lightest model available in your current IDE.
   - If `model_tier: powerful` or absent/invalid: use the default model (no model override needed)
@@ -322,18 +323,22 @@ Apply this transformation consistently for every write in this step.
 - Announce: `{icon} {Agent Name} is working...`
 - Follow the step instructions
 - Present output directly in the conversation
-- Save output to the specified output file — apply the Output Path Transformation (Steps 1 and 2) to the path before writing. Do not write to the raw path from the step file.
+- Save output to the specified output file — resolva o caminho com `squad-path.mjs --modo escrita` antes de escrever. Não escreva no caminho cru do step file.
 - Proceed to Post-Step Output Validation (below) before advancing.
 
 #### If `type: checkpoint`
-- (Opcional, dashboard) Ao **pausar** para aprovação, sinalize o estado de espera: `node scripts/squad-state.mjs checkpoint squads/{name} --agent {id do agente do step}` (põe `status: checkpoint`). Após o "sim" do usuário, o próximo `step` retoma o fluxo normal.
+- Ao **pausar** para aprovação, sinalize a espera: `node scripts/squad-state.mjs checkpoint squads/{name} --agent {id do agente do step}` (põe `status: checkpoint`). Após o "sim" do usuário, registre a resposta no ledger durável **antes** de seguir:
+  ```bash
+  node scripts/squad-state.mjs checkpoint squads/{name} --agent {id} --step {step-id} --resposta "{o que o usuário respondeu}"
+  ```
+  Isso é o que permite retomar sem reperguntar: se a sessão cair depois deste ponto, `run-status` devolve a escolha já feita. Reperguntar não é neutro — a segunda resposta pode não ser a primeira, e o run muda de rumo sem ninguém notar. O próximo `step` retoma o fluxo normal.
 - Present the checkpoint message to the user
 - If the checkpoint requires a choice (numbered list), present options as a numbered list
 - **Always include the file path** of any generated content the user needs to review. Example: "Review the content at `squads/{name}/output/{run_id}/v1/content.md` and let me know if it looks good."
 - Wait for user input before proceeding
 - Save the user's choice/response for the next step
 - **If the step frontmatter contains `outputFile`**: after collecting the user's full response,
-  apply the Output Path Transformation **Step 1 only** (run_id injection — skip Step 2, version folder) to the `outputFile` path, then write the response to the transformed path using the Write tool before moving to the next step. Checkpoint files are user input captures, not versioned output — Step 2 does not apply here, regardless of the general "every write" rule in the Output Path Transformation section above.
+  resolva o `outputFile` com `squad-path.mjs --modo checkpoint` e escreva a resposta no caminho resolvido antes de passar ao próximo step. Arquivo de checkpoint é captura da resposta do usuário, não output versionado — por isso o modo próprio, que injeta o `run_id` e **não** cria pasta de versão.
   Use this format:
   ```
   # Research Focus
@@ -348,7 +353,7 @@ Apply this transformation consistently for every write in this step.
 
 Por padrão os steps rodam **em série**. Quando dois ou mais steps são **independentes** (nenhum consome o output do outro), o Arquiteto pode marcá-los com o mesmo `parallel_group: {nome}` no `pipeline.yaml`. Para um grupo paralelo:
 
-1. **Fan-out:** despache **todos** os steps do grupo como subagentes `Task` **simultâneos** — em UMA única mensagem, com N chamadas de Task (não uma de cada vez). Aplique a Output Path Transformation a cada output antes.
+1. **Fan-out:** despache **todos** os steps do grupo como subagentes `Task` **simultâneos** — em UMA única mensagem, com N chamadas de Task (não uma de cada vez). Resolva o caminho de cada output (`--modo escrita`) **antes** do despacho.
 2. **Fan-in (barreira):** aguarde **todos** concluírem antes de avançar.
 3. **Gates por ramo:** rode a Post-Step Output Validation (`test -s`) para o(s) `outputFile`(s) de **cada** step do grupo; trate o ramo que falhar (diagnóstico + retry/escalonamento) sem bloquear os que passaram.
 4. **Pré-requisitos (anti-padrão se violar):** só paralelize steps `execution: subagent` que **não** escrevem no mesmo `outputFile` **nem no mesmo diretório-grupo de versão** e **não** têm `depends_on` entre si. Checkpoints e steps `inline` **nunca** entram num grupo paralelo (precisam do fio único da conversa). Um step seguinte faz o fan-in declarando `depends_on: [a, b, c]` (lista).
@@ -393,12 +398,16 @@ After a step produces output (subagent or inline) and BEFORE Veto Condition Enfo
 test -s "{transformed outputFile path}" && echo "VALIDATION:PASS" || echo "VALIDATION:FAIL"
 ```
 
-Use the **stored transformed path** (after Output Path Transformation Steps 1 and 2), not the raw path from the step file.
+Use o **caminho já resolvido** (o que `squad-path.mjs --modo escrita` devolveu e você guardou), não o caminho cru do step file.
 
 **Rules:**
 - If ALL output files return `VALIDATION:PASS` → proceed to Veto Condition Enforcement.
 - If ANY output file returns `VALIDATION:FAIL`:
-  1. **Diagnose, then retry once (no blind retry):** re-check the step's declared `inputFile`(s) with `test -s`. If any input is missing/empty, do **NOT** retry — re-running this step won't create upstream output; escalate to the user pointing at the **upstream step** that should have produced it. Only when inputs are OK, re-execute the step once (the failure was likely transient).
+  1. **Diagnose, then retry once (no blind retry):** re-check the step's declared `inputFile`(s) with `test -s`. If any input is missing/empty, do **NOT** retry — re-running this step won't create upstream output; escalate to the user pointing at the **upstream step** that should have produced it. Só quando os inputs estão OK, registre a tentativa no laço `retry` (a contagem é do código, não sua) e reexecute conforme a `action`:
+     ```bash
+     node scripts/squad-state.mjs gate-open squads/{name} --gate retry --loop retry-{step-id} --target {step-id} --max 1
+     node scripts/squad-state.mjs gate-verdict squads/{name} --gate retry --reviewer runner --verdict REJECT --fix "output não gerado: {path}"
+     ```
   2. After re-execution, run the validation again for all output files.
   3. If second attempt returns `VALIDATION:PASS` for all files → proceed normally.
   4. If second attempt still has ANY `VALIDATION:FAIL` → present to user:
@@ -410,7 +419,7 @@ Use the **stored transformed path** (after Output Path Transformation Steps 1 an
      3. Abort pipeline
      ```
      Wait for user choice before proceeding.
-- If the step does not declare an `outputFile` in its frontmatter, **fall back to the `pipeline.yaml`**: use the artifact(s) listed under this step's `output.artifacts` as the output path(s) to validate (apply the Output Path Transformation to them). Only if there is also NO `output.artifacts` for the step → skip output validation (e.g., steps that produce inline console output only). Many hand-crafted squads declare outputs in `pipeline.yaml` (not in the step frontmatter) — this fallback keeps the `test -s` gate live for them.
+- If the step does not declare an `outputFile` in its frontmatter, **fall back to the `pipeline.yaml`**: use the artifact(s) listed under this step's `output.artifacts` as the output path(s) to validate (resolvendo-os pelo `squad-path.mjs`). Only if there is also NO `output.artifacts` for the step → skip output validation (e.g., steps that produce inline console output only). Many hand-crafted squads declare outputs in `pipeline.yaml` (not in the step frontmatter) — this fallback keeps the `test -s` gate live for them.
 - Checkpoint steps (`type: checkpoint`) are exempt — their output is the user's response, not a file.
 
 **IMPORTANT**: Do NOT rely on reading the file with the Read tool to "verify" output. The Read tool returns content that can be misinterpreted. Use ONLY the bash `test -s` command — its output is binary and cannot be hallucinated.
@@ -423,11 +432,16 @@ After an agent completes a step (before moving to the next step):
 2. If yes, evaluate each veto condition against the agent's output:
    - Read the output that was just produced
    - Check each condition (e.g., "slides exceed 30 words", "no CTA", "missing sources")
-3. If ANY veto condition is triggered:
+3. If ANY veto condition is triggered — **avaliar a condição é seu; contar a tentativa é do código**:
    - Inform user: "⚠️ {Agent Name}'s output triggered a veto: {condition}"
-   - Ask the agent to fix the specific issue (re-execute with targeted correction)
-   - Maximum 2 veto fix attempts per step
-   - After 2 failed attempts, present to user for manual decision
+   - Abra o laço na primeira vez e registre cada tentativa (teto **2**):
+     ```bash
+     node scripts/squad-state.mjs gate-open squads/{name} --gate veto \
+       --loop veto-{step-id} --target {step-id} --max 2
+     node scripts/squad-state.mjs gate-verdict squads/{name} --gate veto \
+       --reviewer veto --verdict REJECT --fix "{condição violada}"
+     ```
+   - Obedeça a `action`: `revise` → peça a correção específica e reexecute o step; `escalate` (**exit code 3**) → leve ao usuário para decisão manual. Quando a condição deixar de disparar, registre `--verdict APPROVE` para fechar o laço.
 4. If no veto conditions triggered: proceed to next step
 
 This creates an internal quality loop BEFORE the reviewer sees the content,
@@ -438,6 +452,8 @@ catching obvious issues early and reducing review cycle waste.
 When a step has `on_reject: {step-id}`, run it as a **writer→reviewer state machine** — não um retry cego.
 
 **Divisão de trabalho, inegociável:** ao LLM cabe **só o mérito** (ler a minuta e emitir APPROVE/REJECT + `fixes`). Toda a **contabilidade** — contar ciclo, comparar `fixes` com os dos ciclos anteriores, aplicar o teto, fundir vereditos de revisores paralelos, decidir a transição e persistir — é de `scripts/squad-state.mjs` (módulo `src/review-loop.js`). **Não faça essa conta de cabeça**: aritmética de cabeça erra em silêncio, e o ledger em disco é o que permite retomar um run interrompido.
+
+> **A mesma regra vale para os OUTROS laços com teto** — Citation Gate, Redação Gate, veto e retry. Todos usam este cartório, cada um no seu `--gate` (`citacao`, `redacao`, `veto`, `retry`); `review-*` sem `--gate` é o laço `revisao`. Vários ficam abertos ao mesmo tempo num step de redação, e cada um tem o próprio teto e o próprio histórico. Em todos, escalada sai com **exit code 3** — para não passar despercebida por quem só olha o código de saída.
 
 1. **Reviewer em contexto isolado.** Prefira o step de revisão como `execution: subagent` (contexto fresco): quem redige a peça **não** deve ser quem a julga — mesmo princípio anti-viés do Citation Gate.
 2. **Abrir o loop** (uma vez, ao chegar no step revisor):
@@ -517,7 +533,14 @@ Quando o step redige peça/parecer/minuta a partir de skill(s) declarada(s), exe
      --reviewer redacao-gate --verdict REJECT --fix "{problemas[0]}" --fix "{problemas[1]}" ... --expect {N}
    ```
    `--expect N` inclui esta voz junto do(s) revisor(es) LLM deste ciclo — usa o **mesmo combinador** do Review Loop (qualquer REJECT derruba os APPROVEs). Ancoragem e andaime são fatos verificáveis, não interpretação: não há razão para o revisor humano/LLM gastar um ciclo julgando peça que já se sabe rasa por checagem mecânica.
-   - **Sem loop de revisão aberto** (squad sem `on_reject` no step de redação — deveria ter, por exigência da Constitution para squad que gera peça, mas nem todo squad hand-crafted tem): devolva ao redator os `problemas` como correção específica e reexecute este passo (teto `max_redacao_cycles`, default 3 — mesmo padrão do `max_citation_cycles`). Ao atingir o teto, **escale ao usuário**; não force o avanço.
+   - **Sem loop de revisão aberto** (squad sem `on_reject` no step de redação — deveria ter, por exigência da Constitution para squad que gera peça, mas nem todo squad hand-crafted tem): use o laço próprio deste gate, com a mesma contabilidade em código (teto `max_redacao_cycles`, default **3**):
+     ```bash
+     node scripts/squad-state.mjs gate-open squads/{name} --gate redacao \
+       --loop redacao-gate --target {step-id da redação} --max {max_redacao_cycles}
+     node scripts/squad-state.mjs gate-verdict squads/{name} --gate redacao \
+       --reviewer redacao-gate --verdict REJECT --fix "{problemas[0]}" --fix "{problemas[1]}"...
+     ```
+     `revise` → devolva os `fixes` ao redator e reexecute este passo; `escalate` (**exit code 3**) → **escale ao usuário**, não force o avanço.
 3. **`ok: true` → segue para o Citation Gate e o revisor.** `sinais` fica disponível como contexto para o revisor — este gate mede forma e ancoragem ao caso, não qualidade de argumentação; isso continua sendo julgamento humano/LLM.
 4. **Rede determinística (hook).** O hook `verifica-redacao` (PostToolUse, Write/Edit) bloqueia a gravação de artefato identificado como peça final enquanto ancoragem, cobertura ou andaime reprovarem — mesmo desenho de backstop do Citation Gate, para o gate não ser "esquecido" se o passo acima for pulado por algum motivo.
 
@@ -530,7 +553,14 @@ Quando o output do step é uma **peça, parecer ou pesquisa que cita lei/súmula
 1. **Verificar (subagente isolado).** Acione o subagente `verificador-citacoes` passando o output do step + o `output/pesquisa-juridica.md`. Ele é **read-only** e roda em **contexto fresco** (separado de quem redigiu — anti-viés); devolve o veredito por citação: VERIFICADA / DIVERGENTE / NÃO ENCONTRADA.
    - **Voting no gate FINAL (padrão parallelization-voting).** No último Citation Gate antes da entrega/protocolo (peça que vai ao humano para aprovação final), despache **`citation_verifiers` verificadores independentes em paralelo** (default **3**; lido do `squad.yaml` ou do step) — cada um em contexto fresco, uma única mensagem com N `Task`. **Consenso:** uma citação só é VERIFICADA se a **maioria** confirmar; se **qualquer** verificador marcar NÃO ENCONTRADA/DIVERGENTE, trate como pendência (conservador — risco com sanção real). Em gates intermediários, 1 verificador basta (custo). Não use voting em squads que não produzem peça com citações.
 2. **Marcar.** Toda citação DIVERGENTE/NÃO ENCONTRADA é marcada no texto com `[DIVERGENTE]`/`[NÃO VERIFICADO]` (ver best-practice `verificacao-citacoes`).
-3. **Loop gerador→verificador (teto: `max_citation_cycles`, default 3).** Se o veredito for REPROVADO, devolva ao step de redação **apenas** as citações problemáticas para correção/remoção e **reverifique**. Pare em APROVADO ou ao atingir o teto — neste caso **escale ao usuário** com a lista de pendências; **não** finalize.
+3. **Loop gerador→verificador — a contagem é do CÓDIGO.** Abra o laço uma vez, no primeiro gate do step, e registre cada veredito. **Não conte ciclos de cabeça:** um Citation Gate que perde a conta ou "esquece" de escalar deixa passar peça com citação não verificada — o risco com sanção real que este gate existe para impedir.
+   ```bash
+   node scripts/squad-state.mjs gate-open squads/{name} --gate citacao \
+     --loop citation-gate --target {step-id da redação} --max {max_citation_cycles}
+   node scripts/squad-state.mjs gate-verdict squads/{name} --gate citacao \
+     --reviewer {id do verificador} --verdict APPROVE|REJECT --fix "{pendência}"... [--expect {N de verificadores}]
+   ```
+   `--max` default **3**. Com voting, passe `--expect N` em cada veredito: o combinador é o mesmo do loop de revisão — **qualquer** REJECT derruba os APPROVEs, o que é exatamente a regra conservadora que este gate pede. Obedeça a `action` devolvida: `revise` → devolva ao step de redação **apenas** os `fixes` (as citações problemáticas); `advance` → siga; `escalate` (**exit code 3**) → pare e leve ao usuário com a lista de pendências, **sem** finalizar.
 4. **Rede determinística (hook).** O hook `verifica-citacoes` (PostToolUse, Write/Edit) bloqueia a gravação final em `squads/*/output/` enquanto restar qualquer marcador de pendência — garante que o gate não seja "esquecido".
 
 A responsabilidade final é **humana**: o Citation Gate é insumo, não substitui a conferência do(a) profissional.
@@ -680,19 +710,33 @@ Sem isso o `state.json` fica preso em `"running"` para sempre (dashboard pulsand
 
 ## Error Handling
 
-- If a subagent fails, retry once. If it fails again, inform the user and offer to skip the step or abort. **Ao abortar, siga "Pipeline Abort / Failure" acima** (grave `status: failed` + cleanup).
+- If a subagent fails, **registre a falha no laço `retry` em vez de contar de cabeça** — "tentei uma vez ou duas?" é a pergunta que o modelo erra depois de um step longo:
+  ```bash
+  node scripts/squad-state.mjs gate-open squads/{name} --gate retry \
+    --loop retry-{step-id} --target {step-id} --max 1
+  node scripts/squad-state.mjs gate-verdict squads/{name} --gate retry \
+    --reviewer runner --verdict REJECT --fix "{o que falhou}"
+  ```
+  `revise` → reexecute o step uma vez; `escalate` (**exit code 3**) → informe o usuário e ofereça pular o step ou abortar. **Ao abortar, siga "Pipeline Abort / Failure" acima** (grave `status: failed` + cleanup).
 - If a step file is missing, inform the user and suggest running `/legalsquad edit {squad}` to fix.
 - If company.md is empty, stop and redirect to onboarding.
 - Never continue past a checkpoint without user input.
 
 ## Pipeline State
 
-Track pipeline state in memory during execution:
-- Run ID (run_id) — the output subfolder name for this execution
-- Current step index
-- Outputs from each completed step (file paths)
-- User choices at checkpoints
-- Review cycle count
-- Start time
+O que **sobrevive** a uma sessão caída — e onde mora:
 
-This state does NOT persist to disk — it exists only during the current run.
+| Estado | Arquivo | Escrito por | Lido por |
+|--------|---------|-------------|----------|
+| `run_id`, step atual, respostas de checkpoint | `squads/{name}/run-state.json` | `init --run`, `step`, `checkpoint --step/--resposta`, `complete`, `fail` | `run-status` |
+| Laços com teto — um por gate: `revisao`, `citacao`, `redacao`, `veto`, `retry` | `squads/{name}/review-state.json` (chave `loops`) | `gate-open`, `gate-verdict` (`review-*` = gate `revisao`) | `gate-status --gate <nome>` |
+| Status/agentes/handoff (dashboard) | `squads/{name}/state.json` | `init`, `step`, `checkpoint`, `complete`, `fail` | dashboard |
+
+Os dois primeiros existem **exatamente** para a retomada: antes de recomeçar
+qualquer coisa, rode `run-status` (e `review-status`, se havia loop aberto) e
+continue de onde parou. Recomeçar do zero abandona artefatos que estão no disco
+e respostas que o usuário já deu.
+
+Só isto fica em memória, e some junto com a sessão — por ser derivável:
+- os caminhos já resolvidos no step corrente (recalculáveis por `squad-path.mjs`);
+- a composição de contexto do agente (persona + format + skills), remontada a cada step.

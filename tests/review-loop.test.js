@@ -179,7 +179,10 @@ function run(dir, ...args) {
     return { code: err.status, stdout: err.stdout, json: JSON.parse(err.stdout || 'null') };
   }
 }
-const ledgerOf = (dir) => JSON.parse(readFileSync(join(dir, 'review-state.json'), 'utf-8'));
+// O ledger passou a guardar um laço POR GATE (`loops`), porque o runner tem
+// cinco laços com teto além da revisão e mais de um fica aberto ao mesmo tempo.
+// Sem `--gate`, os comandos `review-*` operam o laço `revisao` — é este aqui.
+const ledgerOf = (dir) => JSON.parse(readFileSync(join(dir, 'review-state.json'), 'utf-8')).loops.revisao;
 
 test('review-open cria o ledger e review-verdict persiste a decisão', () => {
   const dir = makeSquad();
