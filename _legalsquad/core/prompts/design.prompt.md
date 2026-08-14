@@ -15,13 +15,13 @@ Read these files before starting:
 - `squads/{code}/_build/discovery.yaml` — Discovery phase output (purpose, audience, domains, formats, references)
 - `_legalsquad/_memory/company.md` — Company context for personalization
 - `_legalsquad/_memory/preferences.md` — User preferences (especially Output Language)
-- `_legalsquad/core/best-practices/_catalog.yaml` — Best-practices catalog
+- `_legalsquad/core/best-practices/_catalog*.yaml (um por área instalada — leia TODOS, não um nome fixo)` — Best-practices catalog
 
 **O catálogo de skills NÃO entra por leitura de arquivo.** `skills/_index.yaml` é a fonte que o motor consulta, mas ele cresce com o tamanho da área — uma área grande são centenas de milhares de tokens — e lê-lo inteiro estoura o contexto a cada Design. Descubra as skills pela **shortlist compacta**: a que o `catalog-scout`/Discovery já produziu, ou uma nova `npx legalsquad search-skills --query "<capability>" --limit 8 --json`. O manifesto de canonicalização da área (`skills/_*-integration.yaml`), **quando existir**, é consultado só por busca direcionada, para resolver um alvo canônico.
 
 Não inicie pesquisa, não crie agente e não desenhe step antes de reconciliar a shortlist de skills com `discovery.yaml.catalog_context`. Leia também, antes de qualquer pesquisa ou desenho, as entradas com `obrigatoria: true` em `_catalog.yaml` — são as best-practices que a área declara obrigatórias, um campo de dado, não uma leitura frouxa de `whenToUse`.
 
-> **Protocolo de ausência (motor sem área instalada):** se `_legalsquad/core/best-practices/_catalog.yaml`, `skills/_index.yaml`, o manifesto de integração **ou qualquer best-practice declarada obrigatória** (isto é, as demais leituras "obrigatórias"/"não opcionais" deste documento) **não existirem no disco**, não trate como erro nem bloqueie o Design: registre a ausência em `design.yaml` (`catalog_context.note: "sem catálogo — área não instalada"`; para protocolos de domínio, `area_protocol: not_installed`), pule as leituras correspondentes e prossiga em **modo GAPS** — todo papel sem correspondência de catálogo é desenhado do zero (Phase E), e nenhum agente ou step pode referenciar skill, best-practice ou especialista que não exista no disco.
+> **Protocolo de ausência (motor sem área instalada):** se `_legalsquad/core/best-practices/_catalog*.yaml (um por área instalada — leia TODOS, não um nome fixo)`, `skills/_index.yaml`, o manifesto de integração **ou qualquer best-practice declarada obrigatória** (isto é, as demais leituras "obrigatórias"/"não opcionais" deste documento) **não existirem no disco**, não trate como erro nem bloqueie o Design: registre a ausência em `design.yaml` (`catalog_context.note: "sem catálogo — área não instalada"`; para protocolos de domínio, `area_protocol: not_installed`), pule as leituras correspondentes e prossiga em **modo GAPS** — todo papel sem correspondência de catálogo é desenhado do zero (Phase E), e nenhum agente ou step pode referenciar skill, best-practice ou especialista que não exista no disco.
 >
 > Esta cláusula é **geral e vale para todo este documento**: onde se lê "obrigatória", "sempre selecionada", "não é opcional" ou "governa todo o design", entenda **"quando instalada"**. Uma obrigação de leitura nunca se converte em obrigação de fingir que leu — na ausência, registre e siga; jamais reconstitua o protocolo de memória.
 
@@ -34,7 +34,7 @@ If investigation ran (check discovery.yaml `investigation` field):
 
 ## Phase A: Best Practices Consultation
 
-Read `_legalsquad/core/best-practices/_catalog.yaml` to discover available best-practices files.
+Read `_legalsquad/core/best-practices/_catalog*.yaml (um por área instalada — leia TODOS, não um nome fixo)` to discover available best-practices files.
 
 Se o catálogo **não existir**, **estiver vazio** ou **nenhuma entrada casar** com o propósito do squad, **pule a Phase A inteira**: registre no design que os agentes serão desenhados sem best-practices de domínio (`catalog_context.note`, mesmo campo do protocolo de ausência) e **não invente conhecimento para compensar** — o modo GAPS é preferível a doutrina fabricada. Os três casos degradam igual: o que muda é só a nota registrada (ausente / vazio / sem correspondência), nunca o silêncio.
 

@@ -85,7 +85,7 @@ export function defaultBestPracticesCatalogPath(rootDir) {
 }
 
 /** `_catalog.yaml` (legado) ou `_catalog.<area>.yaml` (um por área instalada). */
-const NOME_DE_CATALOGO = /^_catalog(\.[^/]+)?\.yaml$/;
+export const NOME_DE_CATALOGO = /^_catalog(\.[^/]+)?\.yaml$/;
 
 /**
  * Lê TODOS os catálogos da pasta de best-practices e funde num só registro.

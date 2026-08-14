@@ -148,6 +148,45 @@ test('best-practice com entrada no `_catalog.yaml` usa `whenToUse` como descript
   assert.equal(redacao.obrigatoria, true, '`obrigatoria: true` do _catalog.yaml precisa sobreviver ao empacotamento');
 });
 
+test('o catálogo é achado pelo NOME POR ÁREA (`_catalog.<area>.yaml`), que é o que o build produz', () => {
+  // `remapearParaInstalacao` (pack-build.js) renomeia `_catalog.yaml` →
+  // `_catalog.<area>.yaml` ANTES de `extrairCatalogo` rodar, porque N áreas
+  // instalam na mesma pasta e o nome fixo fazia a última sobrescrever as
+  // anteriores. Procurar aqui pelo nome fixo não acha nada e o lookup vira
+  // `undefined` — em SILÊNCIO, porque o fallback pro título é legítimo para
+  // best-practice órfã. O estrago: `obrigatoria: true` some do catálogo
+  // inteiro, e um catálogo que diz que nada é obrigatório passa por catálogo
+  // válido. É o mesmo modo de falha do bug que o rename veio consertar.
+  const catalogo = [
+    'catalog:',
+    '  - id: redacao',
+    '    name: "Redação Persuasiva"',
+    '    whenToUse: "Redigir ou revisar qualquer peça, parecer ou memorial jurídico."',
+    '    file: redacao.md',
+    '    obrigatoria: true',
+    '',
+  ].join('\n');
+
+  const registros = extrairCatalogo([
+    {
+      path: '_legalsquad/core/best-practices/_catalog.criminal.yaml',
+      sha256: 'sha-cat',
+      bytes: catalogo.length,
+      text: catalogo,
+    },
+    { path: '_legalsquad/core/best-practices/redacao.md', sha256: 'sha-bp', bytes: 9, text: '# Redação\n\ntexto\n' },
+  ], 'best-practices.jsonl.zst');
+
+  assert.equal(registros.length, 1, 'o catálogo por área também é metadado, não item descobrível');
+  const [redacao] = registros;
+  assert.equal(
+    redacao.description,
+    'Redigir ou revisar qualquer peça, parecer ou memorial jurídico.',
+    'description vem do whenToUse mesmo quando o catálogo traz o nome da área'
+  );
+  assert.equal(redacao.obrigatoria, true, '`obrigatoria: true` não pode sumir por causa do nome do arquivo');
+});
+
 test('best-practice SEM entrada no `_catalog.yaml` (ou sem catálogo nenhum) cai pro título — nunca quebra', () => {
   const registros = extrairCatalogo([
     { path: '_legalsquad/core/best-practices/orfa.md', sha256: 'sha-orfa', bytes: 20, text: '# Best-Practice Órfã\n\ntexto\n' },

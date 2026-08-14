@@ -10,7 +10,7 @@
 // oportunidade de mexer no conteúdo (ver `promoverNuncaReescreve` abaixo).
 
 import { parseSkillMetadata } from './frontmatter.js';
-import { parseBestPracticesCatalogText } from './best-practices-catalog.js';
+import { NOME_DE_CATALOGO, parseBestPracticesCatalogText } from './best-practices-catalog.js';
 
 /**
  * Marcadores de contrato de forks anteriores a este motor OU de ferramentas de
@@ -162,15 +162,30 @@ function registroDeAgente(entidade, nomeDaEntidade, id) {
 export function extrairCatalogo(entidades, nomeDaEntidade) {
   const registros = [];
 
-  // Lookup por id: no máximo um `_catalog.yaml` por pasta de best-practices,
-  // e ele pode nem existir (best-practices sem `_catalog.yaml` instalado
-  // continuam empacotáveis — caem no fallback de `registroDeBestPractice`).
-  const catalogoYaml = entidades.find(
-    (e) => e.path === '_legalsquad/core/best-practices/_catalog.yaml'
-  );
-  const catalogo = catalogoYaml
-    ? new Map(parseBestPracticesCatalogText(catalogoYaml.text).map((entrada) => [entrada.id, entrada]))
-    : undefined;
+  // Lookup por id. O nome do catálogo NÃO é fixo: `pack-build.js` renomeia
+  // `_catalog.yaml` → `_catalog.<area>.yaml` antes daqui, porque N áreas
+  // instalam na mesma pasta e o nome fixo fazia a última sobrescrever as
+  // anteriores. Casar por nome fixo aqui não acharia nada — e como
+  // best-practice órfã cair no título é legítimo, o lookup vazio passaria em
+  // silêncio, levando junto o `obrigatoria: true` de TODAS elas. Mesmo regex
+  // do leitor da instalação, uma fonte só.
+  //
+  // Fundir em vez de pegar o primeiro: `find` escolheria um catálogo
+  // arbitrário se um dia chegarem dois numa entidade. Ordem estável e primeiro
+  // id vence — mesma regra de `parseBestPracticesCatalogDir`.
+  const catalogosYaml = entidades
+    .filter((e) => {
+      const nome = e.path.match(/^_legalsquad\/core\/best-practices\/([^/]+)$/)?.[1];
+      return nome ? NOME_DE_CATALOGO.test(nome) : false;
+    })
+    .sort((a, b) => a.path.localeCompare(b.path));
+
+  const catalogo = catalogosYaml.length ? new Map() : undefined;
+  for (const yaml of catalogosYaml) {
+    for (const entrada of parseBestPracticesCatalogText(yaml.text)) {
+      if (!catalogo.has(entrada.id)) catalogo.set(entrada.id, entrada);
+    }
+  }
 
   for (const entidade of entidades) {
     const skill = entidade.path.match(/^skills\/([^/]+)\/SKILL\.md$/);

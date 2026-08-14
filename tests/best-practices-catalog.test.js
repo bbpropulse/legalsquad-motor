@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { join } from 'node:path';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import {
   parseBestPracticesCatalog,
@@ -184,4 +184,57 @@ test('arquivo .yaml que não é catálogo é ignorado, não quebra a leitura', (
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Guarda: nenhum prompt pode apontar para o catálogo por nome fixo
+// ---------------------------------------------------------------------------
+//
+// Regressão real, achada em revisão: ao renomear o catálogo para
+// `_catalog.<area>.yaml`, os leitores em `src/` foram corrigidos e os PROMPTS
+// não. O `architect.agent.yaml` seguia mandando ler
+// `_legalsquad/core/best-practices/_catalog.yaml` — arquivo que deixou de
+// existir. O Arquiteto lia vazio, concluía `area_protocol: not_installed` e
+// seguia SEM os protocolos obrigatórios da área: "instalado" virando "não
+// instalado" em silêncio, que é a degradação que este motor promete não fazer.
+
+// Varre a ÁRVORE, não uma lista de arquivos: foi exatamente uma lista incompleta
+// que deixou o rename passar pela metade. Os 13 wrappers de IDE carregam cópias
+// do mesmo prompt em formatos diferentes (`.md`, `.toml`, `.yaml`…), e listar
+// dois deles à mão reproduziria a falha em vez de guardá-la.
+const RAIZ = join(import.meta.dirname, '..');
+const ARVORES_DE_PROMPT = ['_legalsquad/core', '.claude/agents', 'templates/ide-templates'];
+
+test('nenhum prompt do motor lê o catálogo por nome fixo', () => {
+  const ofensores = [];
+  let varridos = 0;
+
+  for (const arvore of ARVORES_DE_PROMPT) {
+    const dir = join(RAIZ, arvore);
+    if (!existsSync(dir)) continue;
+
+    for (const relativo of readdirSync(dir, { recursive: true })) {
+      const caminho = join(dir, relativo);
+      if (!/\.(md|ya?ml|toml|json)$/i.test(caminho)) continue;
+
+      let texto;
+      try {
+        texto = readFileSync(caminho, 'utf-8');
+      } catch {
+        continue; // diretório, link quebrado — não é prompt
+      }
+      varridos += 1;
+
+      // O glob `_catalog*.yaml` é o certo; `_catalog.yaml` cravado, não.
+      if (/best-practices\/_catalog\.yaml/.test(texto)) ofensores.push(`${arvore}/${relativo}`);
+    }
+  }
+
+  assert.ok(varridos > 20, `esperava varrer a árvore de prompts, li ${varridos} arquivos`);
+  assert.deepEqual(
+    ofensores,
+    [],
+    'estes prompts apontam para _catalog.yaml de nome fixo — desde o rename por área esse arquivo não existe, '
+    + 'e a leitura devolveria vazio: o Arquiteto concluiria `not_installed` e seguiria sem os protocolos obrigatórios',
+  );
 });
