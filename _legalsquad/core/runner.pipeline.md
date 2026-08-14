@@ -540,7 +540,7 @@ When a step has `on_reject: {step-id}`, run it as a **writer→reviewer state ma
    ```
    Ele devolve a última decisão persistida (`resumedFrom`, `cycle`, `fixes`, `target`) a partir de `squads/{name}/review-state.json` — continue dali. `action: "none"` significa que não há loop aberto (e não que foi aprovado).
 
-O ledger fica em `squads/{name}/review-state.json`, ao lado do `state.json` (fora dele de propósito: o contrato do `state.json` é fechado e ele é apagado no cleanup pós-conclusão). Copie-o para a pasta do run junto com o `state.json` no cleanup, se quiser o rastro no histórico.
+O ledger fica em `squads/{name}/review-state.json`, ao lado do `state.json` (fora dele de propósito: o contrato do `state.json` é fechado e ele é apagado no cleanup pós-conclusão). O cleanup **copia** este arquivo para a pasta do run — não é opcional: é o que prova ao auditor quantos laços cada gate consumiu e que o teto foi respeitado.
 
 ### Dashboard Handoff (between steps)
 
@@ -674,15 +674,28 @@ Concluir os steps **não** é o mesmo que **atingir a meta**. Antes de marcar `c
 After writing the final "completed" state to `squads/{name}/state.json`:
 
 1. Add the `completedAt` field (or `failedAt` if status is `failed`) with the current ISO timestamp
-2. Copy `state.json` to the run output folder for permanent history:
+2. Copy **os três** arquivos de estado (tabela *Pipeline State*) para a pasta do run — não só o `state.json`:
    ```bash
-   cp squads/{name}/state.json squads/{name}/output/{run_id}/state.json
+   cp squads/{name}/state.json        squads/{name}/output/{run_id}/state.json
+   cp squads/{name}/run-state.json    squads/{name}/output/{run_id}/run-state.json
+   cp squads/{name}/review-state.json squads/{name}/output/{run_id}/review-state.json 2>/dev/null || true
    ```
+   **Por que os três, e por que isto não é zelo excessivo:** o `run-state.json` guarda as
+   **respostas do usuário nos checkpoints** ("cliente autorizou o acordo") — o dado menos
+   reconstituível do run inteiro. Ele **não** é apagado aqui, mas o `init` do run seguinte
+   **sobrescreve o arquivo** e zera `checkpoints`. Sem esta cópia, a decisão do cliente não
+   some no cleanup: some silenciosamente na próxima execução, depois de já ter parecido salva.
+   O `review-state.json` guarda quantos laços cada gate consumiu — some do mesmo jeito, e é o
+   que prova ao auditor que o teto foi respeitado. O `|| true` é só porque um run sem nenhum
+   gate aberto legitimamente não tem esse arquivo.
 3. Wait 10 seconds (so the dashboard can display the completed state)
-4. Delete the working copy:
+4. Delete the working copy — **apenas o `state.json`**:
    ```bash
    rm squads/{name}/state.json
    ```
+   Os outros dois ficam: o `run-state.json` fechado é a prova de que o run anterior terminou
+   (é ele que faz a varredura de run morto responder `closed` em vez de `none` e cair no
+   encerramento cego), e o `review-state.json` é lido pela retomada de loop.
 
 This archives the run state for the `runs` command while keeping the squad root clean.
 
@@ -757,7 +770,15 @@ Em **qualquer aborto** — usuário escolheu "Abort pipeline" num gate de input/
    node scripts/squad-state.mjs fail squads/{name}
    ```
    Ele põe `status: failed` + `failedAt`/`updatedAt`, preserva `step` (onde parou), `handoff` e `startedAt`, e mantém o status dos agentes (só limpa `activity` — não marca `done`). **Fallback** (Node indisponível): escreva à mão por `state.schema.json` com `status: failed` + `failedAt`, preservando `startedAt`/`step`/`handoff`.
-2. **Mesma Post-Completion Cleanup do sucesso:** `cp squads/{name}/state.json squads/{name}/output/{run_id}/state.json`, espere 10s, depois `rm squads/{name}/state.json`.
+2. **Mesma Post-Completion Cleanup do sucesso** — os **três** arquivos de estado, não só o `state.json`:
+   ```bash
+   cp squads/{name}/state.json        squads/{name}/output/{run_id}/state.json
+   cp squads/{name}/run-state.json    squads/{name}/output/{run_id}/run-state.json
+   cp squads/{name}/review-state.json squads/{name}/output/{run_id}/review-state.json 2>/dev/null || true
+   ```
+   espere 10s, depois `rm squads/{name}/state.json` (só ele). Num run **abortado** isso vale
+   ainda mais: as respostas de checkpoint e os laços já consumidos são justamente o que o
+   usuário vai querer ver para decidir se retoma ou recomeça.
 3. **Registre em `runs.md`** uma linha com `Resultado: Abortado` (ver formato em After Pipeline Completion 2b).
 4. Diga ao usuário, em linguagem simples, **o que** falhou e **onde** (step upstream, arquivo faltante, fixes não convergidos).
 
