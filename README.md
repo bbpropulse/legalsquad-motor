@@ -5,6 +5,44 @@ Motor de orquestração multi-agente para o Direito.
 **Áreas do Direito não vivem neste repositório.** Elas chegam como **pacotes assinados**
 (skills + squads + best-practices + acervo) baixados por `sync` e liberados por licença.
 
+## Instalar e atualizar — pelo GitHub
+
+O motor **não é distribuído pelo npm**. `npx legalsquad` numa máquina limpa falha com
+`404 Not Found - GET https://registry.npmjs.org/legalsquad`, porque o pacote não existe no
+registro público. Instale e atualize a partir deste repositório:
+
+```bash
+npm install -g github:bbpropulse/legalsquad-motor
+```
+
+O mesmo comando **instala e atualiza** — rodá-lo de novo troca o motor pela versão mais recente
+de `main`. Depois disso o comando `legalsquad` existe no PATH e todos os `npx legalsquad …` deste
+README funcionam (o `npx` encontra o pacote no prefix global antes de tentar o registro).
+
+Cada projeto tem seus próprios dados. Dentro da pasta do projeto:
+
+```bash
+legalsquad init --yes --lang "português"
+```
+
+Para trazer as correções do motor a um projeto **já inicializado**, depois de atualizar o global:
+
+```bash
+legalsquad update
+```
+
+Ele substitui os arquivos de sistema (`_legalsquad/`, prompts, agentes), faz backup `.bak` do que
+troca e **preserva** `_memory/`, `acervo/`, `agents/`, `squads/` e as skills sincronizadas.
+
+As áreas do Direito atualizam por um caminho separado, contra o servidor de acervo:
+
+```bash
+legalsquad acervo sync
+```
+
+Ele baixa só o que mudou de versão, restaura arquivo de pacote que tenha sido apagado, e é
+idempotente — rodar de novo sem novidade devolve `0 aplicado(s)`.
+
 ## O arranjo
 
 **Este repositório é autocontido.** Ele não depende de nenhum diretório vizinho e não lê

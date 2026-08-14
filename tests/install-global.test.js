@@ -228,3 +228,58 @@ test('install-global preserves the ORIGINAL backups across re-runs', async () =>
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Guarda: nenhum texto pode ensinar a INSTALAR por um comando que só existe
+// depois de instalado
+// ---------------------------------------------------------------------------
+//
+// O motor não é publicado no npm — medido: `npx legalsquad --help` numa máquina
+// sem o pacote no prefix global sai com
+// `404 Not Found - GET https://registry.npmjs.org/legalsquad`.
+//
+// `npx legalsquad <subcomando>` DEPOIS da instalação global é legítimo (o npx
+// acha o pacote no prefix antes de tentar o registro) e por isso não entra
+// aqui. O que não pode existir é o caso circular: mandar `npx legalsquad init`
+// ou `npx legalsquad install-global` a quem AINDA NÃO TEM o motor — o comando
+// falha exatamente na única situação em que seria necessário, e o usuário lê
+// "404 Not Found" no primeiro contato com o produto.
+
+const CIRCULARES = [/npx\s+legalsquad\s+init/, /npx\s+legalsquad\s+install-global/];
+
+const TEXTOS_DE_ENTRADA = [
+  'README.md',
+  'templates/ide-assets/command-body.md',
+  'templates/ide-assets/instructions-body.md',
+  'src/install-global.js',
+  '.claude/skills/legalsquad/SKILL.md',
+];
+
+test('nenhum texto ensina a instalar/inicializar por `npx legalsquad`', async () => {
+  const ofensores = [];
+
+  for (const rel of TEXTOS_DE_ENTRADA) {
+    let texto;
+    try {
+      texto = await readFile(join(ROOT, rel), 'utf-8');
+    } catch {
+      continue; // arquivo opcional nesta árvore
+    }
+    for (const padrao of CIRCULARES) {
+      // A menção que EXPLICA que o caminho falha é permitida — é o oposto de
+      // ensiná-lo. Distingue-se por vir acompanhada do 404 ou do "não está no npm".
+      const linhas = texto.split('\n').filter((l) => padrao.test(l));
+      for (const linha of linhas) {
+        if (/404|não\s+está\s+no\s+npm|não\s+é\s+publicado|falha/i.test(linha)) continue;
+        ofensores.push(`${rel}: ${linha.trim().slice(0, 110)}`);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    ofensores,
+    [],
+    'estes textos mandam instalar por um comando que só funciona depois de instalado — '
+    + 'use `npm install -g github:bbpropulse/legalsquad-motor`, que instala E atualiza'
+  );
+});

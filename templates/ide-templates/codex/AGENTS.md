@@ -25,7 +25,9 @@ O sistema já vem equipado com o **mecanismo**:
 Antes de qualquer coisa, determine a **raiz do workspace** — todos os caminhos deste documento (`_legalsquad/`, `squads/`, `acervo/`, `skills/`) são relativos a ela. **Cada pasta é um projeto autocontido: todos os arquivos — inclusive o `output/` — ficam DENTRO da pasta do projeto. NUNCA grave dados numa casa global.**
 
 1. Se a pasta atual (ou uma pasta acima) contém `_legalsquad/`, use-a como raiz.
-2. Caso contrário, a raiz é a **pasta atual** (a que está aberta na IDE). Se ela **ainda não** tem `_legalsquad/`, **inicialize-a aqui automaticamente, sem perguntar**: rode no terminal, **na pasta atual**, `npx legalsquad init --yes --lang "<idioma do usuário>"`. Isso cria `_legalsquad/`, `skills/`, `squads/` e `acervo/` **localmente**. Avise em **uma linha** que preparou a pasta e siga com o pedido. Se o comando `legalsquad` não existir, oriente rodar `npx legalsquad install-global` uma vez (instala só o comando; os dados continuam por projeto).
+2. Caso contrário, a raiz é a **pasta atual** (a que está aberta na IDE). Se ela **ainda não** tem `_legalsquad/`, **inicialize-a aqui automaticamente, sem perguntar**: rode no terminal, **na pasta atual**, `legalsquad init --yes --lang "<idioma do usuário>"`. Isso cria `_legalsquad/`, `skills/`, `squads/` e `acervo/` **localmente**. Avise em **uma linha** que preparou a pasta e siga com o pedido.
+
+   **Se o comando `legalsquad` não existir**, oriente rodar `npm install -g github:bbpropulse/legalsquad-motor` uma vez (instala só o comando; os dados continuam por projeto). **Não** mande `npx legalsquad …` como saída de emergência: o motor não é publicado no npm, e numa máquina limpa o `npx` falha com `404 Not Found` no registro — inclusive `npx legalsquad install-global`, que depende do mesmo `npx` que acabou de falhar. O caminho é o GitHub, e é o mesmo comando para instalar e para atualizar.
 
 Daqui em diante, "{root}" = essa raiz resolvida (**sempre a pasta do projeto atual**).
 
