@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { cp, mkdtemp, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkSquad } from '../src/squad-check.js';
 import { SQUADS_DEMO } from './fixtures/caminhos.js';
@@ -32,6 +32,36 @@ test('squad inexistente é erro claro, não exceção', () => {
   const r = checkSquad('nao-existe', { squadsDir: SQUADS_DEMO });
   assert.equal(r.ok, false);
   assert.ok(codigos(r).includes('squad-nao-encontrado'));
+});
+
+test('aceita o CAMINHO de um squad, não só o nome sob `squads/`', () => {
+  // Passar o caminho é o reflexo de quem acabou de olhar a pasta, e antes disto
+  // o argumento era concatenado depois de `squads/` sem exame: um caminho
+  // absoluto virava `…/squads/Users/brunocoutinho/…` e o veredito era
+  // "não existe". Fail-closed, mas MENTINDO sobre a causa — o squad existia; o
+  // que não existia era o caminho que o próprio validador inventou. É a mesma
+  // regra que o motor aplica ao acervo: "não sei ler" nunca se apresenta como
+  // "não existe".
+  const absoluto = join(SQUADS_DEMO, 'demo-squad');
+
+  for (const alvo of [absoluto, relative(process.cwd(), absoluto)]) {
+    const r = checkSquad(alvo, { squadsDir: SQUADS_DEMO });
+    assert.ok(
+      !codigos(r).includes('squad-nao-encontrado'),
+      `${alvo} existe no disco — o validador não pode dizer que não: ${JSON.stringify(r.issues.slice(0, 2))}`
+    );
+    assert.equal(r.dir, absoluto, 'o `dir` reportado tem de ser o squad de verdade, não um caminho concatenado');
+    assert.ok(
+      !codigos(r).includes('code-divergente'),
+      '`code` casa com o NOME DA PASTA, não com o argumento: por caminho, `a/b/demo-squad` nunca igualaria `demo-squad`'
+    );
+  }
+});
+
+test('nome de squad continua resolvendo sob `squads/` — o caminho não sequestra o caso comum', () => {
+  const r = checkSquad('demo-squad', { squadsDir: SQUADS_DEMO });
+  assert.equal(r.dir, join(SQUADS_DEMO, 'demo-squad'));
+  assert.equal(r.ok, true, JSON.stringify(r.issues));
 });
 
 test('goal ausente ou vazio reprova', async () => {

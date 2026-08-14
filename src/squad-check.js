@@ -11,7 +11,7 @@
 // (src/acervo-search.js, tests/pipeline-runner.test.js): parsing por regex
 // sobre um formato que nós mesmos geramos.
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractFrontMatter, getSkillLifecyclePolicy, parseSkillMetadata } from './frontmatter.js';
 import { defaultBestPracticesCatalogPath } from './best-practices-catalog.js';
@@ -367,11 +367,30 @@ function parseCheckpoints(pipeline) {
  * Valida um squad. Nunca lança: problemas viram `issues` com severidade.
  * `ok` é falso quando há ao menos um `error` — é o que o CLI usa como exit code.
  */
+/**
+ * Resolve o alvo: nome de squad (`demo-squad`) OU caminho para a pasta dele.
+ *
+ * Concatenar cegamente depois de `squads/` fabricava caminhos absurdos
+ * (`…/squads/Users/fulano/…`) e reportava "não existe" — fail-closed, mas
+ * mentindo sobre a causa: o squad existia, o que não existia era o caminho que
+ * o próprio validador inventou. Um caminho só ganha quando aponta para um
+ * diretório de verdade; fora isso, o nome sob `squads/` continua sendo a regra,
+ * e nome inexistente segue reportando o caminho canônico (que é onde o usuário
+ * precisa olhar).
+ */
+function resolverDiretorio(squad, squadsDir) {
+  const alvo = String(squad || '');
+  if ((isAbsolute(alvo) || alvo.includes('/') || alvo.includes(sep)) && existsSync(alvo)) {
+    return resolve(alvo);
+  }
+  return join(squadsDir, alvo);
+}
+
 export function checkSquad(squad, options = {}) {
   const squadsDir = options.squadsDir || squadsDirPadrao();
   const skillsDir = options.skillsDir || skillsDirPadrao(squadsDir);
   const bestPracticesDir = options.bestPracticesDir || bestPracticesDirPadrao(squadsDir);
-  const dir = join(squadsDir, squad);
+  const dir = resolverDiretorio(squad, squadsDir);
   const issues = [];
   const resultado = () => ({
     squad,
@@ -395,9 +414,12 @@ export function checkSquad(squad, options = {}) {
     const code = y.match(/^code:\s*["']?([^"'\n]+)["']?\s*$/m)?.[1]?.trim();
     if (!code) {
       issues.push(issue('error', 'code-ausente', 'squad.yaml sem campo code'));
-    } else if (code !== squad) {
-      // O dashboard casa squad por `code`; divergência quebra o handoff.
-      issues.push(issue('error', 'code-divergente', `code "${code}" != pasta "${squad}"`));
+    } else if (code !== basename(dir)) {
+      // O dashboard casa squad por `code`; divergência quebra o handoff. Compara
+      // com o NOME DA PASTA resolvida, não com o argumento cru: quando o alvo
+      // vem como caminho, o argumento é `a/b/demo-squad` e o `code` legítimo
+      // (`demo-squad`) apareceria como divergente.
+      issues.push(issue('error', 'code-divergente', `code "${code}" != pasta "${basename(dir)}"`));
     }
 
     const goal = y.match(/^goal:\s*["']?([^"'\n]*)["']?\s*$/m)?.[1]?.trim();
