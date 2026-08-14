@@ -22,7 +22,7 @@
   "updateStarting": "Atualizando LegalSquad {old} → {new}...",
   "updateStartingUnknown": "Atualizando LegalSquad (versão desconhecida) → {new}...",
   "updatedFile": "📄 Atualizado {path}",
-  "updateSuccess": "✅ LegalSquad {version} instalado com sucesso!",
+  "updateSuccess": "✅ Arquivos do LegalSquad {version} instalados com sucesso! (versão do conteúdo do projeto — o motor em si é rastreado pelo git)",
   "updatePreserved": "✓ Preservado: _memory/, acervo/, agents/, squads/",
   "updateFileCount": "✓ Atualizados: {count} arquivos do sistema",
   "updateLatestHint": "💡 Dica: para atualizar de novo no futuro, peça \"/legalsquad atualizar\" na conversa — o assistente baixa e aplica a versão mais recente para você.",
