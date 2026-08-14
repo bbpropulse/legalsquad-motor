@@ -395,3 +395,38 @@ test('chefe com id de agente do party reprova — dois donos para a mesma voz', 
     await rm(tmp, { recursive: true, force: true });
   }
 });
+
+test('`chefe:` declarado com nome VAZIO é erro — declarar vazio não é o mesmo que não declarar', async () => {
+  // Todo squad tem chefe, e `chefe:` existe só para TROCAR o padrão (Mike). Por
+  // isso omitir `nome` é legítimo. Mas declarar `nome: ""` não é omitir: é dizer
+  // "o chefe se chama nada", e o run ganharia uma voz sem nome — pior que o
+  // padrão, porque a declaração explícita o suprime.
+  //
+  // Passava como "estrutura íntegra": fail-open exatamente onde a intenção do
+  // curador é ambígua e barata de esclarecer.
+  for (const vazio of ['""', "''", '"   "']) {
+    const { tmp, resultado } = await comAvaria(async (dir) => {
+      const p = join(dir, 'squad.yaml');
+      await writeFile(p, `${await readFile(p, 'utf-8')}\nchefe:\n  nome: ${vazio}\n  icon: "🎩"\n`);
+    });
+
+    assert.ok(
+      codigos(resultado).includes('chefe-sem-nome'),
+      `nome ${vazio} tinha de reprovar — recebido: ${JSON.stringify(codigos(resultado))}`
+    );
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('`chefe:` sem a chave `nome` continua válido — é o caso comum (herda Mike)', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    const p = join(dir, 'squad.yaml');
+    await writeFile(p, `${await readFile(p, 'utf-8')}\nchefe:\n  icon: "⚖️"\n`);
+  });
+
+  assert.ok(
+    !codigos(resultado).includes('chefe-sem-nome'),
+    'trocar só o ícone e herdar o nome padrão precisa continuar passando'
+  );
+  await rm(tmp, { recursive: true, force: true });
+});

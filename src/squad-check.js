@@ -435,6 +435,19 @@ export function checkSquad(squad, options = {}) {
     // dashboard; o chefe nunca executa — só fala —, então vive aqui.
     const chefe = y.match(/^chefe:\s*\n((?:[ \t]+\S.*\n?)*)/m)?.[1];
     if (chefe) {
+      // Omitir `nome` é legítimo — herda o padrão. Declarar `nome: ""` NÃO é
+      // omitir: é dizer "o chefe se chama nada", e a declaração explícita
+      // suprime o padrão. O run ganharia uma voz sem nome, que é pior do que
+      // não ter declarado. Só reprova quando a chave está PRESENTE e vazia.
+      const nomeDeclarado = chefe.match(/^\s+nome:\s*(.*)$/m)?.[1];
+      if (nomeDeclarado !== undefined && !nomeDeclarado.replace(/["']/g, '').trim()) {
+        issues.push(issue(
+          'error',
+          'chefe-sem-nome',
+          'chefe declarado com `nome` vazio — omita a chave para herdar o padrão, ou dê um nome de verdade'
+        ));
+      }
+
       const chefeId = chefe.match(/^\s+id:\s*["']?([^"'\n]+)["']?\s*$/m)?.[1]?.trim();
       if (chefeId && idsDeAgente(dir).includes(chefeId)) {
         issues.push(issue(

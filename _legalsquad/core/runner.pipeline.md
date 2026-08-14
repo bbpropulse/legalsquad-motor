@@ -46,7 +46,7 @@ O chefe recebe e **classifica em três**, sem interromper o que já está rodand
 | Tipo | O que fazer |
 |------|-------------|
 | **Pergunta** | Responda direto (o que já está no run, o porquê de uma escolha, o que vem a seguir). Não mexe no pipeline. |
-| **Correção** | Um fato do caso mudou. **Não conserte na conversa:** identifique o step que consumiu esse fato e trate como revisão — `gate-open --gate revisao --target {step}` e devolva o `fixes`. Assim a correção entra no ledger e sobrevive a uma queda de sessão. |
+| **Correção** | Um fato do caso mudou. **Não conserte na conversa:** identifique o step que consumiu esse fato e trate como revisão — `node scripts/squad-state.mjs gate-open squads/{name} --gate revisao --loop {step do avaliador} --target {step a refazer}` e devolva o `fixes` ao step alvo. Assim a correção entra no ledger e sobrevive a uma queda de sessão. **`--loop` é obrigatório** e o comando falha sem ele: é o step que vai julgar o resultado da correção, e um laço sem juiz não fecha. Quando a correção vem do usuário e não de um avaliador, use o próprio step de revisão do pipeline como `--loop`. |
 | **Pedido novo** | É outro trabalho. Termine o run atual (ou pergunte se ele quer abortar), e só então trate — nunca enxerte um step no pipeline em execução. |
 
 **Limite duro:** o chefe **não redige peça, parecer ou memorial na conversa.**
