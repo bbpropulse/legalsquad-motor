@@ -520,10 +520,11 @@ Quando o step redige peça/parecer/minuta a partir de skill(s) declarada(s), exe
    ```bash
    node .claude/hooks/verifica-redacao.mjs --check {output do step} --json
    ```
-   Devolve `{ok, problemas[], sinais}`, sem custo de LLM. Três sinais, cada um `aprovado`, `reprovado` ou `nao-avaliado`:
+   Devolve `{ok, problemas[], sinais}`, sem custo de LLM. Quatro sinais, cada um `aprovado`, `reprovado` ou `nao-avaliado`:
    - **`ancoragem`** — a peça cita os identificadores do caso (nº de processo, data, valor, parte)? É o único sinal que mede profundidade: peça rasa é genérica por construção e não cita âncora nenhuma.
    - **`cobertura`** — contempla o `## Contrato de saída` que a(s) skill(s) declarada(s) exige(m)? Lido do contrato v5 da própria skill, não de lista fixa do motor.
    - **`andaime`** — template do pipeline vazou para a entrega (`(tese N)`, `Agente:`, `{{placeholder}}`)?
+   - **`vicios`** — par mecânico da best-practice `redacao-sem-marcas-de-ia`: conta asserção sem prova ("é cediço que", "resta cristalino"), conectivo de enchimento em cadeia, superlativo no lugar de prova e fecho genérico. Mede **densidade, não presença** — um "outrossim" é conectivo, seis são enchimento — e **ignora o que está em blockquote**, porque transcrever ementa fielmente não é vício de quem redigiu a peça. Os padrões que exigem ler o argumento (tríade ornamental, citação decorativa) ficam com o guia e com o revisor.
 
    `nao-avaliado` **nunca** é aprovação — é limite de verificação (material de entrada sem identificadores; skill sem contrato v5) e não reprova a peça sozinho.
 

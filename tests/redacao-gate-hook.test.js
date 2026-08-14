@@ -75,12 +75,12 @@ test('--check --json avalia a MINUTA, não só o artefato "final" por nome', asy
   assert.equal(veredito.ok, true, `minuta ancorada não devia falhar: ${JSON.stringify(veredito)}`);
 });
 
-test('--json devolve os TRÊS sinais nomeados, para o runner decidir com precisão', async () => {
+test('--json devolve os QUATRO sinais nomeados, para o runner decidir com precisão', async () => {
   const alvo = await montarSquad({ peca: PECA_ANCORADA });
 
   const veredito = JSON.parse(checkJson(alvo).stdout);
 
-  assert.deepEqual(Object.keys(veredito.sinais).sort(), ['ancoragem', 'andaime', 'cobertura']);
+  assert.deepEqual(Object.keys(veredito.sinais).sort(), ['ancoragem', 'andaime', 'cobertura', 'vicios']);
 });
 
 test('fora de squads/*/output/, --json reporta impossibilidade sem lançar', () => {

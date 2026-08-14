@@ -85,6 +85,56 @@ function normalizar(texto) {
 }
 
 /**
+ * V\u00edcios que denunciam texto de IA numa pe\u00e7a \u2014 par mec\u00e2nico da best-practice
+ * `redacao-sem-marcas-de-ia`, que julga os treze padr\u00f5es. Aqui s\u00f3 entram os que
+ * d\u00e1 para CONTAR sem interpretar; tr\u00edade ornamental e cita\u00e7\u00e3o decorativa ficam
+ * com o guia, porque exigem ler o argumento.
+ *
+ * Isto \u00e9 estilo do portugu\u00eas forense, n\u00e3o instituto jur\u00eddico \u2014 mesma natureza
+ * da lista `ANDAIME` acima, e por isso mora no n\u00facleo. Ainda assim vem por
+ * par\u00e2metro em `avaliarRedacao`: uma \u00e1rea em outro idioma traz a sua.
+ */
+const VICIOS_DE_REDACAO = [
+  {
+    id: 'assercao-sem-prova',
+    rotulo: 'afirma a conclus\u00e3o em vez de demonstr\u00e1-la',
+    regex: /\b(?:[\u00e9e]\s+cedi[\u00e7c]o\s+que|resta[m]?\s+(?:cristalino|evidente|claro|patente)|n[\u00e3a]o\s+h[\u00e1a]\s+d[\u00fau]vidas?\s+de\s+que|[\u00e9e]\s+not[\u00f3o]rio\s+que|[\u00e9e]\s+ineg[\u00e1a]vel\s+que)/gi,
+  },
+  {
+    id: 'conectivo-em-cadeia',
+    rotulo: 'conectivo pesado como enchimento',
+    regex: /\b(?:outrossim|destarte|ademais|nesse\s+diapas[\u00e3a]o|por\s+derradeiro|d'?outra\s+banda)\b/gi,
+  },
+  {
+    id: 'superlativo-empilhado',
+    rotulo: 'superlativo no lugar de prova',
+    regex: /\b(?:absolutamente|totalmente|completamente|manifestamente|flagrantemente|inquestionavelmente)\s+\p{L}+/giu,
+  },
+  {
+    id: 'fecho-generico',
+    rotulo: 'fecho de estilo, sem pedido espec\u00edfico',
+    regex: /\bmedida\s+de\s+(?:mais\s+)?l[\u00edi]dima\s+justi[\u00e7c]a|\bpor\s+ser\s+medida\s+de\s+justi[\u00e7c]a/gi,
+  },
+];
+
+/** Acima disto, o ac\u00famulo deixa de ser escolha de estilo e vira enchimento. */
+const LIMITE_DE_VICIOS = 4;
+
+/**
+ * Remove o que a pe\u00e7a CITA, deixando s\u00f3 o que ela REDIGE.
+ *
+ * Blockquote \u00e9 fonte: ementa, dispositivo, depoimento. Contar o estilo de quem
+ * escreveu a ementa contra quem a transcreveu empurraria o redator a adulterar
+ * a cita\u00e7\u00e3o para passar no gate \u2014 exatamente o que a best-practice pro\u00edbe.
+ */
+function semCitacoes(texto) {
+  return String(texto || '')
+    .split('\n')
+    .filter((linha) => !/^\s*>/.test(linha))
+    .join('\n');
+}
+
+/**
  * Avalia uma peça. Devolve `{ ok, problemas[], sinais }`, onde cada sinal é
  * `aprovado`, `reprovado` ou `nao-avaliado`.
  *
@@ -92,7 +142,7 @@ function normalizar(texto) {
  * não presumido — mesma regra que o runner aplica à best-practice de redação
  * ausente. Aprovar em silêncio seria o gate mentindo exatamente onde deveria calar.
  */
-export function avaliarRedacao({ artefato, entrada, contratos = [] }) {
+export function avaliarRedacao({ artefato, entrada, contratos = [], vicios = VICIOS_DE_REDACAO }) {
   const texto = String(artefato || '');
   const problemas = [];
   const sinais = {};
@@ -143,6 +193,36 @@ export function avaliarRedacao({ artefato, entrada, contratos = [] }) {
     problemas.push(`andaime REPROVADO: template do pipeline vazou para a entrega (${vazamentos.length} padrão/ões).`);
   } else {
     sinais.andaime = 'aprovado';
+  }
+
+  // ── 4. Vícios de redação (marcas de IA) ─────────────────────────────────
+  // Mede DENSIDADE fora de citação. Presença isolada não reprova: "outrossim"
+  // uma vez é conectivo, e reprovar aí ensinaria a evitar a palavra em vez de
+  // evitar o enchimento — o gate viraria superstição.
+  const lista = Array.isArray(vicios) ? vicios.filter((v) => v && v.regex) : [];
+  if (!lista.length) {
+    sinais.vicios = NAO_AVALIADO;
+    problemas.push('vícios NÃO AVALIADOS: nenhuma lista de padrões de redação foi fornecida ao gate.');
+  } else {
+    const redigido = semCitacoes(texto);
+    const achados = [];
+    let total = 0;
+    for (const vicio of lista) {
+      const n = (redigido.match(vicio.regex) || []).length;
+      if (n) {
+        total += n;
+        achados.push(`${vicio.id}${vicio.rotulo ? ` (${vicio.rotulo})` : ''} ×${n}`);
+      }
+    }
+    if (total > LIMITE_DE_VICIOS) {
+      sinais.vicios = 'reprovado';
+      problemas.push(
+        `vícios REPROVADO: ${total} marcas de redação genérica fora de citação — ${achados.join('; ')}. `
+        + 'Troque a asserção pela demonstração e corte o conectivo de enchimento (ver `redacao-sem-marcas-de-ia`).'
+      );
+    } else {
+      sinais.vicios = 'aprovado';
+    }
   }
 
   return {

@@ -138,3 +138,74 @@ test('sem contrato de skill, a cobertura é NÃO AVALIADA e a ancoragem continua
   assert.equal(r.sinais.cobertura, 'nao-avaliado');
   assert.equal(r.ok, false, 'a ancoragem sozinha ainda reprova a peça genérica');
 });
+
+// ---------------------------------------------------------------------------
+// 4º sinal — vícios de redação (marcas de texto gerado por IA em peça)
+// ---------------------------------------------------------------------------
+//
+// Par mecânico da best-practice `redacao-sem-marcas-de-ia`. Mede DENSIDADE, não
+// presença: "outrossim" uma vez é conectivo; seis vezes é enchimento. O guia
+// julga caso a caso; aqui só entra o que dá para contar sem interpretar.
+
+const PECA_LIMPA = `
+A ré cobrou R$ 2.480,00 por serviço cancelado em 12/03/2026 (protocolo 88.412).
+Manteve a cobrança após três reclamações registradas. O ônus se inverte porque o
+registro das chamadas está sob controle exclusivo da ré (CDC, art. 6º, VIII).
+Requer-se a devolução em dobro do valor cobrado, na forma do art. 42.
+`;
+
+const PECA_VICIADA = `
+É cediço que o consumidor é a parte hipossuficiente. Outrossim, resta cristalino
+que a conduta foi absolutamente descabida. Destarte, não há dúvidas de que o dano
+restou configurado. Ademais, é notório que a jurisprudência é robusta.
+Diante do exposto, requer a procedência, por ser medida de mais lídima justiça.
+`;
+
+test('peça ancorada e sem enchimento passa no sinal de vícios', () => {
+  const r = avaliarRedacao({ artefato: PECA_LIMPA, entrada: PECA_LIMPA, contratos: [] });
+  assert.equal(r.sinais.vicios, 'aprovado');
+});
+
+test('acúmulo de asserção-sem-prova e conectivo em cadeia reprova', () => {
+  const r = avaliarRedacao({ artefato: PECA_VICIADA, entrada: PECA_VICIADA, contratos: [] });
+  assert.equal(r.sinais.vicios, 'reprovado');
+  const problema = r.problemas.find((p) => /v[íi]cios/i.test(p));
+  assert.match(problema, /assercao-sem-prova|conectivo-em-cadeia/);
+});
+
+test('uma ocorrência isolada NÃO reprova — é densidade, não presença', () => {
+  // "Outrossim" uma vez é conectivo legítimo. Reprovar aqui ensinaria a evitar
+  // a palavra em vez de evitar o enchimento, e o gate viraria superstição.
+  const texto = `${PECA_LIMPA}\nOutrossim, requer a produção de prova pericial.`;
+  const r = avaliarRedacao({ artefato: texto, entrada: texto, contratos: [] });
+  assert.equal(r.sinais.vicios, 'aprovado');
+});
+
+test('vício DENTRO de citação não conta — transcrever fielmente não é vício do autor', () => {
+  // O caso que decide se o gate é confiável: a peça que transcreve uma ementa
+  // corretamente não pode ser reprovada pelo estilo de quem redigiu a ementa.
+  // Sem isto, o gate empurraria o redator a adulterar a fonte para passar.
+  const texto = `${PECA_LIMPA}
+> É cediço que resta cristalino. Outrossim, destarte, ademais, não há dúvidas de
+> que é notório, por ser medida de mais lídima justiça. Destarte. Outrossim.
+`;
+  const r = avaliarRedacao({ artefato: texto, entrada: texto, contratos: [] });
+  assert.equal(r.sinais.vicios, 'aprovado', 'citação é fonte, não redação do autor');
+});
+
+test('sem lista de vícios o sinal é NÃO AVALIADO — nunca aprovação por omissão', () => {
+  const r = avaliarRedacao({ artefato: PECA_VICIADA, entrada: PECA_VICIADA, contratos: [], vicios: [] });
+  assert.equal(r.sinais.vicios, 'nao-avaliado');
+  assert.ok(r.problemas.some((p) => /v[íi]cios N[ÃA]O AVALIADO/i.test(p)));
+});
+
+test('a lista de vícios é parametrizável — outro idioma traz a sua', () => {
+  const texto = 'Isto contém wibble e wibble e wibble e wibble e wibble.';
+  const r = avaliarRedacao({
+    artefato: texto,
+    entrada: texto,
+    contratos: [],
+    vicios: [{ id: 'wibble', regex: /wibble/gi, rotulo: 'wibble repetido' }],
+  });
+  assert.equal(r.sinais.vicios, 'reprovado');
+});
