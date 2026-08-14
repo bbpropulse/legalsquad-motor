@@ -200,3 +200,41 @@ test('indexar-acervo distribuído não importa nada de src/ (projeto do usuário
   const conteudo = readFileSync(INDEXAR_ACERVO_TEMPLATE, 'utf8');
   assert.doesNotMatch(conteudo, /from\s+['"][^'"]*\/src\//);
 });
+
+test('indexar-acervo: conteúdo sincronizado em `_packs/` é indexado com o TIPO certo', (t) => {
+  // `acervo/` é do usuário e o sync só pode gravar em `acervo/_packs/` (única
+  // exceção gerenciada, ver pack-format). Mas `tipoDe()` classifica pelo
+  // PRIMEIRO segmento do caminho: um julgado em
+  // `_packs/acervo.civil/jurisprudencia/x.md` caía em `tipo: outro`.
+  //
+  // Efeito prático: o acervo baixado existiria no disco e ficaria invisível para
+  // quem busca jurisprudência — o `verificador-citacoes` consulta por tipo, e
+  // "não achei" viraria "não existe" sobre conteúdo que acabou de ser instalado.
+  const raiz = mkdtempSync(join(tmpdir(), 'acervo-packs-'));
+  t.after(() => rmSync(raiz, { recursive: true, force: true }));
+
+  const destino = join(raiz, 'acervo', '_packs', 'acervo.direito-civil', 'jurisprudencia', 'stj');
+  mkdirSync(destino, { recursive: true });
+  writeFileSync(
+    join(destino, 'resp-123456.md'),
+    '---\ntribunal: "STJ"\nprocesso: "REsp 1.234.567"\n---\n\n# Boa-fé objetiva na resolução contratual\n\ntexto\n'
+  );
+  // Curadoria própria do usuário, fora do `_packs/` — continua valendo.
+  const meu = join(raiz, 'acervo', 'jurisprudencia');
+  mkdirSync(meu, { recursive: true });
+  writeFileSync(join(meu, 'meu-julgado.md'), '# Julgado que eu mesmo guardei\n\ntexto\n');
+
+  const r = spawnSync(process.execPath, [INDEXAR_ACERVO, '--root', raiz], { encoding: 'utf-8' });
+  assert.equal(r.status, 0, r.stderr);
+
+  const indice = readFileSync(join(raiz, 'acervo', '_index.yaml'), 'utf-8');
+  const doPack = indice.match(/path:\s*"?_packs\/acervo\.direito-civil\/jurisprudencia\/stj\/resp-123456\.md"?[\s\S]{0,120}/)?.[0] || '';
+
+  assert.ok(doPack, `o julgado sincronizado nem entrou no índice:\n${indice.slice(0, 400)}`);
+  assert.match(
+    doPack,
+    /tipo:\s*"?jurisprudencia"?/,
+    'julgado dentro de `_packs/` tem de ser `tipo: jurisprudencia` — como `outro`, a busca por jurisprudência não o encontra'
+  );
+  assert.match(indice, /meu-julgado\.md/, 'a curadoria do usuário fora de `_packs/` continua indexada');
+});

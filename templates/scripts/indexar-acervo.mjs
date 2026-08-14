@@ -107,8 +107,22 @@ function provenienciaDe(full) {
   };
 }
 
+/**
+ * Tipo pelo nome da pasta — pulando o prefixo do pacote sincronizado.
+ *
+ * `acervo/` é do usuário; a única subárvore que o sync pode gravar é
+ * `acervo/_packs/<pack_id>/` (ver `EXCECOES_GERENCIADAS` em pack-format). Lá
+ * dentro a estrutura se REPETE — `jurisprudencia/`, `legislacao/`, `sumulas/` —,
+ * então classificar pelo primeiro segmento devolvia `outro` para todo julgado
+ * baixado. Ele existiria no disco e ficaria invisível para quem busca
+ * jurisprudência: o `verificador-citacoes` consulta por tipo, e "não achei"
+ * viraria "não existe" sobre conteúdo recém-instalado.
+ */
 function tipoDe(rel) {
-  return TIPO_POR_PASTA[rel.split('/')[0]] || 'outro';
+  const partes = rel.split('/');
+  // `_packs/<pack_id>/<tipo>/...` — dois segmentos de prefixo gerenciado.
+  const inicio = partes[0] === '_packs' && partes.length > 2 ? 2 : 0;
+  return TIPO_POR_PASTA[partes[inicio]] || 'outro';
 }
 
 function temaDe(full, rel) {
