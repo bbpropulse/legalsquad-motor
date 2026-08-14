@@ -17,8 +17,13 @@
 // 2. COBERTURA — a peça contempla o "Contrato de saída" que a skill declara?
 //    Derivado da skill, não hardcoded: o núcleo não sabe o que é uma petição,
 //    sabe ler o contrato v5.
-// 3. ANDAIME — template vazou para a entrega? O mais fraco, porque blacklist em
-//    prosa vaza. Fica por último e nunca é o único a reprovar.
+// 3. ANDAIME — template vazou para a entrega? Reprova sozinho, como os outros:
+//    `{{variavel}}` ou `[INSERIR]` numa peça protocolada é indefensável, e um
+//    sinal que só corrobora deixaria isso passar sempre que os demais
+//    aprovassem. O risco conhecido é o inverso — blacklist em prosa gera falso
+//    positivo (`(tese 1)` citando um repetitivo, p.ex.) —, e ele é aceito
+//    porque reprovar aqui não apaga nem reescreve nada: o gate PARA e escala ao
+//    humano com o padrão nomeado, que então libera em um passo.
 //
 // O que NÃO se faz aqui: exigir hash dos SKILL.md como prova de leitura. Hash de
 // arquivo se produz rodando um script, sem nenhum modelo ter consumido nada — é

@@ -118,14 +118,22 @@ test('elemento do Contrato de saída ausente BLOQUEIA, nomeando qual', () => {
   assert.ok(r.problemas.some((p) => /conclus/i.test(p)), `esperava apontar "conclusão": ${JSON.stringify(r.problemas)}`);
 });
 
-test('andaime vazado para a entrega BLOQUEIA', () => {
-  // O sinal mais fraco dos três — blacklist vaza —, e por isso é o último. Mas o
-  // vazamento de template é defeito real e barato de pegar.
+test('andaime vazado BLOQUEIA mesmo sendo o ÚNICO sinal reprovado', () => {
+  // A peça é boa em tudo menos nisto: ancorada, coberta e sem vícios. Se o
+  // andaime só corroborasse — como um comentário antigo deste módulo afirmava,
+  // divergindo do código —, `{{variavel}}` e `[INSERIR]` sairiam para protocolo
+  // toda vez que os outros três aprovassem, que é justamente o caso comum.
   const comAndaime = PECA_DENSA.replace('## Conclusão', '## Conclusão\n\n(tese 2) Agente: redator');
 
   const r = avaliarRedacao({ artefato: comAndaime, entrada: ENTRADA, contratos: [CONTRATO] });
 
-  assert.equal(r.ok, false);
+  assert.equal(r.sinais.andaime, 'reprovado');
+  assert.deepEqual(
+    Object.entries(r.sinais).filter(([, v]) => v === 'reprovado').map(([k]) => k),
+    ['andaime'],
+    'o caso precisa isolar o andaime — se outro sinal também reprovar, o teste não prova nada'
+  );
+  assert.equal(r.ok, false, 'um único sinal reprovado basta para o gate fechar');
   assert.ok(r.problemas.some((p) => /andaime|template/i.test(p)));
 });
 
