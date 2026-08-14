@@ -16,6 +16,7 @@ import { parseArgs } from 'node:util';
 import { verificarPacote } from '../src/pack-format.js';
 import { lerPacoteDoDisco } from '../src/pack-io.js';
 import { empacotarParaTransporte } from '../src/pack-archive.js';
+import { versaoAvanca } from '../src/pack-version.js';
 
 const USO = `Uso:
   node tools/publish-pack.mjs <dir-do-pacote> --server <url> --admin-secret <segredo> --pubkey <chave.pub.pem>
@@ -37,6 +38,7 @@ const { values, positionals } = parseArgs({
     server: { type: 'string' },
     'admin-secret': { type: 'string' },
     pubkey: { type: 'string' },
+    'force-version': { type: 'boolean' },
   },
 });
 
@@ -69,6 +71,41 @@ if (!veredito.ok) {
   for (const problema of veredito.problemas) console.error(`  · ${problema}`);
   console.error('\nNada foi publicado.');
   process.exit(1);
+}
+
+// ── Porta contra retrocesso de versão ─────────────────────────────────────
+//
+// O servidor guarda por versão e serve a MAIOR como `latest`. Publicar um
+// número menor sobe, responde 200 e não move nada: o curador lê "publicado" e
+// os usuários continuam baixando o conteúdo antigo. Aconteceu nesta base — um
+// build sem `--version` saiu `2026.08.1` contra uma produção em `2026.08.11`,
+// os 14 pacotes subiram e a `latest` não se moveu.
+//
+// A verificação vive AQUI, no cliente, e não no servidor, pelo mesmo motivo da
+// verificação de assinatura (§7.2): quem publica é quem tem o contexto para
+// decidir. `--force-version` existe para o caso legítimo de republicar por
+// cima (rollback deliberado), e precisa ser digitado.
+if (!values['force-version']) {
+  let publicada = null;
+  try {
+    const catalogo = await fetch(new URL('/v1/catalog', values.server), {
+      headers: { authorization: `Bearer ${values['admin-secret']}` },
+    }).then((r) => (r.ok ? r.json() : null));
+    publicada = catalogo?.packs?.find((p) => p.pack_id === manifesto.pack_id)?.latest ?? null;
+  } catch {
+    // Servidor inalcançável para consulta: o POST logo abaixo falha com
+    // mensagem própria. Não inventamos um veredito de versão a partir do
+    // silêncio da rede.
+  }
+
+  if (publicada && !versaoAvanca(manifesto.version, publicada)) {
+    falhar(
+      `versão NÃO avança — ${manifesto.pack_id}@${manifesto.version} contra ${publicada} já publicada.\n` +
+        '  O servidor serve a MAIOR versão como `latest`: isto subiria, responderia 200 e não mudaria\n' +
+        '  nada para os usuários. Reconstrua com `--version` maior (ex.: suba o SEQ), ou passe\n' +
+        '  `--force-version` se a intenção é mesmo republicar por cima.'
+    );
+  }
 }
 
 const buffer = empacotarParaTransporte(manifesto, entidades);
