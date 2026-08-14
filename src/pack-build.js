@@ -123,6 +123,19 @@ function montarPacote({ packId, arquivos, base, chavePrivada, criadoEm, signingK
 }
 
 /**
+ * Quantos ITENS o pacote traz — skill, squad, best-practice, agente.
+ *
+ * Lê os `counts` que o próprio manifesto já sela, em vez de recontar: recontar
+ * abriria a porta para o pacote declarar um número e este cálculo acreditar em
+ * outro. `files` de propósito fica de fora — um pacote pode ter arquivo e
+ * nenhum item (um `_catalog.yaml` sozinho é metadado, não conteúdo).
+ */
+function itensDescobriveis(pacote) {
+  const { skills = 0, squads = 0, best_practices: bp = 0, agents = 0 } = pacote.manifesto.counts || {};
+  return skills + squads + bp + agents;
+}
+
+/**
  * Constrói os pacotes `transversal` e `area.<id>` a partir de um diretório de
  * conteúdo. Devolve `{ pacotes, relatorio }` — nada é gravado aqui.
  */
@@ -176,7 +189,7 @@ export function construirPacotes({
       signingKid,
     }));
   }
-  pacotes.push(montarPacote({
+  const pacoteDeArea = montarPacote({
     packId: `area.${areaId}`,
     arquivos: arquivos.area,
     base: {
@@ -187,7 +200,21 @@ export function construirPacotes({
     chavePrivada,
     criadoEm,
     signingKid,
-  }));
+  });
+
+  // Área sem NENHUM item descobrível não vira pacote. O `transversal` já era
+  // condicional; `area.<id>` saía sempre, e a assimetria virou lixo assinado em
+  // produção: empacotar um diretório cujas skills são todas transversais
+  // produzia um `area.<id>` com zero de tudo, que subia ao servidor e era
+  // sincronizado por todo cliente carregando nada.
+  //
+  // O critério é ITEM DESCOBRÍVEL, não contagem de arquivos: o resíduo tinha um
+  // arquivo — o `_catalog.yaml`, que é metadado — e ainda assim nenhum item.
+  // Uma área que só tenha best-practices continua sendo emitida: ela tem
+  // registros.
+  if (itensDescobriveis(pacoteDeArea) > 0) {
+    pacotes.push(pacoteDeArea);
+  }
 
   return { pacotes, relatorio: montarRelatorio(pacotes) };
 }

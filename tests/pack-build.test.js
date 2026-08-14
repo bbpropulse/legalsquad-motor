@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, generateKeyPairSync } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { decodeEntity, verificarPacote } from '../src/pack-format.js';
 import { construirPacotes } from '../src/pack-build.js';
@@ -240,4 +242,63 @@ test('o catálogo de best-practices viaja com o NOME DA ÁREA no caminho de inst
       'sem o nome da área, duas áreas colidem no mesmo caminho de destino',
     );
   }
+});
+
+test('pacote de área SEM nenhum item descobrível não é emitido', async () => {
+  // Assimetria que virou lixo em produção: `transversal` só era emitido com
+  // conteúdo, mas `area.<id>` saía SEMPRE. Empacotar um diretório cujas skills
+  // são todas transversais produzia um `area.<id>` com zero skills, zero
+  // squads, zero best-practices — um pacote assinado, publicado e sincronizado
+  // por todo cliente, carregando nada.
+  //
+  // O critério é ITEM DESCOBRÍVEL (registro no catálogo), não contagem de
+  // arquivos: o resíduo tinha 1 arquivo (o `_catalog.yaml`, que é metadado) e
+  // mesmo assim nenhum item. Uma área legítima que só tenha best-practices
+  // continua sendo emitida — ela tem registros.
+  const raiz = await mkdtemp(join(tmpdir(), 'pack-build-vazia-'));
+  await mkdir(join(raiz, 'skills', 'so-transversal'), { recursive: true });
+  await mkdir(join(raiz, 'core', 'best-practices'), { recursive: true });
+  await writeFile(
+    join(raiz, 'skills', 'so-transversal', 'SKILL.md'),
+    '---\nname: so-transversal\ndescription: Skill que serve qualquer área.\n---\n\n# Só transversal\n'
+  );
+  await writeFile(join(raiz, 'core', 'best-practices', '_catalog.yaml'), 'catalog: []\n');
+  await writeFile(join(raiz, '_packs.yaml'), 'area_id: vazia\ntransversal_skills: [so-transversal]\n');
+
+  const chaves = generateKeyPairSync('ed25519');
+  const { pacotes } = construirPacotes({
+    raizConteudo: raiz,
+    areaId: 'vazia',
+    chavePrivada: chaves.privateKey,
+    versao: '2026.08.1',
+  });
+
+  const ids = pacotes.map((p) => p.packId).sort();
+  assert.deepEqual(ids, ['transversal'], `esperava só o transversal, vieram ${ids.join(', ')}`);
+
+  await rm(raiz, { recursive: true, force: true });
+});
+
+test('área com best-practice própria CONTINUA sendo emitida — o corte não pode comer área legítima', async () => {
+  const raiz = await mkdtemp(join(tmpdir(), 'pack-build-so-bp-'));
+  await mkdir(join(raiz, 'skills', 'compartilhada'), { recursive: true });
+  await mkdir(join(raiz, 'core', 'best-practices'), { recursive: true });
+  await writeFile(
+    join(raiz, 'skills', 'compartilhada', 'SKILL.md'),
+    '---\nname: compartilhada\ndescription: Serve qualquer área.\n---\n\n# Compartilhada\n'
+  );
+  await writeFile(join(raiz, 'core', 'best-practices', 'da-area.md'), '# Best-practice da área\n\ntexto\n');
+  await writeFile(join(raiz, '_packs.yaml'), 'area_id: viva\ntransversal_skills: [compartilhada]\n');
+
+  const chaves = generateKeyPairSync('ed25519');
+  const { pacotes } = construirPacotes({
+    raizConteudo: raiz,
+    areaId: 'viva',
+    chavePrivada: chaves.privateKey,
+    versao: '2026.08.1',
+  });
+
+  assert.deepEqual(pacotes.map((p) => p.packId).sort(), ['area.viva', 'transversal']);
+
+  await rm(raiz, { recursive: true, force: true });
 });
