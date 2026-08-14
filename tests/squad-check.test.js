@@ -322,14 +322,17 @@ test('squad sem chefe continua válido — o campo é opcional', async () => {
   assert.ok(!codigos(r).includes('chefe-sem-nome'));
 });
 
-test('chefe declarado sem nome reprova — o runner não teria como apresentá-lo', async () => {
+test('chefe sem nome NÃO reprova — o motor tem um chefe padrão', async () => {
+  // O nome default (Mike) existe justamente para que nenhum squad precise
+  // declarar chefe para ganhar uma voz. Reprovar aqui obrigaria todo squad a
+  // repetir a mesma linha, que é o oposto de ter um padrão.
   const { tmp, resultado } = await comAvaria(async (dir) => {
     const yaml = await readFile(join(dir, 'squad.yaml'), 'utf8');
     await writeFile(join(dir, 'squad.yaml'), `${yaml}\nchefe:\n  icon: "🎩"\n`);
   });
   try {
-    assert.equal(resultado.ok, false);
-    assert.ok(codigos(resultado).includes('chefe-sem-nome'));
+    assert.equal(resultado.ok, true, JSON.stringify(resultado.issues));
+    assert.ok(!codigos(resultado).includes('chefe-sem-nome'));
   } finally {
     await rm(tmp, { recursive: true, force: true });
   }

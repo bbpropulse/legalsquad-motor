@@ -405,17 +405,14 @@ export function checkSquad(squad, options = {}) {
       issues.push(issue('error', 'goal-ausente', 'goal vazio ou ausente — o runner não tem meta a verificar'));
     }
 
-    // --- chefe: a VOZ do run (opcional) ---
-    // Quem está no squad-party.csv executa step e ocupa desk no dashboard; o
-    // chefe nunca executa, então vive aqui. É ele quem fala com o profissional
-    // e onde cabe o pedido fora do fluxo — mas não decide a ordem dos steps,
-    // que continua sendo do pipeline.yaml.
+    // --- chefe: a VOZ do run ---
+    // Todo squad tem chefe; `chefe:` só existe para TROCAR o padrão (CHEFE_PADRAO
+    // em runner.pipeline.md). Por isso `nome` ausente não é erro: exigi-lo
+    // obrigaria todo squad a repetir a mesma linha, que é o oposto de ter um
+    // padrão. Quem está no squad-party.csv executa step e ocupa desk no
+    // dashboard; o chefe nunca executa — só fala —, então vive aqui.
     const chefe = y.match(/^chefe:\s*\n((?:[ \t]+\S.*\n?)*)/m)?.[1];
     if (chefe) {
-      const nome = chefe.match(/^\s+nome:\s*["']?([^"'\n]+)["']?\s*$/m)?.[1]?.trim();
-      if (!nome) {
-        issues.push(issue('error', 'chefe-sem-nome', 'chefe declarado sem `nome` — o runner não teria como apresentá-lo'));
-      }
       const chefeId = chefe.match(/^\s+id:\s*["']?([^"'\n]+)["']?\s*$/m)?.[1]?.trim();
       if (chefeId && idsDeAgente(dir).includes(chefeId)) {
         issues.push(issue(
