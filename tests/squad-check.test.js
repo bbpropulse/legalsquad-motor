@@ -301,3 +301,64 @@ test('o CLI check-squad sai 0 no squad íntegro e != 0 no avariado', async () =>
     await rm(tmp, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Chefe do squad — a VOZ do run, não mais um executor
+// ---------------------------------------------------------------------------
+//
+// O chefe é quem fala com o profissional durante a execução e é onde cabe o
+// pedido fora do fluxo ("espera, o valor da causa mudou"), que hoje não tem
+// lugar nenhum: só existem os checkpoints declarados no pipeline. Ele NÃO
+// decide a ordem dos steps — isso é do pipeline.yaml, e trocar essa lei por
+// improviso perderia os gates que tornam o run auditável.
+//
+// Por isso ele vive no squad.yaml e não no squad-party.csv: quem está no party
+// executa step e ocupa desk no dashboard. O chefe nunca executa.
+
+test('squad sem chefe continua válido — o campo é opcional', async () => {
+  // Todo squad existente foi criado sem ele; exigir agora quebraria a base.
+  const r = checkSquad('demo-squad', { squadsDir: SQUADS_DEMO });
+  assert.equal(r.ok, true);
+  assert.ok(!codigos(r).includes('chefe-sem-nome'));
+});
+
+test('chefe declarado sem nome reprova — o runner não teria como apresentá-lo', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    const yaml = await readFile(join(dir, 'squad.yaml'), 'utf8');
+    await writeFile(join(dir, 'squad.yaml'), `${yaml}\nchefe:\n  icon: "🎩"\n`);
+  });
+  try {
+    assert.equal(resultado.ok, false);
+    assert.ok(codigos(resultado).includes('chefe-sem-nome'));
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('chefe bem formado passa', async () => {
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    const yaml = await readFile(join(dir, 'squad.yaml'), 'utf8');
+    await writeFile(join(dir, 'squad.yaml'), `${yaml}\nchefe:\n  nome: "Helena Braga"\n  icon: "🎩"\n`);
+  });
+  try {
+    assert.equal(resultado.ok, true, JSON.stringify(resultado.issues));
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('chefe com id de agente do party reprova — dois donos para a mesma voz', async () => {
+  // Se o chefe usar o id de quem executa, o handoff do dashboard passa a apontar
+  // para alguém que é, ao mesmo tempo, quem fala e quem produz — e o registro do
+  // run deixa de dizer quem fez o quê.
+  const { tmp, resultado } = await comAvaria(async (dir) => {
+    const yaml = await readFile(join(dir, 'squad.yaml'), 'utf8');
+    await writeFile(join(dir, 'squad.yaml'), `${yaml}\nchefe:\n  id: redator-demo\n  nome: "Helena"\n`);
+  });
+  try {
+    assert.equal(resultado.ok, false);
+    assert.ok(codigos(resultado).includes('chefe-colide-com-agente'));
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});

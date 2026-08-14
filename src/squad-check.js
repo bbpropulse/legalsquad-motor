@@ -247,6 +247,18 @@ function parseCsvLine(line) {
 
 const semAspas = (s) => s.trim().replace(/^["']|["']$/g, '');
 
+/** Ids do squad-party.csv. Ausente → `[]`: quem cobra a ausência do party é a checagem própria dele. */
+function idsDeAgente(dir) {
+  const partyPath = join(dir, 'squad-party.csv');
+  if (!existsSync(partyPath)) return [];
+  return readFileSync(partyPath, 'utf8')
+    .split(/\r?\n/)
+    .filter((l) => l.trim())
+    .slice(1)
+    .map((linha) => parseCsvLine(linha)[0])
+    .filter(Boolean);
+}
+
 /**
  * Recorta o corpo de `steps:` até a próxima chave de topo. Sem isso, o bloco do
  * ÚLTIMO step ia até o fim do arquivo e engolia `checkpoints:` e o `output:`
@@ -391,6 +403,27 @@ export function checkSquad(squad, options = {}) {
     const goal = y.match(/^goal:\s*["']?([^"'\n]*)["']?\s*$/m)?.[1]?.trim();
     if (!goal) {
       issues.push(issue('error', 'goal-ausente', 'goal vazio ou ausente — o runner não tem meta a verificar'));
+    }
+
+    // --- chefe: a VOZ do run (opcional) ---
+    // Quem está no squad-party.csv executa step e ocupa desk no dashboard; o
+    // chefe nunca executa, então vive aqui. É ele quem fala com o profissional
+    // e onde cabe o pedido fora do fluxo — mas não decide a ordem dos steps,
+    // que continua sendo do pipeline.yaml.
+    const chefe = y.match(/^chefe:\s*\n((?:[ \t]+\S.*\n?)*)/m)?.[1];
+    if (chefe) {
+      const nome = chefe.match(/^\s+nome:\s*["']?([^"'\n]+)["']?\s*$/m)?.[1]?.trim();
+      if (!nome) {
+        issues.push(issue('error', 'chefe-sem-nome', 'chefe declarado sem `nome` — o runner não teria como apresentá-lo'));
+      }
+      const chefeId = chefe.match(/^\s+id:\s*["']?([^"'\n]+)["']?\s*$/m)?.[1]?.trim();
+      if (chefeId && idsDeAgente(dir).includes(chefeId)) {
+        issues.push(issue(
+          'error',
+          'chefe-colide-com-agente',
+          `chefe usa o id "${chefeId}", que já é de um agente do party — o handoff deixaria de dizer quem falou e quem produziu`
+        ));
+      }
     }
 
     const bloco = y.match(/^success_criteria:\s*\n((?: {2}- .*\n)*)/m);

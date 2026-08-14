@@ -86,6 +86,13 @@ Generate these files. Use the Write tool for all file creation — never use Bas
      citation_verifiers: 3   # default já é 3; explicite para deixar claro
      meta_verifiers: 3       # eleva a Verificação da Meta a consenso (default é 1, sem voting)
      ```
+   - **`chefe:`** — quem fala com o profissional durante o run. Declare sempre que o squad tiver mais de um agente: sem ele, o usuário ouve o pipeline por dentro (nome de step, id de agente) em vez de uma pessoa.
+     ```yaml
+     chefe:
+       nome: "Helena Braga"   # obrigatório se `chefe:` existir
+       icon: "🎩"
+     ```
+     O `nome` é livre — combine com o tom da instituição. **Não** repita aqui um `id` do `squad-party.csv`: quem está no party executa step e ocupa desk no dashboard; o chefe só fala, e o `check-squad` reprova a colisão (`chefe-colide-com-agente`). Ele é a **voz**, não a lei: a ordem dos steps continua no `pipeline.yaml` (ver `runner.pipeline.md` — "O chefe do squad").
    - Include a `skills:` section listing all skills:
      ```yaml
      skills:
