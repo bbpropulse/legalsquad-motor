@@ -100,6 +100,24 @@ test('skill com marcador ELEITORAL:HP-CONTRACT (fork de OUTRO produto) também d
   );
 });
 
+test('skill com marcador DTSQUAD:HP-CONTRACT (fork trabalhista) também desce pra `contracted`', () => {
+  // Achado ao inspecionar o lote trabalhista do dtsquad: contrato próprio de um
+  // fork anterior, com `<!-- DTSQUAD:HP-CONTRACT:END -->` no corpo. Sem o
+  // marcador nesta lista, uma skill que se declarasse `verified` seria promovida
+  // com base na palavra dela mesma — e a evidência comportamental que sustenta a
+  // promoção é local por construção, não viaja no pacote.
+  const corpo = '\n<!-- DTSQUAD:HP-CONTRACT:START -->\ncontrato\n<!-- DTSQUAD:HP-CONTRACT:END -->\n';
+  const seDeclarandoPromovida = FM_BASE.replace('quality_status: "contracted"', 'quality_status: "verified"');
+
+  const [alfa] = extrairCatalogo([entidadeDeSkill('alfa', seDeclarandoPromovida, corpo)], 'skills.jsonl.zst');
+
+  assert.equal(alfa.quality_status, 'contracted', 'skill de fork externo não promove pela própria palavra');
+  assert.ok(
+    alfa.promotion_blocked_by?.some((motivo) => /legad|DTSQUAD/i.test(motivo)),
+    `o marcador DTSQUAD precisa aparecer como motivo — recebido: ${JSON.stringify(alfa.promotion_blocked_by)}`
+  );
+});
+
 test('o empacotador NÃO reescreve os bytes da skill', () => {
   // A tentação óbvia é normalizar `CRIMINALSQUAD:` → `LEGALSQUAD:` ao empacotar.
   // Reescrever muda os bytes, e `skill_binding.skill_sha256` amarra a evidência

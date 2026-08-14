@@ -21,7 +21,13 @@ import { NOME_DE_CATALOGO, parseBestPracticesCatalogText } from './best-practice
  * marcador do corpo entrar aqui. Cada entrada nova é um produto/fork externo
  * identificado, nunca uma suposição sobre o que "parece" legado.
  */
-const MARCADORES_LEGADOS = [/CRIMINALSQUAD:HP-CONTRACT/, /\bcsq-v5-/, /ELEITORAL:HP-CONTRACT/];
+const MARCADORES_LEGADOS = [
+  /CRIMINALSQUAD:HP-CONTRACT/,
+  /\bcsq-v5-/,
+  /ELEITORAL:HP-CONTRACT/,
+  /DTSQUAD:HP-CONTRACT/,
+  /TRABALHISTASQUAD:HP-CONTRACT/,
+];
 
 /** Status que significam desempenho comprovado — e que exigem evidência local. */
 const STATUS_PROMOVIDOS = new Set(['verified', 'certified']);
