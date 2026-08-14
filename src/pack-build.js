@@ -146,11 +146,18 @@ export function construirPacotes({
   }
 
   const lidos = lerArvore(raizConteudo, SUBARVORES.map((s) => s.prefixo));
-  // O corte (`transversal_skills`) opera sobre id de SKILL, que não muda de
-  // caminho — por isso remapeia DEPOIS de cortar, não antes: mais simples, e a
-  // ordem não afeta o resultado porque só `skills/` participa do corte, e
-  // `skills/` não é remapeado (destino === prefixo).
-  const { transversal, area } = separarEntidades(lidos, corte.transversalSkills);
+  // Cortar ANTES de remapear é obrigatório, não preferência. `skills/` não é
+  // remapeado (destino === prefixo) e toleraria as duas ordens, mas
+  // `core/best-practices/` vira `_legalsquad/core/best-practices/` na
+  // instalação: cortar depois faria o corte procurar um prefixo que já não
+  // existe, e TODA best-practice declarada transversal cairia calada no pacote
+  // de área — que é exatamente o defeito que `transversal_best_practices` veio
+  // consertar.
+  const { transversal, area } = separarEntidades(
+    lidos,
+    corte.transversalSkills,
+    corte.transversalBestPractices
+  );
   const arquivos = {
     transversal: remapearParaInstalacao(transversal, areaId),
     area: remapearParaInstalacao(area, areaId),

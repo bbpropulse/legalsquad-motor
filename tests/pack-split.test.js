@@ -99,3 +99,118 @@ test('lista transversal vazia é válida — só precisa ser explícita', () => 
 
   assert.equal(corte.transversalSkills.size, 0);
 });
+
+test('best-practice declarada transversal sai do pacote de área', () => {
+  // Sem isto, TODA best-practice cai no pacote de área, porque o corte só sabia
+  // ler `transversal_skills`. No conteúdo real isso empurrou
+  // `redacao-sem-marcas-de-ia` — a régua obrigatória do Redação Gate — para uma
+  // pseudo-área `area._transversal` que ninguém instala por nome: quem instala
+  // `transversal` + uma área de verdade não recebia a régua, e o gate passava a
+  // declarar a dimensão como "não avaliada". A best-practice existia, estava
+  // assinada e publicada, e mesmo assim não chegava a ninguém.
+  const corte = separarEntidades(
+    [
+      { path: 'core/best-practices/redacao.md', sha256: 'r' },
+      { path: 'core/best-practices/execucao-penal.md', sha256: 'p' },
+      { path: 'core/best-practices/_catalog.yaml', sha256: 'c' },
+      { path: 'skills/peca-alpha/SKILL.md', sha256: 's' },
+    ],
+    new Set(),
+    new Set(['redacao'])
+  );
+
+  assert.deepEqual(
+    corte.transversal.map((e) => e.path).sort(),
+    ['core/best-practices/_catalog.yaml', 'core/best-practices/redacao.md'],
+    'o catálogo ACOMPANHA a best-practice — sem ele, `whenToUse` e `obrigatoria` não viajam'
+  );
+  assert.deepEqual(
+    corte.area.map((e) => e.path).sort(),
+    ['core/best-practices/_catalog.yaml', 'core/best-practices/execucao-penal.md', 'skills/peca-alpha/SKILL.md'],
+    'best-practice de matéria continua sendo de área — e o catálogo também fica, descrevendo as dela'
+  );
+});
+
+test('o catálogo de best-practices é DUPLICADO quando há transversais dos dois lados', () => {
+  // Medido no conteúdo real: declarar as best-practices transversais fez os
+  // `.md` migrarem para o pacote transversal e o `_catalog.yaml` ficar no de
+  // área. Resultado — `obrigatoria: true` sumia e a description caía pro título,
+  // que é EXATAMENTE o defeito que a declaração veio consertar, reintroduzido um
+  // elo adiante.
+  //
+  // Duplicar é a saída certa, não preguiça: o catálogo descreve entradas dos
+  // dois lados, é alguns KB, o leitor da instalação já funde vários
+  // `_catalog*.yaml` com "primeiro id vence", e entrada apontando para arquivo
+  // ausente já é tolerada (best-practice órfã cai no título).
+  const corte = separarEntidades(
+    [
+      { path: 'core/best-practices/redacao.md', sha256: 'r' },
+      { path: 'core/best-practices/_catalog.yaml', sha256: 'c' },
+    ],
+    new Set(),
+    new Set(['redacao'])
+  );
+
+  assert.equal(
+    corte.transversal.filter((e) => e.path.endsWith('_catalog.yaml')).length, 1,
+    'o transversal precisa do catálogo para descrever a best-practice que leva'
+  );
+  assert.equal(
+    corte.area.filter((e) => e.path.endsWith('_catalog.yaml')).length, 1,
+    'a área não pode PERDER o catálogo por causa de uma transversal declarada'
+  );
+});
+
+test('sem best-practice transversal, o catálogo NÃO é duplicado', () => {
+  // O caso comum — toda área que não declara nada — não pode pagar por isto.
+  const corte = separarEntidades(
+    [
+      { path: 'core/best-practices/execucao-penal.md', sha256: 'p' },
+      { path: 'core/best-practices/_catalog.yaml', sha256: 'c' },
+    ],
+    new Set(),
+    new Set()
+  );
+
+  assert.deepEqual(corte.transversal, [], 'nada transversal declarado, nada no pacote transversal');
+  assert.equal(corte.area.length, 2);
+});
+
+test('id de best-practice declarado que não existe no conteúdo falha o build', () => {
+  // Mesma porta fail-closed das skills: declaração que aponta para o vazio é
+  // sintoma de arquivo renomeado, e aceitar em silêncio produz um `transversal`
+  // menor do que o curador pensa que produziu.
+  assert.throws(
+    () => separarEntidades([{ path: 'core/best-practices/redacao.md', sha256: 'r' }], new Set(), new Set(['nao-existe'])),
+    /nao-existe/
+  );
+});
+
+test('`transversal_best_practices` é opcional — omitir não quebra conteúdo já autorado', () => {
+  // Diferente de `transversal_skills`, que é fail-closed: aquela chave nasceu
+  // com o formato e a sua ausência esconderia duplicação em toda área. Esta
+  // chegou depois, e exigi-la invalidaria de uma vez todo `_packs.yaml` já
+  // escrito — trocando um defeito silencioso por uma quebra ruidosa em conteúdo
+  // que está correto. Omitir significa "nenhuma", que é o comportamento antigo.
+  const raiz = criarConteudo('area_id: demo\ntransversal_skills: []\n');
+
+  const corte = lerCorteDePacotes(raiz);
+
+  assert.equal(corte.transversalBestPractices.size, 0);
+});
+
+test('corte lê `transversal_best_practices` quando declarada', () => {
+  const raiz = criarConteudo([
+    'area_id: demo',
+    'transversal_skills: [conector-mcp]',
+    'transversal_best_practices: [redacao-sem-marcas-de-ia, protocolo-operacional]',
+    '',
+  ].join('\n'));
+
+  const corte = lerCorteDePacotes(raiz);
+
+  assert.deepEqual(
+    [...corte.transversalBestPractices].sort(),
+    ['protocolo-operacional', 'redacao-sem-marcas-de-ia']
+  );
+});

@@ -17,8 +17,9 @@ import { parseList, parseScalar } from './frontmatter.js';
 
 const ARQUIVO = '_packs.yaml';
 
-/** Skills viajam no corte; squads e best-practices são de área por definição. */
+/** Skills e best-practices viajam no corte; squads são de área por definição. */
 const PREFIXO_SKILLS = 'skills/';
+const PREFIXO_BEST_PRACTICES = 'core/best-practices/';
 
 function chavePresente(bruto, chave) {
   return new RegExp(`^\\s*${chave}\\s*:`, 'm').test(bruto);
@@ -53,7 +54,29 @@ export function lerCorteDePacotes(raizConteudo) {
     curador: parseScalar(bruto, 'area_curador') || null,
     ramos: parseList(bruto, 'area_ramos'),
     transversalSkills: new Set(parseList(bruto, 'transversal_skills')),
+    // OPCIONAL, diferente de `transversal_skills`. Aquela nasceu com o formato,
+    // e a sua ausência esconderia skill transversal duplicada em toda área —
+    // por isso é fail-closed. Esta chegou depois: exigi-la invalidaria de uma
+    // vez todo `_packs.yaml` já autorado, trocando um defeito silencioso por
+    // uma quebra ruidosa em conteúdo que está correto. Omitir = "nenhuma", que
+    // é exatamente o comportamento anterior.
+    transversalBestPractices: new Set(parseList(bruto, 'transversal_best_practices')),
   };
+}
+
+/** `_catalog.yaml` / `_catalog.<area>.yaml` na raiz da pasta de best-practices. */
+function ehCatalogoDeBestPractices(caminho) {
+  if (!caminho.startsWith(PREFIXO_BEST_PRACTICES)) return false;
+  const resto = caminho.slice(PREFIXO_BEST_PRACTICES.length);
+  return !resto.includes('/') && /^_catalog(\.[^/]+)?\.yaml$/.test(resto);
+}
+
+/** O id da best-practice é o nome do arquivo, sem `.md`. Só na raiz da pasta. */
+function idDaBestPractice(caminho) {
+  if (!caminho.startsWith(PREFIXO_BEST_PRACTICES)) return null;
+  const resto = caminho.slice(PREFIXO_BEST_PRACTICES.length);
+  if (resto.includes('/') || !resto.endsWith('.md')) return null;
+  return resto.slice(0, -3);
 }
 
 /** O id da skill é o primeiro segmento depois de `skills/`. */
@@ -68,29 +91,61 @@ function idDaSkill(caminho) {
  * Roteia cada entidade-arquivo para `transversal` ou `area`.
  * A skill inteira viaja junta — `references/`, `agents/`, tudo.
  */
-export function separarEntidades(entidades, transversalSkills) {
+export function separarEntidades(entidades, transversalSkills, transversalBestPractices = new Set()) {
   const transversal = [];
   const area = [];
   const casados = new Set();
+  const casadasBp = new Set();
 
   for (const entidade of entidades) {
     const id = idDaSkill(entidade.path);
     if (id && transversalSkills.has(id)) {
       casados.add(id);
       transversal.push(entidade);
-    } else {
-      area.push(entidade);
+      continue;
+    }
+    const bp = idDaBestPractice(entidade.path);
+    if (bp && transversalBestPractices.has(bp)) {
+      casadasBp.add(bp);
+      transversal.push(entidade);
+      continue;
+    }
+    area.push(entidade);
+  }
+
+  // O catálogo ACOMPANHA a best-practice — nos dois pacotes, quando há
+  // transversais. Ele é quem carrega `whenToUse` e `obrigatoria`; deixá-lo só
+  // de um lado faz o outro cair no título do markdown e perder a
+  // obrigatoriedade, em silêncio (best-practice órfã cair no título é
+  // comportamento legítimo, então nada grita).
+  //
+  // Duplicar custa alguns KB e é inócuo: o leitor da instalação já funde vários
+  // `_catalog*.yaml` com "primeiro id vence", e entrada que aponta para arquivo
+  // ausente já é tolerada. A alternativa — particionar as entradas por pacote —
+  // exigiria o build REESCREVER o YAML do curador, trocando um problema de
+  // bytes duplicados por um de bytes fabricados.
+  if (casadasBp.size) {
+    for (const entidade of area) {
+      if (ehCatalogoDeBestPractices(entidade.path)) transversal.push(entidade);
     }
   }
 
-  // Declaração que aponta para o vazio é sintoma de skill renomeada ou removida.
-  // Aceitar em silêncio produziria um `transversal` menor do que o curador pensa
-  // que produziu — e ninguém descobre até a skill faltar numa área.
+  // Declaração que aponta para o vazio é sintoma de arquivo renomeado ou
+  // removido. Aceitar em silêncio produziria um `transversal` menor do que o
+  // curador pensa que produziu — e ninguém descobre até faltar numa área.
   const fantasmas = [...transversalSkills].filter((id) => !casados.has(id)).sort();
   if (fantasmas.length) {
     throw new Error(
       `pack-split: ${ARQUIVO} declara skill(s) transversal(is) que não existem no conteúdo — ` +
         `${fantasmas.join(', ')}. Renomeada, removida, ou erro de digitação.`
+    );
+  }
+
+  const fantasmasBp = [...transversalBestPractices].filter((id) => !casadasBp.has(id)).sort();
+  if (fantasmasBp.length) {
+    throw new Error(
+      `pack-split: ${ARQUIVO} declara best-practice(s) transversal(is) que não existem no ` +
+        `conteúdo — ${fantasmasBp.join(', ')}. Renomeada, removida, ou erro de digitação.`
     );
   }
 
