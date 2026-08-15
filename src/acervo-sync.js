@@ -82,10 +82,27 @@ export function planejarSync(catalogo, estado = { packs: {} }, opcoes = {}) {
   // ruído em revogação treina quem lê a ignorá-la.
   const revogar = (catalogo.revoked || []).filter((packId) => packId in instalados);
 
+  // DESPUBLICADO ≠ REVOGADO, e a diferença é o que se faz com o disco.
+  //
+  // O servidor nunca esconde pack por falta de direito — lista com
+  // `entitled: false`, para a busca dizer "existe, não está liberado" em vez de
+  // mentir. Então ausência da lista só significa uma coisa: saiu de linha.
+  //
+  // A entrada some do MANIFESTO (senão `acervo status` conta pacotes que o
+  // servidor não tem mais, e o número mente sobre o que existe), mas os
+  // arquivos FICAM. Revogar é "este conteúdo está errado, apague"; despublicar
+  // é "não distribuo mais" — apagar por ausência transformaria uma área
+  // descontinuada em perda de conteúdo que o usuário tinha direito de ter.
+  // Mesma família da regra de licença vencida: degrada, nunca destrói.
+  const noCatalogo = new Set(packs.map((p) => p.pack_id));
+  const despublicados = Object.keys(instalados).filter((id) => !noCatalogo.has(id)).sort();
+
   return {
     ok: true,
-    motivo: baixarCatalogo.length || baixarConteudo.length || revogar.length
-      ? `${baixarCatalogo.length} catálogo(s), ${baixarConteudo.length} conteúdo(s), ${revogar.length} revogado(s)`
+    despublicados,
+    motivo: baixarCatalogo.length || baixarConteudo.length || revogar.length || despublicados.length
+      ? `${baixarCatalogo.length} catálogo(s), ${baixarConteudo.length} conteúdo(s), `
+        + `${revogar.length} revogado(s), ${despublicados.length} despublicado(s)`
       : 'tudo em dia',
     baixarCatalogo,
     baixarConteudo,
@@ -106,6 +123,12 @@ export async function executarSync(plano, ambiente, estadoAnterior = { packs: {}
   const aplicados = [];
   const recusados = [];
   const packs = { ...(estadoAnterior.packs || {}) };
+
+  // Despublicado sai do manifesto ANTES de qualquer download: é só apagar uma
+  // entrada de registro, não depende de rede, e deixá-lo para o fim faria a
+  // limpeza depender de o sync chegar inteiro ao final. Os ARQUIVOS ficam — ver
+  // `planejarSync` para por que despublicar não é revogar.
+  for (const packId of plano.despublicados || []) delete packs[packId];
 
   const alvos = [...(plano.baixarCatalogo || []), ...(plano.baixarConteudo || [])];
 
@@ -137,5 +160,11 @@ export async function executarSync(plano, ambiente, estadoAnterior = { packs: {}
 
   for (const packId of plano.revogar || []) delete packs[packId];
 
-  return { aplicados, recusados, revogados: plano.revogar || [], estado: { ...estadoAnterior, packs } };
+  return {
+    aplicados,
+    recusados,
+    revogados: plano.revogar || [],
+    despublicados: plano.despublicados || [],
+    estado: { ...estadoAnterior, packs },
+  };
 }

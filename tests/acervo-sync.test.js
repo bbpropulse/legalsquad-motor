@@ -190,3 +190,86 @@ test('nada é aplicado sem passar pela verificação', async () => {
 
   assert.deepEqual(ordem, ['baixar', 'verificar', 'aplicar']);
 });
+
+test('pack instalado que SUMIU do catálogo é reportado como despublicado', () => {
+  // O servidor nunca esconde pack por falta de direito — ele o lista com
+  // `entitled: false`, para a busca poder dizer "existe, não está liberado".
+  // Então AUSÊNCIA da lista só tem um significado: foi despublicado.
+  //
+  // Sem isto, a entrada ficava no manifesto local para sempre: `acervo status`
+  // contava 36 packs enquanto o servidor tinha 35, e o número mentia sobre o
+  // que existe. Aconteceu de verdade ao despublicar `area._transversal`.
+  const catalogo = {
+    status: 'active',
+    packs: [{ pack_id: 'area.civil', payload_kind: 'tree', latest: '2026.08.14', entitled: true }],
+  };
+  const estado = { packs: { 'area.civil': '2026.08.14', 'area._transversal': '2026.08.14' } };
+
+  const plano = planejarSync(catalogo, estado);
+
+  assert.equal(plano.ok, true);
+  assert.deepEqual(plano.despublicados, ['area._transversal']);
+});
+
+test('despublicado NÃO entra em `revogar` — são coisas diferentes', () => {
+  // `revogar` existe para conteúdo ERRADO ("apague isto"), e por isso apaga.
+  // Despublicar é "não distribuo mais": o que o usuário já baixou continua
+  // valendo, e apagar por ausência transformaria uma área descontinuada em
+  // perda de conteúdo que ele tinha o direito de ter. Mesma família da regra de
+  // licença vencida — degrada, nunca revoga.
+  // O catálogo traz OUTRO pack de propósito: `packs: []` é recusado antes
+  // (§7.1 — lista vazia é servidor com problema, e tratá-la como despublicação
+  // apagaria o manifesto inteiro por causa de uma resposta suspeita).
+  const catalogo = {
+    status: 'active',
+    packs: [{ pack_id: 'area.viva', payload_kind: 'tree', latest: '2026.08.14', entitled: true }],
+  };
+  const estado = { packs: { 'area.viva': '2026.08.14', 'area.sumiu': '2026.08.14' } };
+
+  const plano = planejarSync(catalogo, estado);
+
+  assert.deepEqual(plano.despublicados, ['area.sumiu']);
+  assert.deepEqual(plano.revogar, [], 'sumir do catálogo não é ordem de apagar');
+});
+
+test('catálogo VAZIO não despublica nada — é servidor com problema, não despublicação em massa', () => {
+  // A porta que já existia (§7.1) cobre o pior caso deste recurso: uma resposta
+  // vazia marcaria TODO pack instalado como despublicado e esvaziaria o
+  // manifesto de uma instalação inteira.
+  const plano = planejarSync({ status: 'active', packs: [] }, { packs: { 'area.civil': '2026.08.14' } });
+
+  assert.equal(plano.ok, false, 'catálogo vazio é recusado, não interpretado');
+  assert.deepEqual(plano.despublicados || [], []);
+});
+
+test('licença vencida NÃO marca nada como despublicado', () => {
+  // Com `expired` o catálogo pode vir sem packs, e tratar isso como
+  // despublicação apagaria o manifesto inteiro de quem só atrasou o pagamento —
+  // exatamente o "vira tijolo" que o produto promete não fazer.
+  const catalogo = { status: 'expired', expires: '2026-01-01', packs: [] };
+  const estado = { packs: { 'area.civil': '2026.08.14' } };
+
+  const plano = planejarSync(catalogo, estado);
+
+  assert.deepEqual(plano.despublicados || [], [], 'vencida degrada, não despublica');
+});
+
+test('executarSync tira o despublicado do estado, sem tocar em arquivo', async () => {
+  const catalogo = {
+    status: 'active',
+    packs: [{ pack_id: 'area.civil', payload_kind: 'tree', latest: '2026.08.14', entitled: true }],
+  };
+  const estado = { packs: { 'area.civil': '2026.08.14', 'area._transversal': '2026.08.14' } };
+  const plano = planejarSync(catalogo, estado);
+
+  const aplicados = [];
+  const resultado = await executarSync(
+    plano,
+    { baixar: async () => Buffer.alloc(0), verificar: () => ({ ok: true, problemas: [] }), aplicar: (p) => { aplicados.push(p); return { ok: true }; } },
+    estado
+  );
+
+  assert.equal(resultado.estado.packs['area._transversal'], undefined, 'a entrada órfã sai do manifesto');
+  assert.equal(resultado.estado.packs['area.civil'], '2026.08.14', 'o que continua no catálogo fica');
+  assert.ok(!aplicados.length, 'despublicar não aplica nem apaga nada em disco');
+});

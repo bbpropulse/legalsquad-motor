@@ -64,6 +64,13 @@ function imprimirResultadoDoSync(resultado) {
   for (const packId of resultado.aplicados) console.log(`  - ${packId} instalado`);
   for (const { pack_id: packId, motivo } of resultado.recusados) console.error(`  · ${packId} recusado — ${motivo}`);
   for (const packId of resultado.revogados) console.log(`  - ${packId} removido (revogado)`);
+
+  // Despublicado é informação, não ação: os arquivos ficam e o usuário decide.
+  // Silenciar faria o pacote sumir do `status` sem explicação — some da lista e
+  // ninguém sabe por quê, que é a pior forma de comunicar uma mudança.
+  for (const packId of resultado.despublicados || []) {
+    console.log(`  - ${packId} saiu do catálogo (despublicado) — o que já estava no disco foi mantido`);
+  }
 }
 
 export async function acervoCli(sub, targetDir, values = {}, agora = Date.now()) {
