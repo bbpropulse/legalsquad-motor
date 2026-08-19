@@ -253,13 +253,16 @@ só sem link de download. A separação "catálogo fino sempre baixável" da SPE
 **Em produção:** `https://acervo-server-production.up.railway.app` (projeto Railway
 `legalsquad-acervo`, volume persistente em `/data`). Chave Ed25519 de produção em
 `~/.legalsquad-signing/` — privada **fora de qualquer git**, `kid: prod-2026-07`, pública servida em
-`/v1/signing-keys`. 12 pacotes publicados (**5523 skills**: 10 áreas JusSkills + transversal +
-`area.eleitoral` com 1000 skills).
+`/v1/signing-keys`. **35 pacotes publicados** (medido direto do volume em 17/08/2026): **6.602
+skills** — 13 pacotes `area.*` + `transversal` — e **55.870 julgados de jurisprudência** — 21
+pacotes `acervo.*`, um por matéria. Cresceu bastante desde o aceite original do F3 abaixo (12
+pacotes/5523 skills); os pacotes `acervo.*` de jurisprudência entraram depois desse aceite.
 
-**Aceite (SPEC/MIGRACAO.md F3) — verificado contra a instância pública:** licença ativa baixa os 12
-packs numa instalação limpa (18s) e a busca encontra as skills; licença inexistente devolve
-`status: none` com os 12 packs **listados** e zero links de download — "existe, sua licença não
-cobre", nunca "não existe".
+**Aceite original (SPEC/MIGRACAO.md F3) — verificado contra a instância pública em 31/07/2026:**
+licença ativa baixa os 12 packs numa instalação limpa (18s) e a busca encontra as skills; licença
+inexistente devolve `status: none` com os 12 packs **listados** e zero links de download — "existe,
+sua licença não cobre", nunca "não existe". O comportamento (listar sempre, liberar por
+entitlement) vale igual para os 35 pacotes de hoje — o que mudou foi só o volume de conteúdo.
 
 **Pendência remanescente (decisão de produto, não dívida):** o motor **não embarca chave pública** —
 o cliente aponta `signing_public_key_path` para um arquivo local, mesmo padrão manual do
