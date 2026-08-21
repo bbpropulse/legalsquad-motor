@@ -56,6 +56,8 @@ function estruturaDe(corpo) {
   let dentroDeContrato = false;
   let linhasDeContrato = 0;
 
+  let fence = null;
+
   for (let i = 0; i < linhas.length; i++) {
     const linha = linhas[i];
     if (MARCA_CONTRATO_INICIO.test(linha)) dentroDeContrato = true;
@@ -63,6 +65,22 @@ function estruturaDe(corpo) {
     // são comparáveis e o digest afirma o absurdo "contrato maior que o corpo".
     if (dentroDeContrato && linha.trim()) linhasDeContrato++;
     if (MARCA_CONTRATO_FIM.test(linha)) dentroDeContrato = false;
+
+    // Bloco cercado (``` / ~~~): heading DENTRO do fence é conteúdo do
+    // exemplo, não seção autoral — modelo de peça com "## DOS FATOS" no
+    // esqueleto é o caso típico das skills deste catálogo. Fecha só com o
+    // MESMO marcador que abriu.
+    const marcadorDeFence = linha.match(/^\s*(`{3,}|~{3,})/);
+    if (marcadorDeFence) {
+      if (!fence) fence = marcadorDeFence[1][0].repeat(3);
+      else if (marcadorDeFence[1].startsWith(fence)) fence = null;
+      if (linha.trim()) atual.linhas++;
+      continue;
+    }
+    if (fence) {
+      if (linha.trim()) atual.linhas++;
+      continue;
+    }
 
     const titulo = linha.match(/^##\s+(.+?)\s*$/);
     if (titulo && !linha.startsWith('###')) {
@@ -76,12 +94,31 @@ function estruturaDe(corpo) {
   return { secoes, linhasDeContrato };
 }
 
+/** Mapa linha→dentro-de-fence, para heading em bloco cercado não contar como seção. */
+function fencesPorLinha(linhas) {
+  const dentro = new Array(linhas.length).fill(false);
+  let fence = null;
+  for (let i = 0; i < linhas.length; i++) {
+    const m = linhas[i].match(/^\s*(`{3,}|~{3,})/);
+    if (m) {
+      if (!fence) fence = m[1][0].repeat(3);
+      else if (m[1].startsWith(fence)) { fence = null; dentro[i] = true; continue; }
+      dentro[i] = true;
+      continue;
+    }
+    dentro[i] = fence !== null;
+  }
+  return dentro;
+}
+
 /** Conteúdo de uma seção `##` pelo título (casamento sem acento/caixa). */
 function conteudoDaSecao(corpo, titulo) {
   const alvo = normalizaTitulo(titulo);
   const linhas = corpo.split('\n');
+  const emFence = fencesPorLinha(linhas);
   let inicio = -1;
   for (let i = 0; i < linhas.length; i++) {
+    if (emFence[i]) continue;
     const m = linhas[i].match(/^##\s+(.+?)\s*$/);
     if (m && !linhas[i].startsWith('###') && normalizaTitulo(m[1]).includes(alvo)) {
       inicio = i;
@@ -91,6 +128,7 @@ function conteudoDaSecao(corpo, titulo) {
   if (inicio < 0) return null;
   let fim = linhas.length;
   for (let i = inicio + 1; i < linhas.length; i++) {
+    if (emFence[i]) continue;
     if (/^##\s/.test(linhas[i]) && !linhas[i].startsWith('###')) { fim = i; break; }
   }
   return linhas.slice(inicio, fim).join('\n');
@@ -103,9 +141,9 @@ function conteudoDaSecao(corpo, titulo) {
  * aderência é do Arquiteto; isto só põe os números na mesa.
  */
 function sinaisDe(corpo) {
-  const artigos = new Set([...corpo.matchAll(/\bart(?:igo)?s?\.?\s*(\d+(?:\.\d+)*(?:-[A-Z])?)/gi)].map((m) => m[1]));
+  const artigos = new Set([...corpo.matchAll(/\bart(?:igo)?s?\.?\s*(\d+(?:\.\d+)*)[ºo°]?(-[A-Z])?/gi)].map((m) => m[1] + (m[2] || '')));
   const sumulas = new Set([...corpo.matchAll(/s[úu]mulas?(?:\s+vinculantes?)?\s*(?:n\.?[ºo°]?\s*)?(\d+)/gi)].map((m) => m[1]));
-  const leis = new Set([...corpo.matchAll(/\blei\s*(?:n\.?[ºo°]?\s*)?([\d.]{4,})/gi)].map((m) => m[1]));
+  const leis = new Set([...corpo.matchAll(/\bleis?\s*(?:n\.?[ºo°]?\s*)?([\d.]{3,}\d)/gi)].map((m) => m[1]));
   const naoVerificado = (corpo.match(/\[N[ÃA]O VERIFICADO/gi) || []).length;
   return {
     artigos_citados: artigos.size,
@@ -129,7 +167,11 @@ export function detailSkill(id, rootDir, options = {}) {
     return { success: false, error: { code: 'detail-skill-inexistente', message: `skills/${idLimpo}/SKILL.md não existe` } };
   }
 
-  const raw = readFileSync(skillPath, 'utf8');
+  // Mesma normalização de `extractFrontMatter` (frontmatter.js): BOM e CRLF
+  // de editor Windows são caso real documentado — sem isto, o frontmatter
+  // inteiro vira "corpo" e os gatilhos NEGATIVOS contam como citações do
+  // texto (o digest afirmaria substância exatamente onde a skill nega cobrir).
+  const raw = readFileSync(skillPath, 'utf8').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n');
   const metadata = parseSkillMetadata(raw, { fallbackName: idLimpo });
   const frontmatter = extractFrontMatter(raw);
   const policy = getSkillLifecyclePolicy(metadata?.lifecycle, { frontmatterLegivel: frontmatter !== null });

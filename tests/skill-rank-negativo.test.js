@@ -67,3 +67,35 @@ test('documentos sem negativeTriggers seguem intactos (campo é opcional)', () =
   assert.equal(ranked.length, 1);
   assert.equal(ranked[0].reasons.includes('gatilho-negativo'), false);
 });
+
+test('fronteira de palavra: "júri" negativo NÃO dispara dentro de "jurisprudência"', () => {
+  // Regressão do achado da revisão adversarial: substring crua fazia o
+  // negativo "júri" (4 chars) casar como subpalavra de "jurisprudência" —
+  // nas duas direções — e o Arquiteto lia um conflito que o curador nunca
+  // declarou (ou perdia a skill certa da shortlist, virando GAP falso).
+  const corpus = [{
+    id: 'pesquisa-jurisprudencia-stj',
+    description: 'Pesquisa de jurisprudência no STJ',
+    positiveTriggers: ['jurisprudencia do stj'],
+    negativeTriggers: ['júri'],
+  }];
+  const ranked = rankSkills(corpus, 'jurisprudência do STJ');
+  assert.equal(ranked[0].reasons.includes('gatilho-negativo'), false,
+    'subpalavra não pode disparar o negativo');
+
+  const corpusInverso = [{
+    id: 'quesitos-do-juri',
+    description: 'Quesitos do tribunal do júri',
+    positiveTriggers: ['júri'],
+    negativeTriggers: ['jurisprudencia defensiva do stj'],
+  }];
+  const ranked2 = rankSkills(corpusInverso, 'júri');
+  assert.equal(ranked2[0].reasons.includes('gatilho-negativo'), false,
+    'a consulta para a qual a skill existe não pode ser penalizada');
+
+  // O casamento LEGÍTIMO de frase segue funcionando: negativo como palavras
+  // inteiras dentro de consulta maior.
+  const ranked3 = rankSkills(CORPUS, 'modelo de recurso ordinário trabalhista');
+  const alvo = ranked3.find((r) => r.id === 'recurso-especial');
+  if (alvo) assert.ok(alvo.reasons.includes('gatilho-negativo'));
+});

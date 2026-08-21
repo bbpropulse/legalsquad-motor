@@ -117,9 +117,16 @@ function scoreDoc(fields, phrase, tokens, pesos) {
   // negativo permanece, rebaixado e com `gatilho-negativo` em `matched_by` —
   // o Arquiteto precisa VER o conflito, não ser poupado dele. O corte de 4+
   // caracteres evita que um negativo curto capture frases por acidente.
-  if (fields.negative.some((value) => value === phrase
-    || (phrase.length >= 4 && value.includes(phrase))
-    || (value.length >= 4 && phrase.includes(value)))) {
+  // Fronteira de PALAVRA via padding de espaço — `normalize` já garante
+  // tokens separados por espaço único. Substring crua casava subpalavra:
+  // negativo "júri" (4 chars) disparava dentro de "jurisprudência", e o
+  // Arquiteto lia um conflito que o curador nunca declarou.
+  if (fields.negative.some((value) => {
+    if (value === phrase) return true;
+    const vf = ` ${value} `;
+    const pf = ` ${phrase} `;
+    return (phrase.length >= 4 && vf.includes(pf)) || (value.length >= 4 && pf.includes(vf));
+  })) {
     score -= 60;
     reasons.add('gatilho-negativo');
   }

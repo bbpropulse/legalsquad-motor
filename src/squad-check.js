@@ -15,6 +15,7 @@ import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractFrontMatter, getSkillLifecyclePolicy, parseSkillMetadata } from './frontmatter.js';
 import { defaultBestPracticesCatalogPath } from './best-practices-catalog.js';
+import { NATIVE_RUNTIME_SKILLS } from './skill-runtime-policy.js';
 
 const PACKAGE_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -206,9 +207,22 @@ function checarSkillsDeclaradas(dir, skillsDir, issues, steps = []) {
     .filter((caminho) => caminho && existsSync(caminho))
     .map((caminho) => readFileSync(caminho, 'utf8'))
     .join('\n');
+  // Fronteira que trata HÍFEN como parte do identificador — `\b` não serve:
+  // em JS o hífen é não-word, e /\bcalculo\b/ casaria dentro de
+  // "calculo-de-prazos", suprimindo o warn pela skill errada.
+  const mencionadaNosSteps = (id) => {
+    const escapado = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(^|[^A-Za-z0-9_-])${escapado}([^A-Za-z0-9_-]|$)`).test(corpoDosSteps);
+  };
+  const nativas = new Set(NATIVE_RUNTIME_SKILLS);
   for (const id of (porFonte.get('squad.yaml') || []).sort()) {
+    // Tool-skills nativas (web_search/web_fetch): o próprio Build manda
+    // declará-las no squad.yaml e o runtime as resolve com bypass — não há
+    // agente nem step que as cite, e o warn seria ruído sistemático em todo
+    // squad conforme ao schema.
+    if (nativas.has(id)) continue;
     if (declaradasPorAgentes.has(id)) continue;
-    if (corpoDosSteps.includes(id)) continue;
+    if (mencionadaNosSteps(id)) continue;
     issues.push(issue(
       'warn',
       'skill-declarada-nao-referenciada',

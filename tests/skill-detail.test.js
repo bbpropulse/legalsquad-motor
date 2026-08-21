@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { detailSkill } from '../src/skill-detail.js';
@@ -73,4 +73,54 @@ test('skill inexistente devolve erro estruturado, nunca exceção', () => {
   const r = detailSkill('nao-existe-no-disco', AREA_DEMO);
   assert.equal(r.success, false);
   assert.equal(r.error.code, 'detail-skill-inexistente');
+});
+
+test('BOM e CRLF: sinais idênticos aos do arquivo LF — frontmatter nunca vira corpo', () => {
+  // Regressão: sem normalizar, o frontmatter inteiro contava como corpo e o
+  // gatilho NEGATIVO "art. 312 do CPP" virava citação — o digest afirmava
+  // substância exatamente onde a skill declara não cobrir.
+  const fm = 'name: skill-teste\nnegative_triggers: ["art. 312 do CPP", "sumula 331"]\n';
+  const corpo = '## Base\nO art. 5 rege o tema.';
+  const lf = skillSintetica(corpo, fm);
+  const crlf = skillSintetica(corpo, fm);
+  const caminho = join(crlf, 'skills', 'skill-teste', 'SKILL.md');
+  writeFileSync(caminho, '\uFEFF' + readFileSync(caminho, 'utf8').replace(/\n/g, '\r\n'));
+
+  const a = detailSkill('skill-teste', lf);
+  const b = detailSkill('skill-teste', crlf);
+  assert.deepEqual(b.sinais, a.sinais, 'BOM+CRLF não pode mudar os sinais');
+  assert.equal(b.sinais.artigos_citados, 1, 'só o art. 5 do corpo — nunca o 312 do frontmatter');
+});
+
+test('heading dentro de fence é conteúdo do exemplo, não seção — e --secao não trunca', () => {
+  const raiz = skillSintetica([
+    '## Modelo da peça',
+    'Use este esqueleto:',
+    '```markdown',
+    '## DOS FATOS',
+    'narrativa',
+    '## DOS PEDIDOS',
+    'pedidos',
+    '```',
+    'Fim do modelo.',
+    '## Checklist',
+    'x',
+  ].join('\n'));
+  const r = detailSkill('skill-teste', raiz, { secao: 'modelo da peca' });
+  const nomes = r.estrutura.map((s) => s.secao);
+  assert.ok(!nomes.includes('DOS FATOS') && !nomes.includes('DOS PEDIDOS'),
+    `headings do fence não são seções: ${nomes}`);
+  assert.match(r.secao.conteudo, /DOS PEDIDOS/, 'a seção inclui o exemplo inteiro');
+  assert.match(r.secao.conteudo, /Fim do modelo/);
+});
+
+test('regex de citações: plural de lei, ponto final e ordinal de artigo', () => {
+  const raiz = skillSintetica([
+    '## Base',
+    'As Leis 8.072 e a Lei 9.099. regem o tema.',
+    'O art. 1º-A e o art. 1º são artigos DIFERENTES; o art. 1o repete o segundo.',
+  ].join('\n'));
+  const r = detailSkill('skill-teste', raiz);
+  assert.equal(r.sinais.leis_citadas, 2, 'plural conta; ponto final não duplica');
+  assert.equal(r.sinais.artigos_citados, 2, '1-A e 1 são chaves distintas; 1º e 1o fundem');
 });

@@ -589,7 +589,7 @@ Antes de mostrar o design e pedir aprovação, rode **uma passada de auto-críti
 - [ ] **Checkpoints:** há checkpoint em cada decisão crítica do usuário?
 - [ ] **Paralelismo:** subtarefas independentes estão em `parallel_group` (com fan-in via `depends_on: [...]`), sem violar o anti-padrão?
 - [ ] **Gates jurídicos:** ética/sigilo (`etica-oab-sigilo`) e verificação de citações onde cabível?
-- [ ] **Aderência por agente (Phase D.5):** a matriz responsabilidade×skill existe para todo agente; todo finalista passou por `detail-skill`; `agents[].skills` está preenchido (ou `[]` justificado); `catalog_decisions.selected[]` traz `agent`, `fit_evidence` e `negative_check` em toda entrada?
+- [ ] **Aderência por agente (Phase D.5):** a matriz responsabilidade×skill existe para todo agente; todo finalista passou por `detail-skill`; `agents[].skills` está preenchido (ou `[]` justificado); `catalog_decisions.selected[]` traz `agent`, `fit_evidence`, `alternatives_considered` e `negative_check` em toda entrada?
 - [ ] **Recall antes de GAP:** toda capability declarada como GAP passou por 2–3 variantes de busca antes — nenhuma foi declarada após query única?
 - [ ] **Meta verificável:** há `goal` (1 frase) e `success_criteria` (3–6 critérios checáveis) que definem "deu certo"? São verificáveis sobre o output (não vagos)?
 

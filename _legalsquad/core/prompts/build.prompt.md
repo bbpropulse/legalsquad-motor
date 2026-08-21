@@ -93,12 +93,18 @@ Generate these files. Use the Write tool for all file creation — never use Bas
        icon: "🎩"
      ```
      **Não** repita aqui um `id` do `squad-party.csv`: quem está no party executa step e ocupa desk no dashboard; o chefe só fala, e o `check-squad` reprova a colisão (`chefe-colide-com-agente`). Ele é a **voz**, não a lei: a ordem dos steps continua no `pipeline.yaml` (ver `runner.pipeline.md` — "O chefe do squad").
-   - Include a `skills:` section listing all skills:
+   - Include a `skills:` section listing all skills. **A lista por agente vem de
+     `agents[].skills` do design.yaml (Phase D.5.4) e vai para o frontmatter de cada
+     `.agent.md` — aqui no squad.yaml entram só as tool-skills nativas e o que for
+     deliberadamente global (registrado como `agent: "squad"` em
+     `catalog_decisions.selected[]`).** Skill de agente duplicada aqui vira injeção
+     global redundante; skill global sem step nem agente que a cite gera o warn
+     `skill-declarada-nao-referenciada` no `check-squad`:
      ```yaml
      skills:
        - web_search
        - web_fetch
-       # Add any skills from design.yaml:
+       # Skills globais deliberadas (agent: "squad" no design.yaml):
        # - apify
        # - canva
      ```
@@ -166,7 +172,7 @@ title: "{Agent Title}"
 icon: "{emoji}"
 squad: "{code}"
 execution: inline | subagent
-skills: []
+skills: []                          # COPIE agents[].skills do design.yaml (Phase D.5.4) — os ids que ESTE agente carrega; o runner injeta o corpo por agente a partir daqui
 tasks:                              # ordered list of task files (omit if agent has no tasks)
   - tasks/task-one.md
   - tasks/task-two.md
