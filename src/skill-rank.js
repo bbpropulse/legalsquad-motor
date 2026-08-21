@@ -3,7 +3,8 @@
 // testá-lo com um corpus sintético em memória, sem fixture no disco.
 //
 // Um documento é o achatamento de `entry.metadata` de `discoverSkillCatalog`:
-//   { id, description, group, positiveTriggers[], aliases[], categories[] }
+//   { id, description, group, positiveTriggers[], aliases[], categories[],
+//     negativeTriggers[] }
 
 const STOPWORDS = new Set([
   'a', 'ao', 'aos', 'as', 'com', 'como', 'da', 'das', 'de', 'do', 'dos', 'e',
@@ -39,6 +40,7 @@ function campos(doc) {
     positive: (doc.positiveTriggers || []).map(normalize),
     aliases: (doc.aliases || []).map(normalize),
     categories: (doc.categories || []).map(normalize),
+    negative: (doc.negativeTriggers || []).map(normalize).filter(Boolean),
   };
 }
 
@@ -103,6 +105,23 @@ function scoreDoc(fields, phrase, tokens, pesos) {
   if (fields.aliases.some((value) => value === phrase || (phrase && value.includes(phrase)))) {
     score += 80;
     reasons.add('alias');
+  }
+
+  // GATILHO NEGATIVO — o curador declarou "não use quando…" e a consulta é
+  // exatamente esse quando. O casamento é por FRASE, nunca por token: os
+  // negativos compartilham o vocabulário do domínio com os positivos (a skill
+  // `recurso-especial` nega "recurso ordinário"), e penalizar por token
+  // derrubaria a skill certa com as palavras dela mesma. Efeito com o filtro
+  // `score > 0` da saída: casamento fraco + negativo sai da lista (a skill
+  // disse "não sou para isso", e só o acaso a trouxe); casamento FORTE +
+  // negativo permanece, rebaixado e com `gatilho-negativo` em `matched_by` —
+  // o Arquiteto precisa VER o conflito, não ser poupado dele. O corte de 4+
+  // caracteres evita que um negativo curto capture frases por acidente.
+  if (fields.negative.some((value) => value === phrase
+    || (phrase.length >= 4 && value.includes(phrase))
+    || (value.length >= 4 && phrase.includes(value)))) {
+    score -= 60;
+    reasons.add('gatilho-negativo');
   }
 
   // Peso por CAMPO (onde casou) × peso por RARIDADE (quanto o termo informa).

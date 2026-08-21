@@ -9,6 +9,7 @@ import {
   parseBestPracticesCatalogDir,
 } from './best-practices-catalog.js';
 import { ehTituloOco, lerSubstanciaDoIndice } from './skill-substancia.js';
+import { lerLexicos, variantesDeConsulta } from './skill-lexico.js';
 
 const DEFAULT_LIMIT = 8;
 const MAX_LIMIT = 20;
@@ -104,19 +105,50 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
   // documentos que a busca nunca devolveria distorceria o peso.
   const elegiveis = catalog.entries
     .filter((entry) => allowedLifecycles.has(entry.metadata.lifecycle));
-  const entryById = new Map(elegiveis.map((entry) => [entry.id, entry]));
 
-  const candidatos = rankSkills(
-    elegiveis.map((entry) => ({
-      id: entry.id,
-      description: entry.metadata.description,
-      group: entry.group,
-      positiveTriggers: entry.metadata.positiveTriggers,
-      aliases: entry.metadata.aliases,
-      categories: entry.metadata.categories,
-    })),
-    query
-  );
+
+  // Filtros de metadata (opcionais) — recortam o conjunto elegível ANTES do
+  // rank e do IDF, pela mesma razão do filtro de lifecycle: a raridade de um
+  // termo deve ser medida entre as skills que a busca pode devolver.
+  const filtrado = elegiveis.filter((entry) =>
+    (!options.deliveryType || entry.metadata.deliveryType === options.deliveryType)
+    && (!options.risk || entry.metadata.riskLevel === options.risk)
+    && (!options.qualityProfile || entry.metadata.qualityProfile === options.qualityProfile));
+  const filtradoById = new Map(filtrado.map((entry) => [entry.id, entry]));
+
+  const docs = filtrado.map((entry) => ({
+    id: entry.id,
+    description: entry.metadata.description,
+    group: entry.group,
+    positiveTriggers: entry.metadata.positiveTriggers,
+    aliases: entry.metadata.aliases,
+    categories: entry.metadata.categories,
+    // Entra como sinal NEGATIVO de frase no rank (ver skill-rank.js): antes,
+    // os negative_triggers eram só ecoados na shortlist — uma consulta que
+    // casasse exatamente um "não use quando" subia como se fosse positivo.
+    negativeTriggers: entry.metadata.negativeTriggers,
+  }));
+
+  // Léxico do curador (skills/_lexico*.yaml, distribuído no pacote): a
+  // consulta vira até 4 variantes, cada uma rankeada normalmente sobre o
+  // MESMO corpus já descoberto — o disco é lido uma vez; só o rank (em
+  // memória) repete. Fusão por MELHOR score: a variante existe para achar o
+  // que o vocabulário do usuário esconde, nunca para somar pontos.
+  const lexico = lerLexicos(skillsDir);
+  const variantes = variantesDeConsulta(query, lexico);
+  const porId = new Map();
+  for (const variante of variantes) {
+    for (const match of rankSkills(docs, variante)) {
+      const atual = porId.get(match.id);
+      if (!atual || match.score > atual.score) {
+        porId.set(match.id, variante === variantes[0]
+          ? match
+          : { ...match, reasons: [...new Set([...match.reasons, 'via-lexico'])].sort() });
+      }
+    }
+  }
+  const candidatos = [...porId.values()]
+    .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id));
 
   // Audita SÓ quem casou a consulta. `evaluateSkillQuality` é por skill — só
   // compartilha contexto, sem estado cruzado —, então o resultado é idêntico ao
@@ -128,14 +160,14 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
   // errado: o `maturityBonus` abaixo entra no rank, então a auditoria decide
   // QUEM chega ao topo — cortar antes mudaria a ordem, em silêncio.
   const audit = auditSkillCatalogQuality(
-    { ...catalog, entries: candidatos.map((match) => entryById.get(match.id)) },
+    { ...catalog, entries: candidatos.map((match) => filtradoById.get(match.id)) },
     { profilesPath: existsSync(profilesPath) ? profilesPath : undefined }
   );
   const qualityById = new Map(audit.results.map((result) => [result.id, result]));
 
   const ranked = candidatos
     .map((match) => {
-      const entry = entryById.get(match.id);
+      const entry = filtradoById.get(match.id);
       const quality = qualityById.get(entry.id);
       const maturityBonus = quality?.highPerformanceEligible
         ? (quality.qualityStatus === 'certified' ? 10 : 8)
@@ -205,6 +237,13 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
     audited: audit.results.length,
     limit,
     include_preview: options.includePreview === true,
+    // Transparência do léxico e dos filtros — auditável, como tudo na busca.
+    lexico_variantes: variantes.length > 1 ? variantes.slice(1) : [],
+    filtros: {
+      ...(options.deliveryType ? { delivery_type: options.deliveryType } : {}),
+      ...(options.risk ? { risk: options.risk } : {}),
+      ...(options.qualityProfile ? { quality_profile: options.qualityProfile } : {}),
+    },
     results: ranked,
     best_practices: searchBestPractices(query, rootDir, options),
     error: null,
@@ -215,6 +254,9 @@ export function skillSearchCli(query, targetDir, values = {}) {
   const result = searchSkillCatalog(query, targetDir, {
     limit: values.limit,
     includePreview: values['include-preview'] === true,
+    deliveryType: values['delivery-type'],
+    risk: values.risk,
+    qualityProfile: values['quality-profile'],
   });
   if (values.json === true) {
     console.log(JSON.stringify(result));

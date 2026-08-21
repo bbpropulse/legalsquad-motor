@@ -16,6 +16,7 @@ import {
 } from '../src/skill-catalog-cli.js';
 import { skillRuntimeCli } from '../src/skill-runtime-cli.js';
 import { skillSearchCli } from '../src/skill-search.js';
+import { skillDetailCli } from '../src/skill-detail.js';
 import { acervoSearchCli } from '../src/acervo-search.js';
 import { acervoCli } from '../src/acervo-cli.js';
 import { ativarCli } from '../src/acervo-ativar.js';
@@ -43,6 +44,9 @@ const HELP = `
     npx legalsquad check-skills            Validate skill catalogue and graph
     npx legalsquad audit-skills            Audit skill contracts and evidence maturity
     npx legalsquad search-skills <query>   Return a compact, ranked skill + best-practice shortlist
+    npx legalsquad detail-skill <id>       Inspect ONE skill's structure, triggers and legal substance
+                                           (--secao "<título>" reads one section; shows local usage stats)
+    npx legalsquad search-skills ... --delivery-type <t> --risk <r>   Filter the shortlist by metadata
     npx legalsquad search-acervo <query>   Return a compact, ranked acervo shortlist
     npx legalsquad captura <file|URL>      Watch video + transcribe audio (local by default)
     npx legalsquad captura setup           Install on-use deps (ffmpeg/yt-dlp/faster-whisper)
@@ -71,6 +75,10 @@ const { positionals, values } = parseArgs({
     query: { type: 'string' },
     limit: { type: 'string' },
     'include-preview': { type: 'boolean' },
+    secao: { type: 'string' },
+    'delivery-type': { type: 'string' },
+    risk: { type: 'string' },
+    'quality-profile': { type: 'string' },
     'include-quarantined': { type: 'boolean' },
     json: { type: 'boolean' },
     'pilot-opt-in': { type: 'string', multiple: true },
@@ -151,6 +159,10 @@ const commands = {
   'audit-skills': { run: () => auditSkillsProject(cwd), checkSuccess: true },
   'search-skills': {
     run: () => skillSearchCli(values.query || positionals.slice(1).join(' '), cwd, values),
+    checkSuccess: true,
+  },
+  'detail-skill': {
+    run: () => skillDetailCli(positionals[1] || '', cwd, values),
     checkSuccess: true,
   },
   'search-acervo': {

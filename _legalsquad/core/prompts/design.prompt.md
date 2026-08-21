@@ -140,7 +140,7 @@ investigation:
 
 No LegalSquad, as skills de **peça, análise e cálculo SÃO o núcleo do trabalho** — cada passo do pipeline carrega a skill certa. Não são um "extra" de última hora. Descubra ANTES de desenhar os steps quais skills o squad vai usar.
 
-1. **Use a shortlist compacta do `catalog-scout`/Discovery.** Se faltar uma capability, rode nova busca local com `npx legalsquad search-skills --query "<capability>" --limit 8 --json`. `skills/_index.yaml` é a fonte completa do motor, mas nunca deve ser lido por inteiro no prompt. Consulte o manifesto de canonicalização da área (`skills/_*-integration.yaml`), quando existir, somente por busca direcionada e apenas para resolver um alvo canônico. NÃO busque catálogo na web.
+1. **Use a shortlist compacta do `catalog-scout`/Discovery.** Se faltar uma capability, rode nova busca local com `npx legalsquad search-skills --query "<capability>" --limit 8 --json`. **Busca com método — nunca uma query única:** para cada capability, formule 2–3 variantes (o termo do usuário, o termo técnico do domínio e o sinônimo processual — ex.: "despejo" / "ação de despejo" / "retomada de imóvel") e una os resultados. O ranking é lexical: uma capability fraseada fora do vocabulário do curador torna a skill certa invisível, e **GAP declarado após uma query única é a origem histórica das skills duplicadas deste catálogo**. Use os filtros quando a família for conhecida (`--delivery-type`, `--risk`, `--quality-profile` — ex.: buscando calculadora, `--delivery-type calculo` elimina o ruído de peças homônimas). Quando a área instalada trouxer léxico do curador (`skills/_lexico*.yaml`), a busca já expande sinônimos sozinha e marca `via-lexico` em `matched_by` — as 2–3 variantes manuais cobrem o que o léxico ainda não declara; **um termo que só se acha por variante manual é candidato a entrada nova no léxico: registre a sugestão no design.yaml (`lexico_sugerido`)**. Só declare GAP depois das variantes. A shortlist agora também penaliza consultas que casam `negative_triggers` (razão `gatilho-negativo` em `matched_by`) — quando ela aparecer, o curador declarou que a skill NÃO serve para essa consulta: trate como alerta de aderência, não como ruído. `skills/_index.yaml` é a fonte completa do motor, mas nunca deve ser lido por inteiro no prompt. Consulte o manifesto de canonicalização da área (`skills/_*-integration.yaml`), quando existir, somente por busca direcionada e apenas para resolver um alvo canônico. NÃO busque catálogo na web.
    - Lifecycle e qualidade são dimensões independentes; não presuma qualidade a partir de `active`.
    - `active`: disponível em produção, sujeito ao gate de qualidade abaixo.
    - `pilot`: apenas com opt-in explícito, escopo controlado e fallback ativo registrado.
@@ -171,6 +171,43 @@ No LegalSquad, as skills de **peça, análise e cálculo SÃO o núcleo do traba
 
    O erro que esta regra existe para impedir: com um catálogo grande e oco, "nunca crie o que já existe" faz o squad nascer com todas as capacidades no nome e nenhuma no corpo. **Quanto maior o catálogo vazio, menos o Arquiteto produz** — a não ser que ele enxergue a diferença entre título e conteúdo.
 7. Se o squad não precisar de nenhuma integração e as skills de núcleo já estão mapeadas → siga para a Phase E.
+
+---
+
+## Phase D.5: Análise de aderência por agente (obrigatória)
+
+A Phase D decidiu QUAIS skills o squad usa. Esta fase decide **por que cada uma serve ao agente que vai carregá-la** — com evidência do corpo, não com impressão de nome. É a diferença entre atribuir por título e atribuir por conteúdo; num catálogo grande e desigual, atribuir por título é o erro mais caro do design.
+
+### 1. Matriz de cobertura responsabilidade × skill
+
+Para CADA agente do design nascente, liste as responsabilidades operacionais (2–5, extraídas do `role_summary` e dos steps que o agente executa). Para cada responsabilidade, registre qual skill a cobre e com que grau:
+
+| Agente | Responsabilidade | Skill | Cobertura | Evidência (do digest) |
+|---|---|---|---|---|
+| {id} | {o que ele faz} | {skill-id \| —} | total \| parcial \| **lacuna** | {seção/sinal que comprova} |
+
+- Responsabilidade sem skill é **LACUNA declarada** — candidata a ENRIQUECER/CRIAR (regra de ouro da Phase D) ou coberta por best-practice; nunca silêncio.
+- Skill sem responsabilidade é **EXCESSO** — não entra. YAGNI vale para skills tanto quanto para agentes: cada skill injetada custa contexto do agente em TODA execução.
+
+### 2. Inspeção dos finalistas — `detail-skill`, nunca metadata
+
+Para cada skill finalista da matriz, rode `npx legalsquad detail-skill <id> --json`. O digest devolve o que a shortlist não pode carregar: **estrutura de seções com tamanhos**, contagens de **artigos/súmulas/leis citados** no corpo, marcadores `[NÃO VERIFICADO]`, gatilhos **completos** (positivos, negativos e guards — a busca corta em 5/3), composição (`supersedes`/`coexists`/`next_skills`) e substância. Julgue com esta rubrica:
+
+- **Cobre?** As seções do corpo correspondem às responsabilidades da matriz? Título de seção ambíguo → `--secao "<nome>"` para ler só aquela seção, nunca o arquivo inteiro.
+- **Conflita?** Algum `negative_trigger` ou `guard_trigger` casa com o CONTEXTO do agente/step (polo, rito, fase)? O rank penaliza a consulta; o cruzamento com o papel é seu.
+- **Compõe?** `next_skills`/`coexists` sugerem uma segunda skill que outro step deveria carregar? `supersedes` aponta sucessor que a shortlist não trouxe?
+- **Sustenta?** Skill de peça/análise/cálculo com **0 artigos e 0 súmulas citados** no corpo é alerta de aderência mesmo com `titulo_oco: false` — pode haver texto sem haver direito.
+- **Funciona?** O campo `uso` do digest traz os ciclos REAIS desta instalação (vereditos de revisão/gate fechados com a skill carregada — gravados automaticamente pelo squad-state). `uso: null` = nunca medida (neutro); rejeições recorrentes e recentes = pese contra, e registre no `fit_evidence` por que ainda assim escolheu; aprovações consistentes em squads distintos = o melhor sinal disponível. **É sinal de cobertura, não veredito de culpa** — a skill estava carregada no ciclo, não necessariamente o causou.
+
+Custo controlado: um digest por finalista (payload pequeno, O(1) por skill); `--secao` só quando o título não bastar; **nunca** abra o `SKILL.md` inteiro de mais de 2 skills por agente.
+
+### 3. Dry-run do resolvedor — valide ANTES do Build
+
+Com a lista final montada, rode `npx legalsquad resolve-skills <id...> --json` (com os `--pilot-opt-in`/`--pilot-fallback` que o design declarou). O resolvedor é o MESMO gate fail-closed do runtime: o que ele bloquear aqui, bloquearia na mão do advogado com a peça aberta. Skill bloqueada → resolva agora (substituto canônico, fallback, ou remoção) e registre a decisão em `catalog_decisions.excluded[]`. Nunca leve para o Build uma lista que o resolvedor recusa.
+
+### 4. Registro por agente — `agents[].skills` deixa de ser lista vazia
+
+`agents[].skills` recebe os ids que ESTE agente carrega, na ordem de uso — o runner injeta o corpo por agente, e a lista é a promessa que ele materializa (o `check-squad` avisa quando uma skill declarada não é referenciada por agente nem step). Em `catalog_decisions.selected[]`, preencha os campos de auditoria por skill: `agent`, `fit_evidence`, `alternatives_considered`, `negative_check` (schema abaixo). Decisão sem evidência registrada não sobrevive à próxima edição do squad — o campo existe para o racional não morrer com o contexto desta conversa.
 
 ---
 
@@ -450,7 +487,7 @@ agents:
     icon: "{emoji}"
     execution: "inline" | "subagent"
     role_summary: "{what this agent does}"
-    skills: []
+    skills: []                        # ids que ESTE agente carrega (Phase D.5.4) — [] só quando o agente genuinamente não usa skill
     tasks:
       - name: "{task-name}"
         file: "tasks/{task-name}.md"
@@ -523,7 +560,12 @@ catalog_decisions:
     - id: "{canonical skill id}"
       lifecycle: "{active | pilot}"
       step: "{pipeline step}"
+      agent: "{agent-id que a carrega | squad (deliberadamente global)}"
       reason: "{positive trigger/capability match}"
+      fit_evidence:                   # 1–3 fatos DO DIGEST (detail-skill) que sustentam a escolha
+        - "{seção X cobre responsabilidade Y | N artigos/súmulas no corpo | contrato de saída casa com o output do step}"
+      alternatives_considered: "{ids preteridos + motivo em meia linha | nenhum candidato adicional na shortlist}"
+      negative_check: "{nenhum negativo/guard casa com o contexto do agente | conflito encontrado + por que foi aceito}"
       fallback: "{active fallback required when lifecycle=pilot | not_applicable}"
   excluded:
     - id: "{candidate id}"
@@ -547,6 +589,8 @@ Antes de mostrar o design e pedir aprovação, rode **uma passada de auto-críti
 - [ ] **Checkpoints:** há checkpoint em cada decisão crítica do usuário?
 - [ ] **Paralelismo:** subtarefas independentes estão em `parallel_group` (com fan-in via `depends_on: [...]`), sem violar o anti-padrão?
 - [ ] **Gates jurídicos:** ética/sigilo (`etica-oab-sigilo`) e verificação de citações onde cabível?
+- [ ] **Aderência por agente (Phase D.5):** a matriz responsabilidade×skill existe para todo agente; todo finalista passou por `detail-skill`; `agents[].skills` está preenchido (ou `[]` justificado); `catalog_decisions.selected[]` traz `agent`, `fit_evidence` e `negative_check` em toda entrada?
+- [ ] **Recall antes de GAP:** toda capability declarada como GAP passou por 2–3 variantes de busca antes — nenhuma foi declarada após query única?
 - [ ] **Meta verificável:** há `goal` (1 frase) e `success_criteria` (3–6 critérios checáveis) que definem "deu certo"? São verificáveis sobre o output (não vagos)?
 
 Se algum item falhar, ajuste o design e reavalie (máx. 2 ciclos) **antes** de apresentar. Só então mostre ao usuário.

@@ -177,14 +177,45 @@ function arquivosDeAgente(dir) {
   return readdirSync(agentsDir).filter((f) => f.endsWith('.md')).map((f) => join(agentsDir, f));
 }
 
-function checarSkillsDeclaradas(dir, skillsDir, issues) {
+function checarSkillsDeclaradas(dir, skillsDir, issues, steps = []) {
+  // A ORIGEM de cada declaração é preservada (fonte → skills), não só a união:
+  // o runner injeta skill POR AGENTE, e um mapa que esquece quem declarou o quê
+  // não consegue conferir nenhuma promessa por agente. A união continua sendo o
+  // conjunto que as checagens de existência/lifecycle percorrem.
   const declaradas = new Set();
+  const porFonte = new Map();
   const fontes = [join(dir, 'squad.yaml'), ...arquivosDeAgente(dir)];
   for (const arquivo of fontes) {
     if (!existsSync(arquivo)) continue;
-    for (const id of skillsDeclaradas(readFileSync(arquivo, 'utf8'))) declaradas.add(id);
+    const ids = skillsDeclaradas(readFileSync(arquivo, 'utf8'));
+    if (ids.length) porFonte.set(basename(arquivo), ids);
+    for (const id of ids) declaradas.add(id);
   }
   if (declaradas.size === 0) return;
+
+  // Skill declarada SÓ no squad.yaml, sem agente que a declare e sem step que a
+  // mencione, é promessa que o runner nunca materializa em instrução dirigida —
+  // ela entra na união global e nenhum passo diz "carregue X". Aviso, não erro:
+  // o proxy é mecânico (menção textual do id), e menção ausente pode ser escolha
+  // legítima de squad que injeta tudo globalmente.
+  const declaradasPorAgentes = new Set(
+    [...porFonte].filter(([fonte]) => fonte !== 'squad.yaml').flatMap(([, ids]) => ids)
+  );
+  const corpoDosSteps = steps
+    .map((step) => (step.file ? join(dir, 'pipeline', step.file) : null))
+    .filter((caminho) => caminho && existsSync(caminho))
+    .map((caminho) => readFileSync(caminho, 'utf8'))
+    .join('\n');
+  for (const id of (porFonte.get('squad.yaml') || []).sort()) {
+    if (declaradasPorAgentes.has(id)) continue;
+    if (corpoDosSteps.includes(id)) continue;
+    issues.push(issue(
+      'warn',
+      'skill-declarada-nao-referenciada',
+      `skill "${id}" declarada no squad.yaml mas nenhum agente a declara e nenhum step a menciona — `
+        + 'instrução entra na união global sem passo que a use'
+    ));
+  }
 
   if (!existsSync(skillsDir)) {
     issues.push(issue(
@@ -624,7 +655,7 @@ export function checkSquad(squad, options = {}) {
   }
 
   // --- skills declaradas: promessa que ninguém conferia ---
-  checarSkillsDeclaradas(dir, skillsDir, issues);
+  checarSkillsDeclaradas(dir, skillsDir, issues, steps);
 
   // --- best-practices declaradas (data:/format:): mesma promessa, mesma dívida ---
   checarBestPracticesDeclaradas(dir, bestPracticesDir, steps, issues);

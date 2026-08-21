@@ -20,8 +20,8 @@
 //
 // <squad-dir> é a pasta do squad (contém squad.yaml + squad-party.csv); o
 // state.json é gravado lá. Rode a partir da raiz do workspace.
-import { readFileSync, writeFileSync, renameSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync, renameSync, existsSync, appendFileSync, mkdirSync, readdirSync } from 'node:fs';
+import { join, dirname, resolve, basename } from 'node:path';
 
 const SQUAD_STATUSES = ['idle', 'running', 'completed', 'checkpoint', 'failed'];
 const AGENT_STATUSES = ['idle', 'working', 'delivering', 'done', 'checkpoint'];
@@ -404,6 +404,112 @@ function resumeReview(ledger) {
 }
 // <<< review-loop:end
 
+// >>> skill-uso:begin
+const DIR_USO = ['_evals', 'uso'];
+
+/** `skills/` é irmão de `squads/` — mesma convenção do squad-check. */
+export function skillsDirDoSquad(squadDir) {
+  return join(dirname(resolve(squadDir)), '..', 'skills');
+}
+
+/**
+ * Ids de skill declarados pelo squad (squad.yaml + frontmatter dos agentes).
+ * Parser local mínimo — as duas formas que o motor gera (lista de bloco e
+ * inline), mesmas regexes do squad-check.
+ */
+export function skillsDeclaradasDoSquad(squadDir) {
+  const ids = new Set();
+  const fontes = [join(squadDir, 'squad.yaml')];
+  const agentsDir = join(squadDir, 'agents');
+  if (existsSync(agentsDir)) {
+    for (const f of readdirSync(agentsDir)) {
+      if (f.endsWith('.md')) fontes.push(join(agentsDir, f));
+    }
+  }
+  for (const arquivo of fontes) {
+    if (!existsSync(arquivo)) continue;
+    const texto = readFileSync(arquivo, 'utf8');
+    const inline = texto.match(/^\s*skills:\s*\[([^\]]*)\]\s*$/m);
+    if (inline) {
+      for (const s of inline[1].split(',')) {
+        const id = s.trim().replace(/^["']|["']$/g, '');
+        if (id) ids.add(id);
+      }
+      continue;
+    }
+    const bloco = texto.match(/^skills:\s*\n((?:\s+-\s+.+\n?)+)/m);
+    if (!bloco) continue;
+    for (const linha of bloco[1].split('\n')) {
+      const id = linha.match(/^\s*-\s+(.+?)\s*$/)?.[1]?.replace(/^["']|["']$/g, '');
+      if (id) ids.add(id);
+    }
+  }
+  return [...ids].sort();
+}
+
+/**
+ * Grava UM evento de ciclo fechado para cada skill do squad.
+ * `evento = { squad, gate, verdict, reviewer?, data? }`.
+ * Sem skills declaradas ou sem `skills/` no disco → no-op silencioso: área
+ * não instalada é estado normal deste motor.
+ */
+export function registrarUsoDeSkills(squadDir, evento) {
+  const skills = skillsDeclaradasDoSquad(squadDir);
+  if (!skills.length) return { gravados: 0 };
+  const skillsDir = skillsDirDoSquad(squadDir);
+  if (!existsSync(skillsDir)) return { gravados: 0 };
+
+  const usoDir = join(skillsDir, ...DIR_USO);
+  mkdirSync(usoDir, { recursive: true });
+  const linha = `${JSON.stringify({
+    data: evento.data || new Date().toISOString().slice(0, 10),
+    squad: String(evento.squad || ''),
+    gate: String(evento.gate || 'review'),
+    verdict: String(evento.verdict || ''),
+    ...(evento.reviewer ? { reviewer: String(evento.reviewer) } : {}),
+  })}\n`;
+
+  let gravados = 0;
+  for (const id of skills) {
+    // Um arquivo por skill: a leitura na hora da decisão é O(1) — abre o
+    // arquivo da finalista, nunca varre um log global.
+    appendFileSync(join(usoDir, `${id}.jsonl`), linha);
+    gravados++;
+  }
+  return { gravados, skills };
+}
+
+/**
+ * Agregado de uso de UMA skill, para o digest do `detail-skill` e para a
+ * Phase D.5 do Design. Ausência de arquivo → `null` ("nunca medida"), que é
+ * diferente de zero — a mesma semântica de ausência do resto do motor.
+ */
+export function lerUsoDeSkill(rootDir, skillId) {
+  const caminho = join(rootDir, 'skills', ...DIR_USO, `${skillId}.jsonl`);
+  if (!existsSync(caminho)) return null;
+
+  const eventos = readFileSync(caminho, 'utf8')
+    .split('\n')
+    .filter((l) => l.trim())
+    .map((l) => {
+      try { return JSON.parse(l); } catch { return null; }
+    })
+    .filter(Boolean);
+  if (!eventos.length) return null;
+
+  const rejeicoes = eventos.filter((e) => e.verdict === 'REJECT');
+  const squads = new Set(eventos.map((e) => e.squad).filter(Boolean));
+  return {
+    ciclos: eventos.length,
+    aprovacoes: eventos.filter((e) => e.verdict === 'APPROVE').length,
+    rejeicoes: rejeicoes.length,
+    squads_distintos: squads.size,
+    ultimo_uso: eventos[eventos.length - 1].data || null,
+    ultima_rejeicao: rejeicoes.length ? rejeicoes[rejeicoes.length - 1].data || null : null,
+  };
+}
+// <<< skill-uso:end
+
 // ---------------------------------------------------------------------------
 // Estado durável do run — cópia VERBATIM de src/run-state.js.
 // Guarda o run_id em disco: sem ele, uma sessão caída faz o runner começar um
@@ -665,6 +771,23 @@ function cmdReviewVerdict(dir, flags) {
   };
   const { ledger, result } = applyVerdict(loadLedger(dir, gate, { required: true }), entry, { expect });
   saveLedger(dir, gate, ledger);
+  // Ciclo FECHADO vira evento de uso das skills do squad — o elo execução →
+  // seleção que faltava (o Arquiteto lê isto via detail-skill na Phase D.5).
+  // Só gates de QUALIDADE (review/redacao/citacao): retry e veto medem
+  // infraestrutura e vontade do usuário, não desempenho de skill. Telemetria
+  // é fail-safe: um defeito aqui não pode custar a peça — engole e avisa.
+  if (result.action !== 'await' && ['revisao', 'redacao', 'citacao'].includes(gate)) {
+    try {
+      registrarUsoDeSkills(dir, {
+        squad: readSquadCode(dir) || basename(resolve(dir)),
+        gate,
+        verdict: result.action === 'advance' ? 'APPROVE' : 'REJECT',
+        reviewer: entry.reviewer,
+      });
+    } catch (erro) {
+      console.error(`aviso: registro de uso de skills falhou (${erro.message}) — veredito não afetado`);
+    }
+  }
   return emitDecision({ ...result, gate });
 }
 
