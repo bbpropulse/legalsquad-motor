@@ -12,7 +12,7 @@ O motor **não é distribuído pelo npm**. `npx legalsquad` numa máquina limpa 
 registro público. Instale e atualize a partir deste repositório:
 
 ```bash
-npm install -g github:bbpropulse/legalsquad-motor
+npm install -g github:bbpropulse/legalsquad-nucleo
 ```
 
 O mesmo comando **instala e atualiza** — rodá-lo de novo troca o motor pela versão mais recente

@@ -280,6 +280,6 @@ test('nenhum texto ensina a instalar/inicializar por `npx legalsquad`', async ()
     ofensores,
     [],
     'estes textos mandam instalar por um comando que só funciona depois de instalado — '
-    + 'use `npm install -g github:bbpropulse/legalsquad-motor`, que instala E atualiza'
+    + 'use `npm install -g github:bbpropulse/legalsquad-nucleo`, que instala E atualiza'
   );
 });
