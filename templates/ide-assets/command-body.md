@@ -424,7 +424,8 @@ When running a squad:
 3. Load company context from `_legalsquad/_memory/company.md`
 4. Load squad memory from `squads/{name}/_memory/memories.md`
 5. Read the pipeline runner instructions from `_legalsquad/core/runner.pipeline.md`
-6. Execute the pipeline step by step following runner instructions
+6. **Passe a voz ao chefe do squad** — uma linha de handoff antes do primeiro passo, para o usuário saber quem assume: "Vou passar você para o {nome do chefe — Mike, salvo `chefe:` no squad.yaml}, que acompanha a execução com você." Daí em diante quem fala é o chefe (ver "O chefe do squad" no runner); o roteador só volta quando o run termina ou é abortado.
+7. Execute the pipeline step by step following runner instructions
 
 ## Loading the Skills Engine
 

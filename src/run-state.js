@@ -26,7 +26,7 @@
 const RUN_STATUSES = Object.freeze(['running', 'completed', 'failed']);
 
 /** Abre o ledger de um run. O `run_id` é obrigatório: é a chave de retomada. */
-function abrirRun({ runId, squad, total } = {}) {
+function abrirRun({ runId, squad, total, agora } = {}) {
   if (typeof runId !== 'string' || !runId.trim()) {
     throw new Error('run_id é obrigatório: um run sem id não é retomável depois de a sessão cair');
   }
@@ -37,14 +37,18 @@ function abrirRun({ runId, squad, total } = {}) {
     status: 'running',
     step: { current: 0, total: totalNum, label: '' },
     checkpoints: {},
+    // Carimbo de abertura — só quando o CHAMADOR fornece (o módulo segue puro,
+    // sem data própria). É o que permite ao chefe dizer "estamos nisso há N
+    // minutos" e ao relatório fechar a duração real do run.
+    ...(typeof agora === 'string' && agora ? { startedAt: agora } : {}),
   };
 }
 
 /** Move o ponteiro do step. Preserva o `total` — perdê-lo cega a retomada. */
-function avancarRun(ledger, { current, label } = {}) {
+function avancarRun(ledger, { current, label, agora } = {}) {
   const base = ledger || {};
   const passo = base.step || {};
-  return {
+  const proximo = {
     ...base,
     step: {
       current: Number.isInteger(current) ? current : passo.current || 0,
@@ -52,6 +56,20 @@ function avancarRun(ledger, { current, label } = {}) {
       label: typeof label === 'string' ? label : passo.label || '',
     },
   };
+  // Histórico por step — só quando o chamador carimba (`agora`). Fecha o step
+  // anterior ainda aberto e abre o novo; é a matéria-prima de "a pesquisa
+  // levou 4 minutos" na conclusão e do recap honesto na retomada. Ledger
+  // antigo sem `steps` continua válido: o campo nasce aqui quando aparece.
+  if (typeof agora === 'string' && agora) {
+    const historico = Array.isArray(base.steps) ? [...base.steps] : [];
+    const aberto = historico.length && !historico[historico.length - 1].endedAt
+      ? historico.pop()
+      : null;
+    if (aberto) historico.push({ ...aberto, endedAt: agora });
+    historico.push({ n: proximo.step.current, label: proximo.step.label, startedAt: agora });
+    proximo.steps = historico;
+  }
+  return proximo;
 }
 
 /**
@@ -61,22 +79,38 @@ function avancarRun(ledger, { current, label } = {}) {
  * decidido — e uma segunda resposta pode não ser igual à primeira, o que muda o
  * resultado sem ninguém perceber.
  */
-function registrarCheckpoint(ledger, { step, resposta } = {}) {
+function registrarCheckpoint(ledger, { step, resposta, agora } = {}) {
   const base = ledger || {};
   if (typeof step !== 'string' || !step.trim()) return base;
   return {
     ...base,
+    // O VALOR continua string — é o shape que a retomada e os testes leem.
+    // O carimbo vive num mapa paralelo, aditivo: ledger antigo não o tem e
+    // segue válido; com ele, o chefe pode dizer QUANDO cada decisão foi tomada.
     checkpoints: { ...(base.checkpoints || {}), [step.trim()]: typeof resposta === 'string' ? resposta : '' },
+    ...(typeof agora === 'string' && agora
+      ? { checkpoints_em: { ...(base.checkpoints_em || {}), [step.trim()]: agora } }
+      : {}),
   };
 }
 
 /** Fecha o run. Só `completed` ou `failed` — fechar em `running` é contradição. */
-function fecharRun(ledger, { status } = {}) {
+function fecharRun(ledger, { status, agora } = {}) {
   const terminais = RUN_STATUSES.filter((s) => s !== 'running');
   if (!terminais.includes(status)) {
     throw new Error(`status terminal inválido: "${status}" (use ${terminais.join(' ou ')})`);
   }
-  return { ...(ledger || {}), status };
+  const base = ledger || {};
+  const extra = {};
+  if (typeof agora === 'string' && agora) {
+    extra.endedAt = agora;
+    // Fecha também o último step ainda aberto do histórico — sem isto a
+    // duração do passo final ficaria eternamente em aberto no relatório.
+    if (Array.isArray(base.steps) && base.steps.length && !base.steps[base.steps.length - 1].endedAt) {
+      extra.steps = [...base.steps.slice(0, -1), { ...base.steps[base.steps.length - 1], endedAt: agora }];
+    }
+  }
+  return { ...base, status, ...extra };
 }
 
 /**

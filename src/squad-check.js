@@ -493,6 +493,28 @@ export function checkSquad(squad, options = {}) {
         ));
       }
 
+      // Campo desconhecido em `chefe:` é typo silencioso — o regex de leitura
+      // simplesmente o ignora, e o autor jura que configurou. Warn, não error:
+      // o run funciona (herda o padrão), só não do jeito que o autor pensou.
+      const CAMPOS_DE_CHEFE = new Set(['nome', 'icon', 'id']);
+      for (const m of chefe.matchAll(/^\s+([A-Za-z_][\w-]*):/gm)) {
+        if (!CAMPOS_DE_CHEFE.has(m[1])) {
+          issues.push(issue(
+            'warn',
+            'chefe-campo-desconhecido',
+            `chefe.${m[1]} não é um campo reconhecido (aceitos: nome, icon, id) — será ignorado`
+          ));
+        }
+      }
+      const iconDeclarado = chefe.match(/^\s+icon:\s*(.*)$/m)?.[1];
+      if (iconDeclarado !== undefined && !iconDeclarado.replace(/["']/g, '').trim()) {
+        issues.push(issue(
+          'warn',
+          'chefe-icon-vazio',
+          'chefe declarado com `icon` vazio — omita a chave para herdar o padrão (🎩)'
+        ));
+      }
+
       const chefeId = chefe.match(/^\s+id:\s*["']?([^"'\n]+)["']?\s*$/m)?.[1]?.trim();
       if (chefeId && idsDeAgente(dir).includes(chefeId)) {
         issues.push(issue(
