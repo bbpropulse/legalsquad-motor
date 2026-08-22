@@ -189,7 +189,7 @@ Quando o usuário pede sync — `/legalsquad sync`, "faça o sync", "sincronize"
 
 1. Rode com a ferramenta Bash, na raiz do projeto: `npx legalsquad acervo sync`.
 2. Leia a saída e reporte em português simples, ex.: "✅ 12 áreas sincronizadas — 5523 skills disponíveis." Se algum pacote foi **recusado**, diga qual e por quê: pacote recusado significa que a assinatura não conferiu, e isso o usuário precisa saber, não pode ficar escondido num log.
-3. Se não houver licença configurada, **não trate como erro do sistema** — explique que falta ativar a licença e ofereça fazer isso (ver "Ativar a Licença").
+3. Se o sync falhar reclamando de licença (`status: none`, HTTP 401/403), **NÃO peça licença nenhuma** — o acesso padrão é aberto e o token já vem embutido no motor; pasta nova sem `acervo.json` é o estado normal e o sync funciona nela. Falha de licença é sintoma de **motor desatualizado** (anterior a ago/2026): atualize com `npm i -g github:bbpropulse/legalsquad-motor && legalsquad update` e rode o sync de novo. Licença própria segue existindo só para quem TRAZ uma (ver "Ativar a Licença").
 4. Se a licença estiver vencida, explique que o que já foi baixado **continua funcionando** (somente leitura) e que o que parou foi a atualização. Nunca sugira que o conteúdo foi perdido.
 
 **Sync padrão × sync completo.** Por design, a primeira sincronização baixa só o **catálogo** (metadados finos — o que existe, não o conteúdo) e o **conteúdo completo** de cada pacote só desce depois, sob demanda. Isso é proposital: instalação rápida, sem baixar de cara tudo que o usuário talvez nunca use.
