@@ -102,7 +102,7 @@ For EACH agent, extract from research:
 1. **Operational Framework**: Step-by-step process (min 5 steps, concrete, with decision criteria). Source from research frameworks.
 2. **Output Examples**: 2 FULL realistic examples (not skeletons) showing expected quality level with all sections and formatting.
 3. **Anti-Patterns**: Min 4 "Never Do" with explanations + min 3 "Always Do". Source from common mistakes research.
-4. **Voice Guidance**: 5+ always-use terms (professional domain language), 3+ never-use terms (amateur indicators), 2+ domain-specific tone rules.
+4. **Voice Guidance**: 5+ always-use terms (professional domain language), 3+ never-use terms (amateur indicators), 2+ domain-specific tone rules. **Obrigatório em TODO agente que redige texto entregável:** incluir nas never-use o **travessão (—) como conector de frase** — marca tipográfica de texto de IA; a prosa usa vírgula, dois-pontos, parênteses ou ponto. O Redação Gate reprova travessão na prosa redigida com tolerância zero (citação transcrita fica de fora) — escrever sem ele desde o primeiro rascunho evita o ciclo de correção.
 5. **Quality Criteria**: Specific, measurable criteria with scoring or pass/fail thresholds from research benchmarks.
 
 ### Squad-Level Artifacts
@@ -552,6 +552,10 @@ formats_selected:
 best_practices_consulted:
   - "{filename}"
 
+lexico_sugerido:                     # termos achados só por variante manual (candidatos a entrada no _lexico da área); omita se vazio
+  - termo: "{termo do usuário}"
+    equivale_a: "{termo do catálogo que o achou}"
+
 catalog_decisions:
   index: "skills/_index.yaml"
   integration_manifest: "{skills/_*-integration.yaml da área instalada | not_installed}"
@@ -581,7 +585,7 @@ catalog_decisions:
 Antes de mostrar o design e pedir aprovação, rode **uma passada de auto-crítica** contra esta rubrica (até 2 ciclos de ajuste — um mini-loop design→crítica→ajuste):
 
 - [ ] **Reuso:** todo `specialist_agents` do discovery está sendo aproveitado (agente fino que delega), não recriado?
-- [ ] **Catálogo/lifecycle:** `skills/_index.yaml` + manifesto foram lidos; não há `preview`/`quarantined` em produção; `deprecated` foi resolvida; todo `pilot` tem opt-in e fallback?
+- [ ] **Catálogo/lifecycle:** o catálogo foi consultado via `search-skills` (e o manifesto por busca direcionada — nunca leitura integral do `skills/_index.yaml`); não há `preview`/`quarantined` em produção; `deprecated` foi resolvida; todo `pilot` tem opt-in e fallback?
 - [ ] **Protocolos obrigatórios da área:** quando instaladas, as best-practices marcadas como obrigatórias no `_catalog.yaml` foram consultadas e os alvos canônicos do manifesto foram usados?
 - [ ] **YAGNI:** nenhum agente/step a mais do que o necessário?
 - [ ] **Reviewer:** há reviewer antes da saída final, como `execution: subagent` (contexto fresco), com `on_reject` e `max_review_cycles`?

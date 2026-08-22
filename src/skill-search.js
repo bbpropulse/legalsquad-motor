@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { discoverSkillCatalog } from './skill-catalog.js';
 import { auditSkillCatalogQuality } from './skill-quality.js';
-import { queryTokens, rankSkills } from './skill-rank.js';
+import { casaGatilhoNegativo, normalize, queryTokens, rankSkills } from './skill-rank.js';
 import {
   defaultBestPracticesDir,
   parseBestPracticesCatalog,
@@ -147,6 +147,20 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
       }
     }
   }
+  // A fusão por melhor score NÃO pode apagar o gatilho negativo da consulta
+  // ORIGINAL: a variante-sinônimo remove exatamente as palavras que o curador
+  // negou, e sem esta reaplicação a skill voltava à shortlist sem o conflito
+  // que o Arquiteto precisa VER. Mesma semântica do rank: fraco + negativo
+  // sai; forte + negativo fica, rebaixado e com a razão visível.
+  const negativosPorId = new Map(docs.map((d) => [d.id, (d.negativeTriggers || []).map(normalize).filter(Boolean)]));
+  const phraseOriginal = normalize(query);
+  for (const [id, match] of porId) {
+    if (match.reasons.includes('gatilho-negativo')) continue;
+    if (!casaGatilhoNegativo(negativosPorId.get(id), phraseOriginal)) continue;
+    const score = Math.round((match.score - 60) * 100) / 100;
+    if (score <= 0) { porId.delete(id); continue; }
+    porId.set(id, { ...match, score, reasons: [...new Set([...match.reasons, 'gatilho-negativo'])].sort() });
+  }
   const candidatos = [...porId.values()]
     .sort((left, right) => right.score - left.score || left.id.localeCompare(right.id));
 
@@ -188,6 +202,10 @@ export function searchSkillCatalog(query, rootDir, options = {}) {
         rank: match.score + maturityBonus + lifecycleBonus + penalidadeDeVazio,
       };
     })
+    // Score final NEGATIVO permanece de propósito: a única penalidade pós-rank
+    // é a de título oco, e a filosofia documentada acima é "desce, não some" —
+    // ocultar faria o Arquiteto recriar capacidade que já tem entrada. O score
+    // negativo É o aviso.
     .sort((left, right) => right.rank - left.rank || left.entry.id.localeCompare(right.entry.id))
     .slice(0, limit)
     .map(({ entry, quality, match, rank, substancia: sub }) => ({

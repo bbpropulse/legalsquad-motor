@@ -84,6 +84,21 @@ function frequenciasDocumentais(listaDeCampos, tokens) {
   return df;
 }
 
+/**
+ * A consulta casa algum gatilho negativo? Fronteira de PALAVRA via padding de
+ * espaço. Exportado porque a busca precisa REAPLICAR o negativo da consulta
+ * ORIGINAL sobre matches vindos de variantes do léxico — o "não use quando"
+ * do curador fala do que o usuário digitou, não do sinônimo substituído.
+ */
+export function casaGatilhoNegativo(negativosNormalizados, phrase) {
+  return (negativosNormalizados || []).some((value) => {
+    if (value === phrase) return true;
+    const vf = ` ${value} `;
+    const pf = ` ${phrase} `;
+    return (phrase.length >= 4 && vf.includes(pf)) || (value.length >= 4 && pf.includes(vf));
+  });
+}
+
 function scoreDoc(fields, phrase, tokens, pesos) {
   const reasons = new Set();
   let score = 0;
@@ -121,12 +136,7 @@ function scoreDoc(fields, phrase, tokens, pesos) {
   // tokens separados por espaço único. Substring crua casava subpalavra:
   // negativo "júri" (4 chars) disparava dentro de "jurisprudência", e o
   // Arquiteto lia um conflito que o curador nunca declarou.
-  if (fields.negative.some((value) => {
-    if (value === phrase) return true;
-    const vf = ` ${value} `;
-    const pf = ` ${phrase} `;
-    return (phrase.length >= 4 && vf.includes(pf)) || (value.length >= 4 && pf.includes(vf));
-  })) {
+  if (casaGatilhoNegativo(fields.negative, phrase)) {
     score -= 60;
     reasons.add('gatilho-negativo');
   }

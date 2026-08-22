@@ -96,9 +96,7 @@ Before starting execution:
    - Squad memory from `squads/{name}/_memory/memories.md`
 
 1b. **Memory format migration** — After loading `memories.md`, check whether it uses the new format by scanning for the `## Estilo de Escrita` section header:
-   ```bash
-   [ -f squads/{name}/_memory/memories.md ] && grep -q "## Estilo de Escrita" squads/{name}/_memory/memories.md && echo "NEW_FORMAT" || echo "OLD_FORMAT"
-   ```
+   Leia o arquivo com a ferramenta de leitura da IDE (Read) e procure o cabeçalho `## Estilo de Escrita` no conteúdo — **não** use `grep` de shell (pode falhar no Windows; mesma regra do SKILL.md). Arquivo ausente ou sem o cabeçalho → `OLD_FORMAT`; com ele → `NEW_FORMAT`.
    - If `NEW_FORMAT` → proceed normally.
    - If `OLD_FORMAT` (or file is empty / does not exist) → silently migrate before proceeding:
      a. Write `squads/{name}/_memory/memories.md` with the new empty-sections format (do NOT attempt to salvage content from the old file — reset unconditionally):
@@ -171,7 +169,7 @@ Before starting execution:
    explícito exige exatamente uma skill, mantém todos os gates e não a promove; listas já declaradas
    pelo squad continuam sendo validadas no modo normal de execução.
 4. **Model tiers**: Individual steps declare their own `model_tier` in their frontmatter (`fast` or `powerful`), set by the Architect at squad creation time. Read each step's `model_tier` from its frontmatter at dispatch time; if a step omits it or uses an invalid value, default to `powerful`.
-5. **A abertura é do chefe** — a primeira impressão do run. Ele se apresenta, enquadra a META (o `goal` do squad.yaml, quando declarado) e diz o tamanho do caminho, em linguagem de gente. Nunca o banner técnico em inglês:
+5. **A abertura é do chefe** — a primeira impressão do run. **Mas fale só DEPOIS da varredura de run morto do item 6**: se houver run interrompido no disco, a fala certa é a reapresentação de retomada, não a abertura de run novo — abrir com "começando pela triagem" e em seguida oferecer retomar outro run é o chefe se contradizendo na primeira frase. Ordem prática: itens 5b/6 primeiro; a abertura abaixo acontece quando o caminho é run NOVO. Ele se apresenta, enquadra a META (o `goal` do squad.yaml, quando declarado) e diz o tamanho do caminho, em linguagem de gente. Nunca o banner técnico em inglês:
    ```
    {icon do chefe} Aqui é o {nome do chefe}. Vamos {goal do squad, reformulado em 1 frase — ex.: "montar sua contestação com as preliminares e a matriz de provas"}.
    São {N} passos: {resumo em meia linha — ex.: "triagem, pesquisa, redação, revisão e sua aprovação final"}. Começando pela {primeiro step, em linguagem de gente}.
@@ -213,7 +211,7 @@ Before starting execution:
 Mantenha o contexto **enxuto e relevante** (boa prática de *context engineering*): não pré-carregue tudo.
 
 - **Acervo:** leia primeiro o **índice** `acervo/_index.yaml` (barato) e então `Read` **apenas** os arquivos relevantes ao caso/tese — **nunca** carregue o acervo inteiro. A pesquisa cita do que leu; o redator usa o `output/pesquisa-juridica.md` (já curado), não relê o acervo cru.
-- **Best-practices:** carregue só as do `format:`/`skills:` do step (já é o padrão da injeção). Não despeje o catálogo. **Exceção obrigatória:** em todo step que **redige ou revisa peça/parecer/memorial jurídico**, carregue TAMBÉM a best-practice de **redação persuasiva** da área instalada — o nome do arquivo vem do pacote da área, então **descubra-o no disco** (liste `_legalsquad/core/best-practices/`), não o presuma. É a régua de obra-prima (teoria do caso, subsunção explícita, coesão, persuasão) que o redator aplica e o revisor cobra na dimensão (h) da `revisao-juridica`. Se o arquivo **não existir** (área sem essa best-practice instalada), siga sem ele e registre WARNING no log do run — mesma degradação da injeção de `format:` (passo 4a). **E o gate acompanha a carga:** sem a régua no disco, a dimensão (h) da `revisao-juridica` é **declarada não avaliada** no veredito do revisor (não bloqueia a peça e **não** é julgada de memória). As demais dimensões continuam valendo integralmente — inclusive o Citation Gate, que não depende desta best-practice.
+- **Best-practices:** carregue só as do `format:`/`skills:` do step (já é o padrão da injeção). Não despeje o catálogo. **Exceção obrigatória:** em todo step que **redige ou revisa peça/parecer/memorial jurídico**, carregue TAMBÉM a best-practice de **redação persuasiva** da área instalada — o nome do arquivo vem do pacote da área, então **descubra-o no disco** (liste `_legalsquad/core/best-practices/`), não o presuma. É a régua de obra-prima (teoria do caso, subsunção explícita, coesão, persuasão) que o redator aplica e o revisor cobra na dimensão de redação persuasiva do checklist de revisão da área (o nome e a letra da dimensão vêm da best-practice de revisão instalada — descubra no disco, não presuma). Se o arquivo **não existir** (área sem essa best-practice instalada), siga sem ele e registre WARNING no log do run — mesma degradação da injeção de `format:` (passo 4a). **E o gate acompanha a carga:** sem a régua no disco, a dimensão de redação persuasiva do checklist de revisão da área (o nome e a letra da dimensão vêm da best-practice de revisão instalada — descubra no disco, não presuma) é **declarada não avaliada** no veredito do revisor (não bloqueia a peça e **não** é julgada de memória). As demais dimensões continuam valendo integralmente — inclusive o Citation Gate, que não depende desta best-practice.
 - **Loops:** passe **só o delta** (os `fixes`), não o histórico inteiro (já vale para revisão/citação).
 - **Peças longas:** se o output for muito extenso, trabalhe **por seção** e concatene — evita estourar a janela e mantém cada subtarefa focada.
 - **Subagentes:** dão isolamento de contexto de graça — prefira subagente para pesquisa/varredura pesada, devolvendo só o report estruturado ao fio principal.
@@ -598,7 +596,7 @@ For reference, the complete execution order for each pipeline step is:
 2. Read step file
 3. Check execution mode and execute (subagent / inline / checkpoint)
 4. Post-Step Output Validation (bash gate)
-4.4 Redação Gate (peças redigidas de skill — checagem determinística; REJECT sem gastar ciclo do revisor)
+4.4 Redação Gate (peças redigidas de skill — checagem determinística; REJECT sem gastar ciclo do revisor). Entre os sinais, o gate reprova com tolerância zero o **travessão (—) na prosa redigida** — marca de texto de IA; só sobrevive dentro de citação transcrita.
 4.5 Citation Gate (peças com citações — subagente verificador-citacoes + hook; loop até verificar, teto 3)
 5. Veto Condition Enforcement
 6. Dashboard Handoff (to next step)

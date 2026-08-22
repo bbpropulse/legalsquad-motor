@@ -85,13 +85,17 @@ export function variantesDeConsulta(query, grupos) {
 
   // 1º a frase inteira (mais específico), depois termo a termo.
   for (const vizinho of grupos.get(original) || []) adicionar(vizinho);
+  // Substituição por PALAVRA INTEIRA (padding de espaço — `normalize` garante
+  // tokens separados por espaço único). Substring crua era exatamente a classe
+  // de bug corrigida no rank: "juri" dentro de "jurisprudencia" gerava
+  // variante-lixo que puxava skill de outro domínio com a tag via-lexico.
   for (const [termo, grupo] of grupos) {
     if (variantes.length >= MAX_VARIANTES) break;
     if (termo === original) continue;
-    if (!original.includes(termo)) continue;
+    if (!` ${original} `.includes(` ${termo} `)) continue;
     for (const vizinho of grupo) {
       if (vizinho === termo) continue;
-      adicionar(original.replace(termo, vizinho));
+      adicionar(` ${original} `.replace(` ${termo} `, ` ${vizinho} `).trim());
     }
   }
   return variantes;

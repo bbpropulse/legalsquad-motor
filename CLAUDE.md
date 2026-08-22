@@ -109,8 +109,10 @@ Commit inicial: `19e29be`.
   transversal de verdade ou por acidente de fork. É trabalho do `build-area`: separar `transversal`
   de `area.*` é justamente o que ele faz.
 - **A suíte tem 7 falhas conhecidas — dívida documentada, não bug (mas não está verde).**
-  `npm test` → 810 passam, 7 falham, 817 no total, 0 skip, 0 todo (medido em 14/08/2026; as
-  **mesmas** 7 desde o F0 — a suíte cresceu de 321 para 817 sem que nenhuma nova entrasse).
+  `npm test` → 872 passam, 7 falham, 879 no total, 0 skip, 0 todo (medido em 22/08/2026; as
+  **mesmas** 7 desde o F0 — a suíte cresceu de 321 para 879 sem que nenhuma nova entrasse.
+  Uma 8ª falha apareceu e foi CORRIGIDA em 22/08: `--sigiloso com frames` quebrava porque o
+  ffmpeg 8+ removeu `-vsync`; `scripts/captura/frames.py` usa `-fps_mode vfr` agora).
   A afirmação anterior deste
   documento — que as falhas "não são regressão" — **estava errada**: das 98 falhas originais, ~20
   eram regressão de verdade (o F0 apagou os wrappers de IDE do comando, o `catalog-scout` **e os

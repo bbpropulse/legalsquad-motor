@@ -1,6 +1,6 @@
 {
   "name": "legalsquad",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "LegalSquad — motor de orquestracao multi-agente para o Direito. Areas do Direito chegam como pacotes assinados (skills + acervo) via sync.",
   "type": "module",
   "bin": {

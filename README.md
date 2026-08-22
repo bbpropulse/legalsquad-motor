@@ -68,13 +68,13 @@ calculadoras específicas de área.
 
 ## Documentação
 
-- [`docs/specs/legalsquad/ARQUITETURA.md`](docs/specs/legalsquad/ARQUITETURA.md) — a decisão, o corte
+- [`docs/specs/legalsquad/ARQUITETURA.md`](https://github.com/bbpropulse/legalsquad-motor/blob/main/docs/specs/legalsquad/ARQUITETURA.md) — a decisão, o corte
   núcleo × pacote, tipos de pacote, licença e a camada vertical.
-- [`docs/specs/legalsquad/MIGRACAO.md`](docs/specs/legalsquad/MIGRACAO.md) — plano de construção F0–F5.
-- [`docs/specs/legalsquad/F0-SANEAMENTO.md`](docs/specs/legalsquad/F0-SANEAMENTO.md) — o saneamento da
+- [`docs/specs/legalsquad/MIGRACAO.md`](https://github.com/bbpropulse/legalsquad-motor/blob/main/docs/specs/legalsquad/MIGRACAO.md) — plano de construção F0–F5.
+- [`docs/specs/legalsquad/F0-SANEAMENTO.md`](https://github.com/bbpropulse/legalsquad-motor/blob/main/docs/specs/legalsquad/F0-SANEAMENTO.md) — o saneamento da
   suíte e da fronteira núcleo × pacote, incluindo a dívida de matéria criminal, hoje paga, no
   motor.
-- [`docs/specs/acervo-server/SPEC.md`](docs/specs/acervo-server/SPEC.md) — o mecanismo de pacote,
+- [`docs/specs/acervo-server/SPEC.md`](https://github.com/bbpropulse/legalsquad-motor/blob/main/docs/specs/acervo-server/SPEC.md) — o mecanismo de pacote,
   assinatura, delta e sync (um pipeline carrega **skills e acervo**).
 
 ## Estado: F0 (scaffold)
@@ -83,7 +83,7 @@ O motor foi copiado do CriminalSquad — **a última cópia que será feita** �
 jurídico foi removido. Daqui pra frente, evolução de motor acontece **só aqui**.
 
 **O motor não tem mais categoria de assunto, nem resquício do nome antigo.** A matéria jurídica de
-área foi zerada do núcleo (a dívida `§5-bis`, de 34 arquivos, está paga — `tests/fronteira.test.js`
+área foi zerada do núcleo (a dívida `§5-bis`, de 34 arquivos, está paga — [`tests/fronteira.test.js`](https://github.com/bbpropulse/legalsquad-motor/blob/main/tests/fronteira.test.js)
 agora guarda a não-regressão com inventário vazio) e a identidade é `legalsquad` por inteiro:
 comando, `_legalsquad/`, `bin/legalsquad.js`, os marcadores de contrato
 (`LEGALSQUAD:HP-CONTRACT`, `LEGALSQUAD:CITATION-GATE`), o schema
@@ -100,16 +100,16 @@ compatibilidade — nada foi distribuído ainda.
 - **Pacote `transversal` ainda não extraído** (as ~20 skills que servem qualquer área). O conjunto já
   é derivável hoje: a interseção de nomes entre `criminalsquad` e `dtsquad` dá exatamente 20 entradas
   (19 skills + `_evals`), sem depender do `ejsquad` — ver
-  [`F0-SANEAMENTO.md §7`](docs/specs/legalsquad/F0-SANEAMENTO.md).
-- **A suíte tem 7 falhas conhecidas, não está 100% verde:** `npm test` → 314 passam, 7 falham, 321 no
+  [`F0-SANEAMENTO.md §7`](https://github.com/bbpropulse/legalsquad-motor/blob/main/docs/specs/legalsquad/F0-SANEAMENTO.md).
+- **A suíte tem 7 falhas conhecidas, não está 100% verde:** `npm test` → 872 passam, 7 falham, 879 no
   total, 0 skip, 0 todo. São dívida documentada (não bug), mas por **duas causas diferentes**: 6 delas
   (`init.test.js` ×4, `update.test.js` ×1, `cli.test.js` ×1) são ENOENT puro — `installAllSkills` e o
   `resource-cli` tentam copiar skills de um `<repo>/skills` que este repo não tem mais. Só a 7ª
   (`update.test.js:225`) é causada por `syncSkillCatalogArtifacts` (`src/init.js`, chamada por `init`
   e `update`) resolver o manifesto `_execucao-penal-v3-integration.yaml` por nome fixo em vez de raiz
   parametrizada. Detalhe completo em
-  [`F0-SANEAMENTO.md §5-bis`](docs/specs/legalsquad/F0-SANEAMENTO.md). A não-regressão dessa dívida é
-  guardada por `tests/fronteira.test.js`.
+  [`F0-SANEAMENTO.md §5-bis`](https://github.com/bbpropulse/legalsquad-motor/blob/main/docs/specs/legalsquad/F0-SANEAMENTO.md). A não-regressão dessa dívida é
+  guardada por [`tests/fronteira.test.js`](https://github.com/bbpropulse/legalsquad-motor/blob/main/tests/fronteira.test.js).
 - **`npm run verify` continua vermelho** (não é regressão desta branch): `scripts/verify.mjs` exige
   487 `SKILL.md`, os motores de `legal-calculators/` e `_legalsquad/core/authorities/
   execucao-penal-art-112.json` — tudo conteúdo de área que este repo não tem mais. Só volta a passar

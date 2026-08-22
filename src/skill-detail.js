@@ -72,8 +72,11 @@ function estruturaDe(corpo) {
     // MESMO marcador que abriu.
     const marcadorDeFence = linha.match(/^\s*(`{3,}|~{3,})/);
     if (marcadorDeFence) {
-      if (!fence) fence = marcadorDeFence[1][0].repeat(3);
-      else if (marcadorDeFence[1].startsWith(fence)) fence = null;
+      // CommonMark: o fecho exige o MESMO caractere e comprimento >= abertura.
+      // Normalizar para 3 fazia um ``` aninhado dentro de um ```` fechar o
+      // bloco externo — e os headings do exemplo viravam seções autorais.
+      if (!fence) fence = marcadorDeFence[1];
+      else if (marcadorDeFence[1][0] === fence[0] && marcadorDeFence[1].length >= fence.length) fence = null;
       if (linha.trim()) atual.linhas++;
       continue;
     }
@@ -101,8 +104,8 @@ function fencesPorLinha(linhas) {
   for (let i = 0; i < linhas.length; i++) {
     const m = linhas[i].match(/^\s*(`{3,}|~{3,})/);
     if (m) {
-      if (!fence) fence = m[1][0].repeat(3);
-      else if (m[1].startsWith(fence)) { fence = null; dentro[i] = true; continue; }
+      if (!fence) fence = m[1];
+      else if (m[1][0] === fence[0] && m[1].length >= fence.length) { fence = null; dentro[i] = true; continue; }
       dentro[i] = true;
       continue;
     }

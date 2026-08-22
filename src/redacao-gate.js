@@ -210,6 +210,24 @@ export function avaliarRedacao({ artefato, entrada, contratos = [], vicios = VIC
     problemas.push('vícios NÃO AVALIADOS: nenhuma lista de padrões de redação foi fornecida ao gate.');
   } else {
     const redigido = semCitacoes(texto);
+
+    // ── Travessão de IA: tolerância ZERO no que a peça REDIGE ──────────────
+    // Regra de produto, distinta da densidade: o travessão (—, ou – espaçado
+    // como conector) é a marca tipográfica de texto de IA, e a prosa forense
+    // brasileira não precisa dele — vírgula, dois-pontos, parênteses ou ponto
+    // resolvem. Diferente de "outrossim" (palavra legítima em dose), UM
+    // travessão já denuncia; por isso não entra na conta de densidade: é
+    // reprovação própria. Citações (blockquote) ficam de fora — ementa
+    // transcrita com travessão é fidelidade à fonte, não estilo do redator. O
+    // hífen (-) nunca casa: palavra composta e "art. 1.035-A" são intocáveis.
+    const travessoes = (redigido.match(/\u2014|\s\u2013\s/g) || []).length;
+    if (travessoes > 0) {
+      sinais.vicios = 'reprovado';
+      problemas.push(
+        `travessão REPROVADO: ${travessoes} travessão(ões) na prosa redigida — marca de texto de IA. `
+        + 'Reescreva com vírgula, dois-pontos, parênteses ou ponto final; travessão só sobrevive dentro de citação transcrita.'
+      );
+    }
     const achados = [];
     let total = 0;
     for (const vicio of lista) {
@@ -225,7 +243,8 @@ export function avaliarRedacao({ artefato, entrada, contratos = [], vicios = VIC
         `vícios REPROVADO: ${total} marcas de redação genérica fora de citação — ${achados.join('; ')}. `
         + 'Troque a asserção pela demonstração e corte o conectivo de enchimento (ver `redacao-sem-marcas-de-ia`).'
       );
-    } else {
+    } else if (sinais.vicios !== 'reprovado') {
+      // Não sobrescreve a reprovação do travessão acima.
       sinais.vicios = 'aprovado';
     }
   }

@@ -92,6 +92,10 @@ export function registrarUsoDeSkills(squadDir, evento) {
 
   let gravados = 0;
   for (const id of skills) {
+    // Id vindo de YAML do usuário NUNCA vira caminho sem o mesmo gate do
+    // detail-skill: barra ou `..` atravessaria para fora de _evals/uso via
+    // appendFileSync. Telemetria pula o id torto em silêncio — fail-safe.
+    if (/[\\/]|\.\./.test(id)) continue;
     // Um arquivo por skill: a leitura na hora da decisão é O(1) — abre o
     // arquivo da finalista, nunca varre um log global.
     appendFileSync(join(usoDir, `${id}.jsonl`), linha);
@@ -106,6 +110,7 @@ export function registrarUsoDeSkills(squadDir, evento) {
  * diferente de zero — a mesma semântica de ausência do resto do motor.
  */
 export function lerUsoDeSkill(rootDir, skillId) {
+  if (/[\\/]|\.\./.test(String(skillId || ''))) return null;
   const caminho = join(rootDir, 'skills', ...DIR_USO, `${skillId}.jsonl`);
   if (!existsSync(caminho)) return null;
 

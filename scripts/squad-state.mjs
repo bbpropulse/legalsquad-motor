@@ -471,6 +471,10 @@ export function registrarUsoDeSkills(squadDir, evento) {
 
   let gravados = 0;
   for (const id of skills) {
+    // Id vindo de YAML do usuário NUNCA vira caminho sem o mesmo gate do
+    // detail-skill: barra ou `..` atravessaria para fora de _evals/uso via
+    // appendFileSync. Telemetria pula o id torto em silêncio — fail-safe.
+    if (/[\\/]|\.\./.test(id)) continue;
     // Um arquivo por skill: a leitura na hora da decisão é O(1) — abre o
     // arquivo da finalista, nunca varre um log global.
     appendFileSync(join(usoDir, `${id}.jsonl`), linha);
@@ -485,6 +489,7 @@ export function registrarUsoDeSkills(squadDir, evento) {
  * diferente de zero — a mesma semântica de ausência do resto do motor.
  */
 export function lerUsoDeSkill(rootDir, skillId) {
+  if (/[\\/]|\.\./.test(String(skillId || ''))) return null;
   const caminho = join(rootDir, 'skills', ...DIR_USO, `${skillId}.jsonl`);
   if (!existsSync(caminho)) return null;
 
@@ -628,6 +633,13 @@ function retomarRun(ledger) {
     status,
     step: step || { current: 0, total: 0, label: '' },
     checkpoints: checkpoints || {},
+    // Campos de tempo — aditivos e opcionais: o molde de retomada do runner
+    // promete "diga QUANDO cada decisão foi tomada", e prometer campo que o
+    // run-status não devolve obrigaria o chefe a inventar. Ledger antigo não
+    // os tem e o shape segue válido.
+    ...(ledger.startedAt ? { startedAt: ledger.startedAt } : {}),
+    ...(Array.isArray(ledger.steps) && ledger.steps.length ? { steps: ledger.steps } : {}),
+    ...(ledger.checkpoints_em ? { checkpoints_em: ledger.checkpoints_em } : {}),
   };
 }
 // <<< run-state:end

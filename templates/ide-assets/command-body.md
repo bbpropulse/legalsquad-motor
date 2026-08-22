@@ -147,7 +147,7 @@ Para QUALQUER pedido em linguagem natural (tudo que não seja um `/legalsquad <c
 
 1. **Entender e registrar.** Reformule o pedido em 1 linha (para você). Registre a decisão (auditoria) anexando uma linha JSON a `_legalsquad/logs/roteamento.jsonl` (crie a pasta `_legalsquad/logs/` se não existir) — apenas `{ts, categoria, rota, justificativa}`, **sem nome de cliente, número de processo, CPF ou qualquer dado sigiloso**. Best-effort: se falhar, siga em frente.
 
-2. **Descobrir o que já existe.** Despache o subagente `catalog-scout` com um propósito **abstrato e sem dados do caso** para receber uma shortlist de squads/agentes/skills/best-practices que já cobrem. Para skills, ele roda `npx legalsquad search-skills --query "<capability>" --limit 8 --json`: o motor consulta localmente as 520 entradas e devolve só os candidatos ranqueados. `skills/_index.yaml` continua sendo a fonte completa, mas nunca deve ser lido por inteiro no prompt. Veja também `squads/` para squads existentes.
+2. **Descobrir o que já existe.** Despache o subagente `catalog-scout` com um propósito **abstrato e sem dados do caso** para receber uma shortlist de squads/agentes/skills/best-practices que já cobrem. Para skills, ele roda `npx legalsquad search-skills --query "<capability>" --limit 8 --json`: o motor consulta localmente o catálogo inteiro instalado (o tamanho varia por área — nunca presuma um número) e devolve só os candidatos ranqueados. `skills/_index.yaml` continua sendo a fonte completa, mas nunca deve ser lido por inteiro no prompt. Veja também `squads/` para squads existentes.
 
    **Gate de runtime antes de abrir qualquer `SKILL.md`:** passe os IDs candidatos pelo resolvedor fail-closed. Seleção automática/implícita usa `npx legalsquad resolve-skills <ids...> --selection --json` e só pode escolher `high_performance_eligible`. Quando o próprio pedido do usuário apontar nominalmente uma única capability ainda `contracted`, use `--explicit-selection --supervised --json`; isso permite execução supervisionada sem promovê-la. Em squads, o Pipeline Runner resolve a união das skills do YAML e dos agentes. Nunca leia/injete o body de skill bloqueada, `preview`, `quarantined`, `legacy` ou `pilot` sem opt-in e fallback.
 
@@ -233,7 +233,7 @@ Reporte separadamente: total catalogado; skills sem hard fail estrutural; `contr
 
 When the user asks to update LegalSquad — `/legalsquad atualizar` or natural phrasing ("atualizar o legalsquad", "buscar atualização", "tem versão nova?") — DO IT FOR THEM (never make them type npm). Faça assim:
 
-1. Pull the latest global package with the Bash tool: `npm i -g "git+https://github.com/bbpropulse/legalsquad.git"` (precisa de acesso ao repositório privado).
+1. Pull the latest global package with the Bash tool: `npm i -g github:bbpropulse/legalsquad-nucleo` — o dist público do aluno, mesmo comando de instalar e atualizar.
 2. Refresh this project from it: `legalsquad update`.
 3. **Refresh the GLOBAL install too:** se existir a instalação global (`~/.claude/skills/legalsquad/` — cheque com a ferramenta da IDE, resolvendo o home cross-platform), rode também `legalsquad install-global`. Sem isso a skill, os agentes e o hook em `~/.claude/` ficam presos na versão antiga para sempre (é idempotente e faz backup `.bak` — seguro re-rodar).
 
@@ -290,7 +290,7 @@ When the user runs `/legalsquad create`:
    - Follow the discovery prompt instructions (intelligent wizard, one question at a time)
    - Output: `squads/{code}/_build/discovery.yaml`
 
-3. Validate: `discovery.yaml` exists and has required fields (purpose, domain)
+4. Validate: `discovery.yaml` exists and has required fields (purpose, domain)
 
 ### Phase 2: Investigation (optional)
 

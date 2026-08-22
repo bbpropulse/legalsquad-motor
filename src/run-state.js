@@ -133,6 +133,13 @@ function retomarRun(ledger) {
     status,
     step: step || { current: 0, total: 0, label: '' },
     checkpoints: checkpoints || {},
+    // Campos de tempo — aditivos e opcionais: o molde de retomada do runner
+    // promete "diga QUANDO cada decisão foi tomada", e prometer campo que o
+    // run-status não devolve obrigaria o chefe a inventar. Ledger antigo não
+    // os tem e o shape segue válido.
+    ...(ledger.startedAt ? { startedAt: ledger.startedAt } : {}),
+    ...(Array.isArray(ledger.steps) && ledger.steps.length ? { steps: ledger.steps } : {}),
+    ...(ledger.checkpoints_em ? { checkpoints_em: ledger.checkpoints_em } : {}),
   };
 }
 // <<< run-state:end
